@@ -62,9 +62,7 @@ export function MushafPageView({
   const { toast } = useToast();
   const {
     playerState,
-    playVerse,
     playSurah,
-    handlePlayPause,
     handlePlayerClose,
   } = useAudioPlayer();
   const { saveLastRead } = useLastRead();
@@ -237,26 +235,38 @@ export function MushafPageView({
     [isArabic, toast]
   );
 
+  const buildPagePlaybackSurah = useCallback(() => {
+    if (!pageData || pageData.ayahs.length === 0) return null;
+
+    const verses = pageData.ayahs.map((a) => ({
+      number: { inQuran: a.number, inSurah: a.number },
+      text: a.text,
+      translation: "",
+    }));
+
+    return {
+      number: 0,
+      name: isArabic ? `صفحة ${pageData.pageNumber}` : `Page ${pageData.pageNumber}`,
+      englishName: `Page ${pageData.pageNumber}`,
+      englishNameTranslation: "",
+      numberOfAyahs: verses.length,
+      revelationType: "Meccan" as const,
+      verses,
+    };
+  }, [isArabic, pageData]);
+
   const handlePlayVerse = useCallback(
     (ayah: PageAyah) => {
-      const verse = {
-        number: { inQuran: ayah.number, inSurah: ayah.numberInSurah },
-        text: ayah.text,
-        translation: "",
-      };
-      const surah = {
-        number: ayah.surah.number,
-        name: ayah.surah.name,
-        englishName: ayah.surah.englishName,
-        englishNameTranslation: "",
-        numberOfAyahs: 0,
-        revelationType: "Meccan" as const,
-        verses: [verse],
-      };
-      playVerse(surah, verse);
+      const pageSurah = buildPagePlaybackSurah();
+      if (!pageSurah) return;
+
+      const startVerse = pageSurah.verses.find((v) => v.number.inQuran === ayah.number);
+      if (!startVerse) return;
+
+      playSurah(pageSurah, startVerse);
       setSelectedAyah(null);
     },
-    [playVerse]
+    [buildPagePlaybackSurah, playSurah]
   );
 
   const handleBookmarkVerse = useCallback(
@@ -305,27 +315,11 @@ export function MushafPageView({
       return;
     }
 
-    // Build a "surah" object with all verses on this page for continuous play
-    const allVerses = pageData.ayahs.map((a) => ({
-      number: { inQuran: a.number, inSurah: a.numberInSurah },
-      text: a.text,
-      translation: "",
-    }));
+    const pageSurah = buildPagePlaybackSurah();
+    if (!pageSurah) return;
 
-    // Use the first surah on the page as the base
-    const firstAyah = pageData.ayahs[0];
-    const fakeSurah = {
-      number: firstAyah.surah.number,
-      name: firstAyah.surah.name,
-      englishName: firstAyah.surah.englishName,
-      englishNameTranslation: "",
-      numberOfAyahs: allVerses.length,
-      revelationType: "Meccan" as const,
-      verses: allVerses,
-    };
-
-    playSurah(fakeSurah);
-  }, [pageData, playerState, playSurah, handlePlayerClose]);
+    playSurah(pageSurah);
+  }, [buildPagePlaybackSurah, playerState, playSurah, handlePlayerClose]);
 
   // Page header info
   const juz = pageData?.juz || 1;
@@ -593,7 +587,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
             {group.ayahs.map((ayah) => {
               const isSelected = selectedAyah === ayah.number;
               const isHighlighted = highlightedAyah === ayah.number;
-              const verseKey = `${ayah.surah.number}:${ayah.numberInSurah}`;
+              const verseKey = playerState.surah?.number === 0 ? `0:${ayah.number}` : `${ayah.surah.number}:${ayah.numberInSurah}`;
               const isPlaying =
                 playerState.activeVerseKey === verseKey &&
                 playerState.isPlaying;
@@ -706,7 +700,7 @@ const AyahPopup = React.memo(function AyahPopup({
   const ayah = page.ayahs.find(a => a.number === selectedAyah);
   if (!ayah || !position) return null;
 
-  const verseKey = `${ayah.surah.number}:${ayah.numberInSurah}`;
+  const verseKey = playerState.surah?.number === 0 ? `0:${ayah.number}` : `${ayah.surah.number}:${ayah.numberInSurah}`;
   const isPlaying = playerState.activeVerseKey === verseKey && playerState.isPlaying;
 
   return (
