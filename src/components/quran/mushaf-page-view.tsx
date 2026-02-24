@@ -19,39 +19,47 @@ import {
 import { parseTajweed, stripTajweed } from "@/lib/tajweed";
 import { useSettings } from "../providers/settings-provider";
 
-// Bismillah variants to strip from first verses (handles different unicode forms)
-const BISMILLAH_VARIANTS = [
-  'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-  'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
-  'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ',
-  'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ',
-  'بسم الله الرحمن الرحيم',
-];
-
 // Strip Bismillah prefix from first verse of surah (except Al-Fatiha and At-Tawbah)
+// Works with all Quran text variants (Hafs, Warsh, Tajweed, etc.)
 function stripBismillah(text: string, surahNumber: number, verseNumberInSurah: number): string {
   if (verseNumberInSurah !== 1) return text;
   if (surahNumber === 1 || surahNumber === 9) return text;
   
-  // Try each variant
-  for (const variant of BISMILLAH_VARIANTS) {
-    if (text.startsWith(variant)) {
-      return text.slice(variant.length).trim();
-    }
-    // Also try with a space after
-    if (text.startsWith(variant + ' ')) {
-      return text.slice(variant.length + 1).trim();
-    }
-  }
+  // Bismillah pattern: starts with بسم and ends with الرحيم (with variants)
+  // After the Bismillah, there's always the actual verse content
   
-  // Try fuzzy match - look for bismillah pattern at start
-  const bismillahPattern = /^ب[\u064B-\u065F\u0670\u06D6-\u06ED]*س[\u064B-\u065F\u0670\u06D6-\u06ED]*م[\u064B-\u065F\u0670\u06D6-\u06ED]*\s*[\u064B-\u065F\u0670\u06D6-\u06ED]*[لٱأإئ]?[\u064B-\u065F\u0670\u06D6-\u06ED]*[لهـ]?[\u064B-\u065F\u0670\u06D6-\u06ED]*\s*[\u064B-\u065F\u0670\u06D6-\u06ED]*[ٱأإ]?[\u064B-\u065F\u0670\u06D6-\u06ED]*ل[\u064B-\u065F\u0670\u06D6-\u06ED]*[رر]?[\u064B-\u065F\u0670\u06D6-\u06ED]*ح[\u064B-\u065F\u0670\u06D6-\u06ED]*م[\u064B-\u065F\u0670\u06D6-\u06ED]*[ٰن]?[\u064B-\u065F\u0670\u06D6-\u06ED]*\s*[\u064B-\u065F\u0670\u06D6-\u06ED]*[ٱأإ]?[\u064B-\u065F\u0670\u06D6-\u06ED]*ل[\u064B-\u065F\u0670\u06D6-\u06ED]*ر[\u064B-\u065F\u0670\u06D6-\u06ED]*ح[\u064B-\u065F\u0670\u06D6-\u06ED]*[يی]?[\u064B-\u065F\u0670\u06D6-\u06ED]*م[\u064B-\u065F\u0670\u06D6-\u06ED]*/u;
-  const match = text.match(bismillahPattern);
-  if (match) {
-    const remaining = text.slice(match[0].length).trim();
-    // Only strip if there's significant text remaining (not just the bismillah)
-    if (remaining.length > 10) {
-      return remaining;
+  // Find where Bismillah ends by looking for "حيم" (end of الرحيم)
+  // and checking if there's more content after it
+  
+  // The Bismillah in Arabic is always structured as:
+  // بسم + الله + الرحمن + الرحيم
+  // Total ~19 base letters, but varies with diacritics
+  
+  // Normalize to find the pattern
+  // Strip all diacritics and normalize alef variants
+  const normalizedText = text
+    .replace(/[\u064B-\u065F\u0670\u0653-\u0656\u06D6-\u06ED]/g, '') // Remove diacritics
+    .replace(/[ٱأإآ]/g, 'ا'); // Normalize alef variants
+    
+  // Check if it starts with "بسم الله الرحمن الرحيم"
+  const bismillahBase = 'بسم الله الرحمن الرحيم';
+  
+  if (normalizedText.startsWith(bismillahBase)) {
+    // Find where Bismillah ends in original text
+    // Count characters in normalized Bismillah (19)
+    // Find corresponding position in original text
+    
+    // Alternative: find the first space after "الرحيم" pattern
+    // Bismillah ends with "الرحيم" then space then verse content
+    
+    // Look for "حيم" followed by space and verse content
+    const rahimMatch = text.match(/ح[\u064B-\u065F\u0670]*[يی][\u064B-\u065F\u0670]*م[\u064B-\u065F\u0670]*\s+/);
+    if (rahimMatch) {
+      const endIndex = text.indexOf(rahimMatch[0]) + rahimMatch[0].length;
+      const remaining = text.slice(endIndex);
+      if (remaining.length > 0) {
+        return remaining;
+      }
     }
   }
   
