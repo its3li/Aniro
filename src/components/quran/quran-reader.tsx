@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -31,13 +30,15 @@ interface QuranReaderProps {
   initialVerseNumber?: number;
 }
 
+// ============================================
+// Main Component
+// ============================================
 export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderProps) {
   const { settings } = useSettings();
   const { quranViewMode, language, quranEdition } = settings;
   const isArabic = language === 'ar';
   const { toast } = useToast();
 
-  // Calculate Juz once based on surah - no dynamic tracking
   const juz = useMemo(() => getJuzForSurah(surah.number), [surah.number]);
   const hizb = useMemo(() => (juz - 1) * 2 + 1, [juz]);
 
@@ -49,7 +50,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
 
   const verseRefs = useRef<Map<string, HTMLElement | null>>(new Map());
 
-  // Scroll to active verse
+  // Scroll to active verse when playing
   useEffect(() => {
     const activeKey = playerState.activeVerseKey;
     if (activeKey && playerState.isPlaying) {
@@ -59,9 +60,9 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
     }
   }, [playerState.activeVerseKey, playerState.isPlaying]);
 
-  // Scroll to initial verse (from search) — list mode only
+  // Scroll to initial verse (from search)
   useEffect(() => {
-    if (quranViewMode === 'page') return; // Page mode handles this internally
+    if (quranViewMode === 'page') return;
     if (surah && typeof surah.number === 'number' && typeof initialVerseNumber === 'number') {
       const verseKey = `${surah.number}:${initialVerseNumber}`;
       setTimeout(() => {
@@ -77,101 +78,56 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
     }
   }, [surah, initialVerseNumber, quranViewMode]);
 
-
-  const handleVersePlayClick = (verse: Verse) => {
+  // Handlers
+  const handleVersePlayClick = useCallback((verse: Verse) => {
     const verseKey = `${surah.number}:${verse.number.inSurah}`;
     if (playerState.activeVerseKey === verseKey && playerState.isPlaying) {
       handlePlayPause();
     } else {
       playVerse(surah, verse);
     }
-  };
+  }, [surah, playerState.activeVerseKey, playerState.isPlaying, handlePlayPause, playVerse]);
 
-  const handleToggleContinuousPlay = () => {
+  const handleToggleContinuousPlay = useCallback(() => {
     const { isPlaying, isContinuous, activeVerseKey } = playerState;
     if (isContinuous && isPlaying) {
       handlePlayerClose();
     } else {
-      const startVerse = activeVerseKey ? surah.verses.find(v => `${surah.number}:${v.number.inSurah}` === activeVerseKey) : undefined;
+      const startVerse = activeVerseKey 
+        ? surah.verses.find(v => `${surah.number}:${v.number.inSurah}` === activeVerseKey) 
+        : undefined;
       playSurah(surah, startVerse);
     }
-  };
+  }, [surah, playerState, handlePlayerClose, playSurah]);
 
-  const handleCopy = (verse: Verse) => {
-    const textToCopy = `${stripTajweed(verse.text)} (${isArabic ? surah.name : surah.englishName}:${verse.number.inSurah})`;
-    navigator.clipboard.writeText(textToCopy);
-    toast({ title: isArabic ? 'تم نسخ الآية' : 'Verse copied to clipboard' });
-  };
+  const handleVerseClick = useCallback((verse: Verse) => {
+    setSelectedVerseForPopup(prev => 
+      prev?.number.inQuran === verse.number.inQuran ? null : verse
+    );
+  }, []);
 
-  const handleLongPress = (verse: Verse) => {
-    setSelectedVerseForPopup(verse);
-  };
-
-  // Show popup immediately on click (no delay)
-  const handleVerseClick = (verse: Verse) => {
-    setSelectedVerseForPopup(prev => prev?.number.inQuran === verse.number.inQuran ? null : verse);
-  };
-
-  const handleCopyVerse = (verse: Verse) => {
+  const handleCopyVerse = useCallback((verse: Verse) => {
     const textToCopy = `${stripTajweed(verse.text)} (${isArabic ? surah.name : surah.englishName}:${verse.number.inSurah})`;
     navigator.clipboard.writeText(textToCopy);
     toast({ title: isArabic ? 'تم نسخ الآية' : 'Verse copied' });
     setSelectedVerseForPopup(null);
-  };
+  }, [isArabic, surah, toast]);
 
-  const handleBookmarkVerse = (verse: Verse) => {
-    toast({ title: isArabic ? 'تم حفظ العلامة' : 'Bookmark saved', description: `${isArabic ? surah.name : surah.englishName} • ${isArabic ? 'الآية' : 'Ayah'} ${verse.number.inSurah}` });
+  const handleBookmarkVerse = useCallback((verse: Verse) => {
+    toast({ 
+      title: isArabic ? 'تم حفظ العلامة' : 'Bookmark saved', 
+      description: `${isArabic ? surah.name : surah.englishName} • ${isArabic ? 'الآية' : 'Ayah'} ${verse.number.inSurah}` 
+    });
     setSelectedVerseForPopup(null);
-  };
+  }, [isArabic, surah, toast]);
 
-  const handleOpenTafseer = (verse: Verse) => {
+  const handleOpenTafseer = useCallback((verse: Verse) => {
     setSelectedVerseForTafseer(verse);
     setTafseerOpen(true);
     setSelectedVerseForPopup(null);
-  };
+  }, []);
 
   const isSurahPlaying = playerState.isContinuous && playerState.isPlaying;
-
-  // Fixed popup position tracking for list view
-  const [popupRect, setPopupRect] = useState<{ top: number; left: number } | null>(null);
-
-  useEffect(() => {
-    if (!selectedVerseForPopup) {
-      setPopupRect(null);
-      return;
-    }
-
-    const verseKey = `${surah.number}:${selectedVerseForPopup.number.inSurah}`;
-    const verseEl = verseRefs.current.get(verseKey);
-    if (verseEl) {
-      const rect = verseEl.getBoundingClientRect();
-      const popupWidth = 180;
-      const padding = 8;
-      
-      // Center horizontally, clamp to screen edges
-      let left = rect.left + (rect.width / 2) - (popupWidth / 2);
-      left = Math.max(padding, Math.min(left, window.innerWidth - popupWidth - padding));
-      
-      // Position above the verse
-      const top = rect.top - 60;
-      
-      setPopupRect({ top, left });
-    }
-  }, [selectedVerseForPopup, surah.number]);
-
-  // Close popup on scroll or resize
-  useEffect(() => {
-    const handleScroll = () => setSelectedVerseForPopup(null);
-    const handleResize = () => setSelectedVerseForPopup(null);
-    
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleResize);
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
 
   return (
     <div>
@@ -179,7 +135,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
         <MushafPageView surahNumber={surah.number} initialVerseNumber={initialVerseNumber} onBack={onBack} />
       ) : (
         <>
-          {/* Header — native sticky app bar */}
+          {/* Header */}
           <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-2.5 safe-area-top">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" className="shrink-0 w-9 h-9" onClick={onBack}>
@@ -201,86 +157,50 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
               <TajweedLegend />
             </div>
           )}
+
+          {/* Verses list */}
           <div className="px-4 py-3">
             <div className="flex flex-col gap-2">
               {surah.verses.map((verse) => {
                 const verseKey = `${surah.number}:${verse.number.inSurah}`;
-                const isPlaying = playerState.activeVerseKey === verseKey && playerState.isPlaying;
                 const isVerseActive = playerState.activeVerseKey === verseKey;
                 const isSelected = selectedVerseForPopup?.number.inQuran === verse.number.inQuran;
+
                 return (
-                  <div
+                  <VerseCard
                     key={verse.number.inQuran}
-                    ref={el => { verseRefs.current.set(verseKey, el); }}
+                    verse={verse}
+                    verseKey={verseKey}
+                    surah={surah}
+                    isSelected={isSelected}
+                    isVerseActive={isVerseActive}
+                    quranEdition={quranEdition}
                     onClick={() => handleVerseClick(verse)}
-                    className={cn("relative bg-card border border-border p-4 rounded-xl text-center cursor-pointer overflow-hidden select-none touch-manipulation", isVerseActive && 'bg-primary/10', isSelected && 'bg-primary/10 ring-2 ring-primary/30')}
-                  >
-                    <p className="text-right font-quran text-xl leading-loose">
-                      {quranEdition === 'tajweed' ? (
-                        <span dangerouslySetInnerHTML={{ __html: parseTajweed(verse.text) }} />
-                      ) : (
-                        verse.text
-                      )}
-                      <span className="text-primary font-sans text-sm mx-1.5">
-                        ({verse.number.inSurah})
-                      </span>
-                    </p>
-                  </div>
-                )
+                    onRef={(el) => { verseRefs.current.set(verseKey, el); }}
+                  />
+                );
               })}
             </div>
           </div>
 
-          {/* Fixed popup using Portal — instant, no delay, stays on screen */}
-          {selectedVerseForPopup && popupRect && typeof window !== 'undefined' && createPortal(
-            <div
-              className="fixed z-[9999] flex items-center gap-1 bg-background shadow-xl rounded-full px-2 py-1.5 border border-border"
-              style={{
-                top: Math.max(8, popupRect.top),
-                left: popupRect.left,
-                width: '180px',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {(() => {
-                const verse = selectedVerseForPopup;
-                const verseKey = `${surah.number}:${verse.number.inSurah}`;
-                const isPlaying = playerState.activeVerseKey === verseKey && playerState.isPlaying;
-                return (
-                  <>
-                    <button 
-                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors" 
-                      onClick={() => handleVersePlayClick(verse)}
-                    >
-                      {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                    </button>
-                    <button 
-                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors" 
-                      onClick={() => handleCopyVerse(verse)}
-                    >
-                      <Copy className="w-5 h-5" />
-                    </button>
-                    <button 
-                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors" 
-                      onClick={() => handleBookmarkVerse(verse)}
-                    >
-                      <BookmarkPlus className="w-5 h-5" />
-                    </button>
-                    <button 
-                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors outline-none focus:outline-none focus-visible:outline-none" 
-                      onClick={() => handleOpenTafseer(verse)}
-                    >
-                      <BookOpen className="w-5 h-5" />
-                    </button>
-                  </>
-                );
-              })()}
-            </div>,
-            document.body
+          {/* Portal-based popup */}
+          {selectedVerseForPopup && (
+            <VersePopupPortal
+              verse={selectedVerseForPopup}
+              surah={surah}
+              playerState={playerState}
+              verseRefs={verseRefs}
+              onPlay={handleVersePlayClick}
+              onCopy={handleCopyVerse}
+              onBookmark={handleBookmarkVerse}
+              onTafseer={handleOpenTafseer}
+              onClose={() => setSelectedVerseForPopup(null)}
+            />
           )}
         </>
       )}
 
+      {/* Tafseer Modal */}
       {selectedVerseForTafseer && (
         <TafseerModal
           verse={selectedVerseForTafseer}
@@ -291,5 +211,232 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
         />
       )}
     </div>
+  );
+}
+
+// ============================================
+// Verse Card Component
+// ============================================
+interface VerseCardProps {
+  verse: Verse;
+  verseKey: string;
+  surah: Surah;
+  isSelected: boolean;
+  isVerseActive: boolean;
+  quranEdition: string;
+  onClick: () => void;
+  onRef: (el: HTMLElement | null) => void;
+}
+
+const VerseCard = React.memo(function VerseCard({
+  verse,
+  verseKey,
+  isSelected,
+  isVerseActive,
+  quranEdition,
+  onClick,
+  onRef,
+}: VerseCardProps) {
+  return (
+    <div
+      ref={onRef}
+      data-verse-key={verseKey}
+      onClick={onClick}
+      className={cn(
+        "bg-card border border-border p-4 rounded-xl text-center cursor-pointer select-none touch-manipulation transition-colors",
+        isVerseActive && 'bg-primary/10',
+        isSelected && 'bg-primary/10 ring-2 ring-primary/30'
+      )}
+    >
+      <p className="text-right font-quran text-xl leading-loose">
+        {quranEdition === 'tajweed' ? (
+          <span dangerouslySetInnerHTML={{ __html: parseTajweed(verse.text) }} />
+        ) : (
+          verse.text
+        )}
+        <span className="text-primary font-sans text-sm mx-1.5">
+          ({verse.number.inSurah})
+        </span>
+      </p>
+    </div>
+  );
+});
+
+// ============================================
+// Portal Popup Component - Verse List View
+// ============================================
+interface VersePopupPortalProps {
+  verse: Verse;
+  surah: Surah;
+  playerState: any;
+  verseRefs: React.MutableRefObject<Map<string, HTMLElement | null>>;
+  onPlay: (verse: Verse) => void;
+  onCopy: (verse: Verse) => void;
+  onBookmark: (verse: Verse) => void;
+  onTafseer: (verse: Verse) => void;
+  onClose: () => void;
+}
+
+function VersePopupPortal({
+  verse,
+  surah,
+  playerState,
+  verseRefs,
+  onPlay,
+  onCopy,
+  onBookmark,
+  onTafseer,
+  onClose,
+}: VersePopupPortalProps) {
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  // Calculate popup position
+  useEffect(() => {
+    const updatePosition = () => {
+      const verseKey = `${surah.number}:${verse.number.inSurah}`;
+      const verseEl = verseRefs.current.get(verseKey);
+      
+      if (!verseEl) return;
+
+      const rect = verseEl.getBoundingClientRect();
+      const popupWidth = 180;
+      const popupHeight = 48;
+      const padding = 12;
+      
+      // Position above the verse
+      let left = rect.left + (rect.width / 2) - (popupWidth / 2);
+      let top = rect.top - popupHeight - padding;
+      
+      // Clamp to screen edges
+      const maxLeft = window.innerWidth - popupWidth - padding;
+      left = Math.max(padding, Math.min(left, maxLeft));
+      
+      // If not enough space above, show below
+      if (top < padding + 50) {
+        top = rect.bottom + padding;
+      }
+      
+      setPosition({ top, left });
+    };
+
+    updatePosition();
+    const timeout = setTimeout(updatePosition, 50);
+    
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, { passive: true });
+    
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition);
+    };
+  }, [verse, surah.number, verseRefs]);
+
+  // Close on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      const isInsidePopup = popupRef.current?.contains(target);
+      const isInsideVerse = target.closest('[data-verse-key]') !== null;
+      
+      if (!isInsidePopup && !isInsideVerse) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [onClose]);
+
+  if (!position) return null;
+
+  const verseKey = `${surah.number}:${verse.number.inSurah}`;
+  const isPlaying = playerState.activeVerseKey === verseKey && playerState.isPlaying;
+
+  // Button class with NO focus/highlight styles
+  const buttonClass = "w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors touch-manipulation";
+
+  return createPortal(
+    <div
+      ref={popupRef}
+      className="fixed z-[9999] flex items-center gap-1 bg-background/95 backdrop-blur-sm shadow-xl rounded-full px-2 py-1.5 border border-border"
+      style={{
+        top: position.top,
+        left: position.left,
+        width: '180px',
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button 
+        className={buttonClass}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onPlay(verse);
+        }}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onPlay(verse);
+        }}
+      >
+        {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+      </button>
+      
+      <button 
+        className={buttonClass}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onCopy(verse);
+        }}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onCopy(verse);
+        }}
+      >
+        <Copy className="w-5 h-5" />
+      </button>
+      
+      <button 
+        className={buttonClass}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onBookmark(verse);
+        }}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onBookmark(verse);
+        }}
+      >
+        <BookmarkPlus className="w-5 h-5" />
+      </button>
+      
+      <button 
+        className={buttonClass}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onTafseer(verse);
+        }}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onTafseer(verse);
+        }}
+      >
+        <BookOpen className="w-5 h-5" />
+      </button>
+    </div>,
+    document.body
   );
 }
