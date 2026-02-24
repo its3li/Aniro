@@ -277,16 +277,11 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const handleNext = () => {
     const { isContinuous, activeVerseKey, surah } = playerStateRef.current;
     if (!activeVerseKey || !surah) return;
-    isPlayingAudioRef.current = false; // Force stop current playback logic
-    if (isContinuous) {
-      playNextInQueue();
+    const currentIdx = surah.verses.findIndex(v => `${surah.number}:${v.number.inSurah}` === activeVerseKey);
+    if (currentIdx > -1 && currentIdx < surah.verses.length - 1) {
+      startPlayback(surah, `${surah.number}:${surah.verses[currentIdx + 1].number.inSurah}`, isContinuous);
     } else {
-      const currentIdx = surah.verses.findIndex(v => `${surah.number}:${v.number.inSurah}` === activeVerseKey);
-      if (currentIdx > -1 && currentIdx < surah.verses.length - 1) {
-        playVerse(surah, surah.verses[currentIdx + 1]);
-      } else {
-        handlePlayerClose();
-      }
+      handlePlayerClose();
     }
   };
 
@@ -302,6 +297,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     const currentIdx = surah.verses.findIndex(v => `${surah.number}:${v.number.inSurah}` === activeVerseKey);
     if (currentIdx > 0) {
       startPlayback(surah, `${surah.number}:${surah.verses[currentIdx - 1].number.inSurah}`, isContinuous);
+    } else if (audioRef.current) {
+      audioRef.current.currentTime = 0;
     }
   };
 

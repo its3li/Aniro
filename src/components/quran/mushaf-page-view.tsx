@@ -34,6 +34,17 @@ import {
 import { useAudioPlayer } from "../providers/audio-player-provider";
 import { useLastRead } from "@/hooks/use-last-read";
 
+function startsWithBismillah(text: string): boolean {
+  const normalized = stripTajweed(text)
+    .replace(/[ً-ٰٟۖ-ۭ]/g, "")
+    .replace(/[۔۝۞۩]/g, "")
+    .replace(/[‌‍]/g, "")
+    .replace(/\s+/g, "")
+    .trim();
+
+  return normalized.startsWith("بسماللهالرحمنالرحيم");
+}
+
 interface MushafPageViewProps {
   surahNumber: number;
   initialVerseNumber?: number;
@@ -571,7 +582,8 @@ const MushafPageContent = React.memo(function MushafPageContent({
             {/* Bismillah */}
             {group.isNewSurah &&
               group.surahNumber !== 1 &&
-              group.surahNumber !== 9 && (
+              group.surahNumber !== 9 &&
+              !startsWithBismillah(group.ayahs[0]?.text ?? "") && (
                 <p className="text-center text-sm text-muted-foreground mb-1 font-quran">
                   بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
                 </p>
