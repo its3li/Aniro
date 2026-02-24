@@ -18,6 +18,45 @@ import {
 } from "@/lib/quran-page";
 import { parseTajweed, stripTajweed } from "@/lib/tajweed";
 import { useSettings } from "../providers/settings-provider";
+
+// Bismillah variants to strip from first verses (handles different unicode forms)
+const BISMILLAH_VARIANTS = [
+  'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+  'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+  'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ',
+  'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ',
+  'بسم الله الرحمن الرحيم',
+];
+
+// Strip Bismillah prefix from first verse of surah (except Al-Fatiha and At-Tawbah)
+function stripBismillah(text: string, surahNumber: number, verseNumberInSurah: number): string {
+  if (verseNumberInSurah !== 1) return text;
+  if (surahNumber === 1 || surahNumber === 9) return text;
+  
+  // Try each variant
+  for (const variant of BISMILLAH_VARIANTS) {
+    if (text.startsWith(variant)) {
+      return text.slice(variant.length).trim();
+    }
+    // Also try with a space after
+    if (text.startsWith(variant + ' ')) {
+      return text.slice(variant.length + 1).trim();
+    }
+  }
+  
+  // Try fuzzy match - look for bismillah pattern at start
+  const bismillahPattern = /^ب[\u064B-\u065F\u0670\u06D6-\u06ED]*س[\u064B-\u065F\u0670\u06D6-\u06ED]*م[\u064B-\u065F\u0670\u06D6-\u06ED]*\s*[\u064B-\u065F\u0670\u06D6-\u06ED]*[لٱأإئ]?[\u064B-\u065F\u0670\u06D6-\u06ED]*[لهـ]?[\u064B-\u065F\u0670\u06D6-\u06ED]*\s*[\u064B-\u065F\u0670\u06D6-\u06ED]*[ٱأإ]?[\u064B-\u065F\u0670\u06D6-\u06ED]*ل[\u064B-\u065F\u0670\u06D6-\u06ED]*[رر]?[\u064B-\u065F\u0670\u06D6-\u06ED]*ح[\u064B-\u065F\u0670\u06D6-\u06ED]*م[\u064B-\u065F\u0670\u06D6-\u06ED]*[ٰن]?[\u064B-\u065F\u0670\u06D6-\u06ED]*\s*[\u064B-\u065F\u0670\u06D6-\u06ED]*[ٱأإ]?[\u064B-\u065F\u0670\u06D6-\u06ED]*ل[\u064B-\u065F\u0670\u06D6-\u06ED]*ر[\u064B-\u065F\u0670\u06D6-\u06ED]*ح[\u064B-\u065F\u0670\u06D6-\u06ED]*[يی]?[\u064B-\u065F\u0670\u06D6-\u06ED]*م[\u064B-\u065F\u0670\u06D6-\u06ED]*/u;
+  const match = text.match(bismillahPattern);
+  if (match) {
+    const remaining = text.slice(match[0].length).trim();
+    // Only strip if there's significant text remaining (not just the bismillah)
+    if (remaining.length > 10) {
+      return remaining;
+    }
+  }
+  
+  return text;
+}
 import { Skeleton } from "../ui/skeleton";
 import { TajweedLegend } from "./tajweed-legend";
 import { TafseerModal } from "./tafseer-modal";
@@ -228,24 +267,38 @@ export function MushafPageView({
 
   const handlePlayVerse = useCallback(
     (ayah: PageAyah) => {
+      if (!pageData) return;
+
+      // Build verse objects for all ayahs on the page
+      const allVerses = pageData.ayahs.map((a) => ({
+        number: { inQuran: a.number, inSurah: a.numberInSurah },
+        text: a.text,
+        translation: "",
+      }));
+
       const verse = {
         number: { inQuran: ayah.number, inSurah: ayah.numberInSurah },
         text: ayah.text,
         translation: "",
       };
-      const surah = {
-        number: ayah.surah.number,
-        name: ayah.surah.name,
-        englishName: ayah.surah.englishName,
+
+      // Use the first surah on the page as base, but include ALL verses
+      const firstAyah = pageData.ayahs[0];
+      const fakeSurah = {
+        number: firstAyah.surah.number,
+        name: firstAyah.surah.name,
+        englishName: firstAyah.surah.englishName,
         englishNameTranslation: "",
-        numberOfAyahs: 0,
+        numberOfAyahs: allVerses.length,
         revelationType: "Meccan" as const,
-        verses: [verse],
+        verses: allVerses,
       };
-      playVerse(surah, verse);
+
+      // Use playSurah with the specific verse to enable next/prev navigation
+      playSurah(fakeSurah, verse);
       setSelectedAyah(null);
     },
-    [playVerse]
+    [pageData, playSurah]
   );
 
   const handleBookmarkVerse = useCallback(
@@ -586,6 +639,9 @@ const MushafPageContent = React.memo(function MushafPageContent({
                 playerState.activeVerseKey === verseKey &&
                 playerState.isPlaying;
               const isActiveVerse = playerState.activeVerseKey === verseKey;
+              
+              // Strip Bismillah from first verse to avoid duplicate display
+              const displayText = stripBismillah(ayah.text, ayah.surah.number, ayah.numberInSurah);
 
               return (
                 <span
@@ -607,11 +663,11 @@ const MushafPageContent = React.memo(function MushafPageContent({
                   {isTajweed ? (
                     <span
                       dangerouslySetInnerHTML={{
-                        __html: parseTajweed(ayah.text),
+                        __html: parseTajweed(displayText),
                       }}
                     />
                   ) : (
-                    <span>{ayah.text}</span>
+                    <span>{displayText}</span>
                   )}
                   <span className="inline-flex items-center justify-center mx-0.5 text-primary font-sans text-[0.6rem] align-middle select-none">
                     ﴿{toArabicNumber(ayah.numberInSurah)}﴾
