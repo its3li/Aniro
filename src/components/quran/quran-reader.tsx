@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Surah, Verse } from '@/lib/quran';
 import { Button } from '@/components/ui/button';
@@ -288,7 +288,7 @@ function VersePopupPortal({
   onTafseer,
   onClose,
 }: VersePopupPortalProps) {
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
   // Calculate popup position
@@ -300,9 +300,9 @@ function VersePopupPortal({
       if (!verseEl) return;
 
       const rect = verseEl.getBoundingClientRect();
-      const popupWidth = 180;
-      const popupHeight = 48;
       const padding = 12;
+      const popupWidth = Math.min(180, window.innerWidth - padding * 2);
+      const popupHeight = 48;
       
       // Position above the verse
       let left = rect.left + (rect.width / 2) - (popupWidth / 2);
@@ -317,7 +317,10 @@ function VersePopupPortal({
         top = rect.bottom + padding;
       }
       
-      setPosition({ top, left });
+      const maxTop = window.innerHeight - popupHeight - padding;
+      top = Math.max(padding, Math.min(top, maxTop));
+
+      setPosition({ top, left, width: popupWidth });
     };
 
     updatePosition();
@@ -359,8 +362,10 @@ function VersePopupPortal({
   const verseKey = `${surah.number}:${verse.number.inSurah}`;
   const isPlaying = playerState.activeVerseKey === verseKey && playerState.isPlaying;
 
-  // Button class with NO focus/highlight styles
-  const buttonClass = "w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors touch-manipulation";
+  const buttonClass = "w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors touch-manipulation outline-none focus-visible:ring-0 focus-visible:outline-none";
+  const handlePopupButtonClick = (event: { stopPropagation: () => void }) => {
+    event.stopPropagation();
+  };
 
   return createPortal(
     <div
@@ -369,20 +374,15 @@ function VersePopupPortal({
       style={{
         top: position.top,
         left: position.left,
-        width: '180px',
+        width: `${position.width}px`,
       }}
       onClick={(e) => e.stopPropagation()}
     >
       <button 
+        type="button"
         className={buttonClass}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onPlay(verse);
-        }}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        onClick={(e) => {
+          handlePopupButtonClick(e);
           onPlay(verse);
         }}
       >
@@ -390,15 +390,10 @@ function VersePopupPortal({
       </button>
       
       <button 
+        type="button"
         className={buttonClass}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onCopy(verse);
-        }}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        onClick={(e) => {
+          handlePopupButtonClick(e);
           onCopy(verse);
         }}
       >
@@ -406,15 +401,10 @@ function VersePopupPortal({
       </button>
       
       <button 
+        type="button"
         className={buttonClass}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onBookmark(verse);
-        }}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        onClick={(e) => {
+          handlePopupButtonClick(e);
           onBookmark(verse);
         }}
       >
@@ -422,15 +412,10 @@ function VersePopupPortal({
       </button>
       
       <button 
+        type="button"
         className={buttonClass}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onTafseer(verse);
-        }}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        onClick={(e) => {
+          handlePopupButtonClick(e);
           onTafseer(verse);
         }}
       >

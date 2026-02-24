@@ -264,6 +264,19 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     });
   }, [ensureReciterIsSet, cleanupAudio, fetchAudioUrl, playAudio]);
 
+  const jumpToVerse = useCallback(async (surah: Surah, verse: Verse, isContinuous: boolean) => {
+    const reciter = currentReciterRef.current;
+    cleanupAudio();
+    const verseKey = `${surah.number}:${verse.number.inSurah}`;
+    const url = await fetchAudioUrl(surah.number, verse.number.inSurah, reciter);
+
+    if (url) {
+      await playAudio(url, verseKey, surah, isContinuous);
+    } else {
+      setPlayerState(s => ({ ...s, isPlaying: false }));
+    }
+  }, [cleanupAudio, fetchAudioUrl, playAudio]);
+
   // Public: Play/Pause toggle
   const handlePlayPause = useCallback(() => {
     const { isPlaying, activeVerseKey, surah, isContinuous } = playerStateRef.current;
@@ -294,16 +307,16 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       // In single mode, play next verse
       const currentIdx = surah.verses.findIndex(v => `${surah.number}:${v.number.inSurah}` === activeVerseKey);
       if (currentIdx > -1 && currentIdx < surah.verses.length - 1) {
-        playVerse(surah, surah.verses[currentIdx + 1]);
+        jumpToVerse(surah, surah.verses[currentIdx + 1], false);
       } else {
         handlePlayerClose();
       }
     }
-  }, [handleNextInternal, playVerse, handlePlayerClose]);
+  }, [handleNextInternal, jumpToVerse, handlePlayerClose]);
 
   // Public: Previous verse (button)
   const handlePrev = useCallback(() => {
-    const { activeVerseKey, surah } = playerStateRef.current;
+    const { activeVerseKey, surah, isContinuous } = playerStateRef.current;
     if (!activeVerseKey || !surah) return;
 
     const audio = audioRef.current;
@@ -318,9 +331,9 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     // Otherwise go to previous verse
     const currentIdx = surah.verses.findIndex(v => `${surah.number}:${v.number.inSurah}` === activeVerseKey);
     if (currentIdx > 0) {
-      playVerse(surah, surah.verses[currentIdx - 1]);
+      jumpToVerse(surah, surah.verses[currentIdx - 1], isContinuous);
     }
-  }, [playVerse]);
+  }, [jumpToVerse]);
 
   // Public: Seek
   const handleSeek = useCallback((value: number) => {

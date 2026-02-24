@@ -619,9 +619,9 @@ function AyahPopupPortal({
       if (!ayahEl) return;
 
       const ayahRect = ayahEl.getBoundingClientRect();
-      const popupWidth = 160;
-      const popupHeight = 44;
       const padding = 12;
+      const popupWidth = Math.min(160, window.innerWidth - padding * 2);
+      const popupHeight = 44;
       
       // Default: center above the ayah
       let left = ayahRect.left + (ayahRect.width / 2) - (popupWidth / 2);
@@ -638,7 +638,7 @@ function AyahPopupPortal({
       
       // Ensure it doesn't go off bottom
       const maxTop = window.innerHeight - popupHeight - padding;
-      top = Math.min(top, maxTop);
+      top = Math.max(padding, Math.min(top, maxTop));
       
       setPosition({ top, left, width: popupWidth });
     };
@@ -687,7 +687,10 @@ function AyahPopupPortal({
   const verseKey = `${ayah.surah.number}:${ayah.numberInSurah}`;
   const isPlaying = playerState.activeVerseKey === verseKey && playerState.isPlaying;
 
-  const buttonClass = "w-9 h-9 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors touch-manipulation";
+  const buttonClass = "w-9 h-9 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors touch-manipulation outline-none focus-visible:ring-0 focus-visible:outline-none";
+  const handlePopupButtonClick = (event: { stopPropagation: () => void }) => {
+    event.stopPropagation();
+  };
 
   return createPortal(
     <div
@@ -701,15 +704,10 @@ function AyahPopupPortal({
       onClick={(e) => e.stopPropagation()}
     >
       <button 
+        type="button"
         className={buttonClass}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onPlay(ayah);
-        }}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        onClick={(e) => {
+          handlePopupButtonClick(e);
           onPlay(ayah);
         }}
       >
@@ -717,15 +715,10 @@ function AyahPopupPortal({
       </button>
       
       <button 
+        type="button"
         className={buttonClass}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onCopy(ayah);
-        }}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        onClick={(e) => {
+          handlePopupButtonClick(e);
           onCopy(ayah);
         }}
       >
@@ -733,15 +726,10 @@ function AyahPopupPortal({
       </button>
       
       <button 
+        type="button"
         className={buttonClass}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onBookmark(ayah);
-        }}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        onClick={(e) => {
+          handlePopupButtonClick(e);
           onBookmark(ayah);
         }}
       >
@@ -749,15 +737,10 @@ function AyahPopupPortal({
       </button>
       
       <button 
+        type="button"
         className={buttonClass}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onTafseer(ayah);
-        }}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        onClick={(e) => {
+          handlePopupButtonClick(e);
           onTafseer(ayah);
         }}
       >
