@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 };
 
 import { AzanPlayer } from '@/components/providers/azan-player';
+import { UpdateDialog } from '@/components/update-dialog';
 
 export default function RootLayout({
   children,
@@ -52,6 +53,7 @@ export default function RootLayout({
                     <GlobalPlayer />
                     <AzanPlayer />
                     <Toaster />
+                    <UpdateDialog />
                   </AppContent>
                 </SilentDownloadProvider>
               </AudioPlayerProvider>

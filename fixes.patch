@@ -1,0 +1,203 @@
+From a136a729648a44581badb9012b53ee709d831561 Mon Sep 17 00:00:00 2001
+From: Ubuntu <ubuntu@ip-172-31-33-109.eu-north-1.compute.internal>
+Date: Tue, 24 Feb 2026 07:19:26 +0000
+Subject: [PATCH] Fix: Bismillah display in ayah mode and bookmark saving
+
+- Add separate Bismillah line in Quran reader (ayah mode)
+- Apply stripBismillah to first verse text in all editions
+- Fix bookmark saving in ayah mode (saveLastRead)
+- Both issues now resolved in page view and ayah view
+---
+ src/components/quran/mushaf-page-view.tsx | 62 ++++++++++++----------
+ src/components/quran/quran-reader.tsx     | 63 +++++++++++++++++++++--
+ 2 files changed, 95 insertions(+), 30 deletions(-)
+
+diff --git a/src/components/quran/mushaf-page-view.tsx b/src/components/quran/mushaf-page-view.tsx
+index fd82f70..8cc25aa 100644
+--- a/src/components/quran/mushaf-page-view.tsx
++++ b/src/components/quran/mushaf-page-view.tsx
+@@ -19,39 +19,47 @@ import {
+ import { parseTajweed, stripTajweed } from "@/lib/tajweed";
+ import { useSettings } from "../providers/settings-provider";
+ 
+-// Bismillah variants to strip from first verses (handles different unicode forms)
+-const BISMILLAH_VARIANTS = [
+-  'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+-  'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+-  'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ',
+-  'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ',
+-  'بسم الله الرحمن الرحيم',
+-];
+-
+ // Strip Bismillah prefix from first verse of surah (except Al-Fatiha and At-Tawbah)
++// Works with all Quran text variants (Hafs, Warsh, Tajweed, etc.)
+ function stripBismillah(text: string, surahNumber: number, verseNumberInSurah: number): string {
+   if (verseNumberInSurah !== 1) return text;
+   if (surahNumber === 1 || surahNumber === 9) return text;
+   
+-  // Try each variant
+-  for (const variant of BISMILLAH_VARIANTS) {
+-    if (text.startsWith(variant)) {
+-      return text.slice(variant.length).trim();
+-    }
+-    // Also try with a space after
+-    if (text.startsWith(variant + ' ')) {
+-      return text.slice(variant.length + 1).trim();
+-    }
+-  }
++  // Bismillah pattern: starts with بسم and ends with الرحيم (with variants)
++  // After the Bismillah, there's always the actual verse content
++  
++  // Find where Bismillah ends by looking for "حيم" (end of الرحيم)
++  // and checking if there's more content after it
++  
++  // The Bismillah in Arabic is always structured as:
++  // بسم + الله + الرحمن + الرحيم
++  // Total ~19 base letters, but varies with diacritics
+   
+-  // Try fuzzy match - look for bismillah pattern at start
+-  const bismillahPattern = /^ب[\u064B-\u065F\u0670\u06D6-\u06ED]*س[\u064B-\u065F\u0670\u06D6-\u06ED]*م[\u064B-\u065F\u0670\u06D6-\u06ED]*\s*[\u064B-\u065F\u0670\u06D6-\u06ED]*[لٱأإئ]?[\u064B-\u065F\u0670\u06D6-\u06ED]*[لهـ]?[\u064B-\u065F\u0670\u06D6-\u06ED]*\s*[\u064B-\u065F\u0670\u06D6-\u06ED]*[ٱأإ]?[\u064B-\u065F\u0670\u06D6-\u06ED]*ل[\u064B-\u065F\u0670\u06D6-\u06ED]*[رر]?[\u064B-\u065F\u0670\u06D6-\u06ED]*ح[\u064B-\u065F\u0670\u06D6-\u06ED]*م[\u064B-\u065F\u0670\u06D6-\u06ED]*[ٰن]?[\u064B-\u065F\u0670\u06D6-\u06ED]*\s*[\u064B-\u065F\u0670\u06D6-\u06ED]*[ٱأإ]?[\u064B-\u065F\u0670\u06D6-\u06ED]*ل[\u064B-\u065F\u0670\u06D6-\u06ED]*ر[\u064B-\u065F\u0670\u06D6-\u06ED]*ح[\u064B-\u065F\u0670\u06D6-\u06ED]*[يی]?[\u064B-\u065F\u0670\u06D6-\u06ED]*م[\u064B-\u065F\u0670\u06D6-\u06ED]*/u;
+-  const match = text.match(bismillahPattern);
+-  if (match) {
+-    const remaining = text.slice(match[0].length).trim();
+-    // Only strip if there's significant text remaining (not just the bismillah)
+-    if (remaining.length > 10) {
+-      return remaining;
++  // Normalize to find the pattern
++  // Strip all diacritics and normalize alef variants
++  const normalizedText = text
++    .replace(/[\u064B-\u065F\u0670\u0653-\u0656\u06D6-\u06ED]/g, '') // Remove diacritics
++    .replace(/[ٱأإآ]/g, 'ا'); // Normalize alef variants
++    
++  // Check if it starts with "بسم الله الرحمن الرحيم"
++  const bismillahBase = 'بسم الله الرحمن الرحيم';
++  
++  if (normalizedText.startsWith(bismillahBase)) {
++    // Find where Bismillah ends in original text
++    // Count characters in normalized Bismillah (19)
++    // Find corresponding position in original text
++    
++    // Alternative: find the first space after "الرحيم" pattern
++    // Bismillah ends with "الرحيم" then space then verse content
++    
++    // Look for "حيم" followed by space and verse content
++    const rahimMatch = text.match(/ح[\u064B-\u065F\u0670]*[يی][\u064B-\u065F\u0670]*م[\u064B-\u065F\u0670]*\s+/);
++    if (rahimMatch) {
++      const endIndex = text.indexOf(rahimMatch[0]) + rahimMatch[0].length;
++      const remaining = text.slice(endIndex);
++      if (remaining.length > 0) {
++        return remaining;
++      }
+     }
+   }
+   
+diff --git a/src/components/quran/quran-reader.tsx b/src/components/quran/quran-reader.tsx
+index 59c41bd..e537a56 100644
+--- a/src/components/quran/quran-reader.tsx
++++ b/src/components/quran/quran-reader.tsx
+@@ -14,6 +14,38 @@ import { MushafPageView } from './mushaf-page-view';
+ import { useToast } from '@/hooks/use-toast';
+ import { cn } from '@/lib/utils';
+ import { useAudioPlayer } from '../providers/audio-player-provider';
++import { useLastRead } from '@/hooks/use-last-read';
++
++// Strip Bismillah prefix from first verse of surah (except Al-Fatiha and At-Tawbah)
++// Works with all Quran text variants (Hafs, Warsh, Tajweed, etc.)
++function stripBismillah(text: string, surahNumber: number, verseNumberInSurah: number): string {
++  if (verseNumberInSurah !== 1) return text;
++  if (surahNumber === 1 || surahNumber === 9) return text;
++  
++  // Normalize to find the pattern
++  // Strip all diacritics and normalize alef variants
++  const normalizedText = text
++    .replace(/[\u064B-\u065F\u0670\u0653-\u0656\u06D6-\u06ED]/g, '') // Remove diacritics
++    .replace(/[ٱأإآ]/g, 'ا'); // Normalize alef variants
++    
++  // Check if it starts with "بسم الله الرحمن الرحيم"
++  const bismillahBase = 'بسم الله الرحمن الرحيم';
++  
++  if (normalizedText.startsWith(bismillahBase)) {
++    // Find where Bismillah ends in original text
++    // Look for "حيم" followed by space and verse content
++    const rahimMatch = text.match(/ح[\u064B-\u065F\u0670]*[يی][\u064B-\u065F\u0670]*م[\u064B-\u065F\u0670]*\s+/);
++    if (rahimMatch) {
++      const endIndex = text.indexOf(rahimMatch[0]) + rahimMatch[0].length;
++      const remaining = text.slice(endIndex);
++      if (remaining.length > 0) {
++        return remaining;
++      }
++    }
++  }
++  
++  return text;
++}
+ 
+ // Juz starts at specific Surah numbers
+ const JUZ_STARTS = [1, 2, 2, 3, 4, 4, 5, 6, 7, 8, 9, 11, 12, 15, 17, 18, 21, 23, 25, 27, 29, 33, 36, 39, 41, 46, 51, 58, 67, 78];
+@@ -36,6 +68,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
+   const { quranViewMode, language, quranEdition } = settings;
+   const isArabic = language === 'ar';
+   const { toast } = useToast();
++  const { saveLastRead } = useLastRead();
+ 
+   // Calculate Juz once based on surah - no dynamic tracking
+   const juz = useMemo(() => getJuzForSurah(surah.number), [surah.number]);
+@@ -120,6 +153,16 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
+   };
+ 
+   const handleBookmarkVerse = (verse: Verse) => {
++    saveLastRead({
++      surahName: surah.englishName,
++      surahNameAr: surah.name,
++      surahNumber: surah.number,
++      verseNumber: verse.number.inSurah,
++      pageNumber: verse.page || 1,
++      juzNumber: juz,
++      hizbNumber: hizb,
++      timestamp: Date.now(),
++    });
+     toast({ title: isArabic ? 'تم حفظ العلامة' : 'Bookmark saved', description: `${isArabic ? surah.name : surah.englishName} • ${isArabic ? 'الآية' : 'Ayah'} ${verse.number.inSurah}` });
+     setSelectedVerseForPopup(null);
+   };
+@@ -203,11 +246,25 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
+           )}
+           <div className="px-4 py-3">
+             <div className="flex flex-col gap-2">
+-              {surah.verses.map((verse) => {
++              {/* Bismillah - separate line for all surahs except Fatiha (1) and Tawbah (9) */}
++              {surah.number !== 1 && surah.number !== 9 && (
++                <div className="text-center py-3">
++                  <p className="font-quran text-xl text-muted-foreground">
++                    بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
++                  </p>
++                </div>
++              )}
++              {surah.verses.map((verse, index) => {
+                 const verseKey = `${surah.number}:${verse.number.inSurah}`;
+                 const isPlaying = playerState.activeVerseKey === verseKey && playerState.isPlaying;
+                 const isVerseActive = playerState.activeVerseKey === verseKey;
+                 const isSelected = selectedVerseForPopup?.number.inQuran === verse.number.inQuran;
++                
++                // Strip Bismillah from first verse text (for Hafs/Warsh editions where it's embedded)
++                const displayText = index === 0 
++                  ? stripBismillah(verse.text, surah.number, verse.number.inSurah)
++                  : verse.text;
++                
+                 return (
+                   <div
+                     key={verse.number.inQuran}
+@@ -217,9 +274,9 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
+                   >
+                     <p className="text-right font-quran text-xl leading-loose">
+                       {quranEdition === 'tajweed' ? (
+-                        <span dangerouslySetInnerHTML={{ __html: parseTajweed(verse.text) }} />
++                        <span dangerouslySetInnerHTML={{ __html: parseTajweed(displayText) }} />
+                       ) : (
+-                        verse.text
++                        displayText
+                       )}
+                       <span className="text-primary font-sans text-sm mx-1.5">
+                         ({verse.number.inSurah})
+-- 
+2.43.0
+
