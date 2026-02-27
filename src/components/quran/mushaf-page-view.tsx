@@ -59,9 +59,28 @@ function stripBismillah(text: string, surahNumber: number, verseNumberInSurah: n
   return text;
 }
 
-// -------------------------------------------------------------
+// ============================================================
+// مكون التحميل الوهمي (الذي كان يسبب الخطأ)
+// ============================================================
+function PageSkeleton() {
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-start px-4 py-8 gap-4 opacity-50">
+      <Skeleton className="w-1/3 h-12 rounded-lg mx-auto mb-6" />
+      <Skeleton className="w-full h-10 rounded" />
+      <Skeleton className="w-11/12 h-10 rounded mx-auto" />
+      <Skeleton className="w-full h-10 rounded" />
+      <Skeleton className="w-5/6 h-10 rounded mx-auto" />
+      <Skeleton className="w-full h-10 rounded" />
+      <Skeleton className="w-4/5 h-10 rounded mx-auto" />
+      <Skeleton className="w-full h-10 rounded" />
+      <Skeleton className="w-11/12 h-10 rounded mx-auto" />
+    </div>
+  );
+}
+
+// ============================================================
 // مكون واجهة المصحف الرئيسي
-// -------------------------------------------------------------
+// ============================================================
 interface MushafPageViewProps {
   surahNumber: number;
   initialVerseNumber?: number;
@@ -358,9 +377,6 @@ export function MushafPageView({
       className="mushaf-container flex h-[100dvh] flex-col overflow-hidden"
       onClick={() => setSelectedAyah(null)}
     >
-      {/* تعديل 1: تم تغيير الهيدر ليكون متوافقاً مع الـ Safe Area في الهواتف
-        باستخدام Flex Item وعدم استخدام fixed نهائياً.
-      */}
       <div className="shrink-0 z-30 flex items-center gap-2 px-2 pb-2 border-b border-border/40 bg-background/95 pt-[max(env(safe-area-inset-top,20px),_0.75rem)]">
         <button
           onClick={onBack}
@@ -430,7 +446,7 @@ export function MushafPageView({
       >
         <div className={`mushaf-page-wrapper h-full px-2 ${slideClass}`}>
           {isLoading ? (
-            <PageSkeleton /> // تأكد من وجود ملف السكيلتون لديك أو استيراده بشكل صحيح
+            <PageSkeleton />
           ) : pageData ? (
             <MushafPageContent
               page={pageData}
@@ -450,11 +466,18 @@ export function MushafPageView({
         </div>
       </div>
 
-      {/* Portal-based popup */}
-      {/* تأكد من أن مكون AyahPopup موجود ومستورد إذا لم يكن مضمناً في هذا الملف */}
+      {/* Portal-based popup (Uncomment if AyahPopup is available and imported) */}
       {/* {pageData && selectedAyah !== null && typeof window !== 'undefined' && createPortal(
         <AyahPopup 
-          // ... props
+          page={pageData}
+          selectedAyah={selectedAyah}
+          isArabic={isArabic}
+          playerState={playerState}
+          onPlay={handlePlayVerse}
+          onCopy={handleCopyVerse}
+          onBookmark={handleBookmarkVerse}
+          onTafseer={handleTafseerVerse}
+          onClose={() => setSelectedAyah(null)}
         />,
         document.body
       )} */}
@@ -477,7 +500,7 @@ export function MushafPageView({
 }
 
 // ============================================================
-// مكون محتوى الصفحة (تم تحديثه لحل مشكلة المحاذاة والقص)
+// مكون محتوى الصفحة
 // ============================================================
 const MushafPageContent = React.memo(function MushafPageContent({
   page,
@@ -500,7 +523,6 @@ const MushafPageContent = React.memo(function MushafPageContent({
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // تعديل 2: خوارزمية تعديل الخط لتعبئة الشاشة بذكاء بدون استخدام scale
   useEffect(() => {
     const fitTextToScreen = () => {
       if (!contentRef.current) return;
@@ -508,7 +530,6 @@ const MushafPageContent = React.memo(function MushafPageContent({
       const container = content.parentElement;
       if (!container) return;
 
-      // ضبط العرض ليكون 100% والمحاذاة كالمصحف الحقيقي
       content.style.width = '100%';
       content.style.transform = 'none'; 
       content.style.textAlign = 'justify';
@@ -531,7 +552,6 @@ const MushafPageContent = React.memo(function MushafPageContent({
         }
       }
 
-      // تطبيق الخط الأنسب مع طرح 1 بكسل للحفاظ على أمان التشكيل
       content.style.fontSize = `${optimalFont - 1}px`;
     };
 
@@ -580,9 +600,6 @@ const MushafPageContent = React.memo(function MushafPageContent({
 
   return (
     <div className="w-full h-full flex items-center justify-center overflow-hidden">
-      {/* تعديل 3: إضافة padding (px-4 py-6) وإزالة scale 
-        هذا يمنع التشكيل من الانقطاع ويترك هوامش مريحة
-      */}
       <div
         ref={contentRef}
         className="w-full flex flex-col justify-center px-4 py-6 font-quran"
@@ -601,7 +618,6 @@ const MushafPageContent = React.memo(function MushafPageContent({
                 const isHighlighted = highlightedAyah === ayah.number;
                 const isPlaying = playerState.isPlaying && playerState.currentVerse?.number.inQuran === ayah.number;
                 
-                // معالجة عرض النص (مع التجويد أو بدونه، ومع مسح البسملة إن لزم الأمر)
                 const displayText = stripBismillah(ayah.text, ayah.surah.number, ayah.numberInSurah);
 
                 return (
@@ -613,7 +629,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
                     }}
                     className={`inline cursor-pointer transition-colors duration-200 ${
                       isSelected ? 'bg-primary/20 text-primary rounded px-1' : ''
-                    } ${isHighlighted || isPlaying ? 'text-primary' : ''}`}
+                   } ${isHighlighted || isPlaying ? 'text-primary' : ''}`}
                   >
                     <span dangerouslySetInnerHTML={{ __html: isTajweed ? parseTajweed(displayText) : displayText }} />
                     <span className="mx-1 text-primary text-sm">
@@ -629,4 +645,3 @@ const MushafPageContent = React.memo(function MushafPageContent({
     </div>
   );
 });
-
