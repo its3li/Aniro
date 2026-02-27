@@ -505,6 +505,9 @@ export function MushafPageView({
 // ============================================================
 // مكون محتوى الصفحة (بعد التحديث الجذري لملء الشاشة بالكامل)
 // ============================================================
+// ============================================================
+// مكون محتوى الصفحة (محاذاة كاملة للأطراف مع تحسين المسافات)
+// ============================================================
 const MushafPageContent = React.memo(function MushafPageContent({
   page,
   isArabic,
@@ -526,6 +529,11 @@ const MushafPageContent = React.memo(function MushafPageContent({
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // تحويل الأرقام الإنجليزية إلى عربية
+  const toArabicNumerals = (num: number) => {
+    return String(num).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
+  };
+
   useEffect(() => {
     const fitTextToScreen = () => {
       if (!contentRef.current) return;
@@ -533,18 +541,18 @@ const MushafPageContent = React.memo(function MushafPageContent({
       const container = content.parentElement;
       if (!container) return;
 
-      // 1. إعطاء النص صلاحية التمدد الكامل
       content.style.width = '100%';
       content.style.transform = 'none'; 
+      
+      // التعديل هنا: محاذاة للأطراف مع توزيع ذكي للمسافات
       content.style.textAlign = 'justify';
-      content.style.textAlignLast = 'center';
+      content.style.textJustify = 'inter-word';
+      content.style.textAlignLast = 'center'; // السطر الأخير يكون في المنتصف لأنه غالباً غير مكتمل
 
-      // 2. خوارزمية العرض: البحث عن أقصى حجم خط ممكن (رفعنا الحد الأقصى لـ 100 للشاشات الدقيقة)
       let minFont = 14; 
       let maxFont = 100; 
       let optimalFont = 22;
       
-      // نثبت تباعد الأسطر المبدئي أثناء قياس الخط
       content.style.lineHeight = '1.5';
 
       while (minFont <= maxFont) {
@@ -561,11 +569,9 @@ const MushafPageContent = React.memo(function MushafPageContent({
       
       content.style.fontSize = `${optimalFont}px`;
 
-      // 3. خوارزمية الطول: البحث عن أفضل تباعد بين الأسطر لملء الفراغ (فوق وتحت)
       let optimalLH = 1.5;
       for (let lh = 1.5; lh <= 2.8; lh += 0.05) {
         content.style.lineHeight = `${lh}`;
-        // إذا كان النص سيبدأ بالخروج من الشاشة، نتوقف
         if (content.scrollHeight <= container.clientHeight) {
           optimalLH = lh;
         } else {
@@ -573,7 +579,6 @@ const MushafPageContent = React.memo(function MushafPageContent({
         }
       }
       
-      // تطبيق أفضل تباعد أسطر وجدناه
       content.style.lineHeight = `${optimalLH}`;
     };
 
@@ -621,23 +626,25 @@ const MushafPageContent = React.memo(function MushafPageContent({
   }
 
   return (
-    // تم تقليل المسافات لأقصى حد (px-1) لكي يلامس النص الحواف اليمين واليسار
     <div className="w-full h-full flex items-center justify-center overflow-hidden px-1">
       <div
         ref={contentRef}
-        // أزلنا الـ py-6 واستخدمنا pb-2 فقط كحماية للتشكيل في آخر سطر
         className="w-full font-quran pb-2"
         dir="rtl"
       >
         {surahGroups.map((group, groupIdx) => (
           <div key={group.surahNumber} className="mb-2 last:mb-0">
             {group.isNewSurah && (
-              // تم إضافة mx-2 لعنوان السورة حتى لا يلتصق هو الآخر بالأطراف تماماً
               <div className="surah-header text-center font-bold text-xl mb-3 p-2 bg-secondary/20 rounded-lg mx-2">
                 سورة {group.surahName}
               </div>
             )}
-            <div className="w-full block" style={{ textAlign: 'justify', textAlignLast: 'center' }}>
+            {/* التعديل هنا أيضاً لضمان تطبيق الضبط المحسن على النصوص */}
+            <div className="w-full block" style={{ 
+              textAlign: 'justify', 
+              textJustify: 'inter-word', 
+              textAlignLast: 'center' 
+            }}>
               {group.ayahs.map((ayah) => {
                 const isSelected = selectedAyah === ayah.number;
                 const isHighlighted = highlightedAyah === ayah.number;
@@ -658,7 +665,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
                   >
                     <span dangerouslySetInnerHTML={{ __html: isTajweed ? parseTajweed(displayText) : displayText }} />
                     <span className="mx-1 text-primary text-sm">
-                      ﴿{ayah.numberInSurah}﴾
+                      ﴿{toArabicNumerals(ayah.numberInSurah)}﴾
                     </span>
                   </span>
                 );
