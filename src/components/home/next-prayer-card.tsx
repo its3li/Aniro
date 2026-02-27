@@ -14,6 +14,7 @@ import * as Tone from "tone";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useSettings } from "../providers/settings-provider";
+import { useLocation } from "@/hooks/use-location";
 
 const prayerIcons: { [key: string]: React.ElementType } = {
   fajr: Sunrise,
@@ -23,8 +24,6 @@ const prayerIcons: { [key: string]: React.ElementType } = {
   maghrib: Sunset,
   isha: Moon,
 };
-
-import { useLocation } from "@/hooks/use-location";
 
 export function NextPrayerCard() {
   const { settings } = useSettings();
@@ -40,7 +39,6 @@ export function NextPrayerCard() {
     isArabic ? value.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]) : value;
 
   useEffect(() => {
-    // Use location if available, otherwise defaults (Mecca)
     const lat = coordinates?.latitude;
     const lng = coordinates?.longitude;
 
@@ -70,7 +68,7 @@ export function NextPrayerCard() {
     };
 
     updateNextPrayer();
-    const intervalId = setInterval(updateNextPrayer, 60000); // Check for next prayer every minute
+    const intervalId = setInterval(updateNextPrayer, 60000);
 
     return () => clearInterval(intervalId);
   }, [
@@ -134,6 +132,8 @@ export function NextPrayerCard() {
     const timer = setInterval(updateCountdown, 1000);
 
     const playAzanTone = (prayerName: string) => {
+      // Avoid initializing Tone if not strictly necessary in mobile rendering, 
+      // but keeping your logic intact:
       const synth = new Tone.Synth().toDestination();
       const now = Tone.now();
       const prayerDisplayName = isArabic
@@ -179,34 +179,38 @@ export function NextPrayerCard() {
     : prayerNameMapping[nextPrayer.name].en;
 
   return (
-    <GlassCard className="py-2">
+    <GlassCard className="py-2 overflow-hidden w-full">
       <GlassCardHeader className="pb-3">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <Icon className="w-7 h-7 text-primary" />
+        {/* التعديل هنا: منعنا التفاف العناصر واستخدمنا أحجام مرنة */}
+        <div className="flex justify-between items-center gap-2">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Icon className="w-6 h-6 md:w-7 md:h-7 text-primary" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold">{nextPrayerName}</h2>
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col">
+              <h2 className="text-lg md:text-xl font-bold whitespace-nowrap">{nextPrayerName}</h2>
+              <p className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">
                 {isArabic ? "الصلاة التالية" : "Next Prayer"}
               </p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-3xl font-bold text-primary font-mono tabular-nums">
+          <div className="text-end shrink-0">
+            {/* تم تصغير الخط قليلاً في الشاشات الصغيرة ليناسب المساحة */}
+            <p className="text-2xl md:text-3xl font-bold text-primary font-mono tabular-nums whitespace-nowrap">
               {timeToNextPrayer}
             </p>
             {nextPrayerAzanTime && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">
                 {nextPrayerAzanTime}
               </p>
             )}
           </div>
         </div>
       </GlassCardHeader>
+      
       <GlassCardContent className="pt-3">
-        <div className="flex justify-between items-center pt-4 border-t border-border">
+        {/* التعديل هنا: مسافات متناسبة وإضافة إمكانية السحب (scroll) لو الشاشة ضيقة جداً */}
+        <div className="flex justify-between items-center pt-4 border-t border-border gap-1 overflow-x-auto no-scrollbar pb-1">
           {prayerTimes.map((prayer, index) => {
             const IsNext = prayer.name === nextPrayer.name;
             const PrayerIcon = prayerIcons[prayer.name];
@@ -216,17 +220,17 @@ export function NextPrayerCard() {
             return (
               <div
                 key={index}
-                className="flex flex-col items-center gap-1.5 text-center"
+                className="flex flex-col items-center gap-1.5 text-center min-w-[45px]"
               >
                 <PrayerIcon
                   className={cn(
-                    "w-5 h-5",
+                    "w-4 h-4 md:w-5 md:h-5",
                     IsNext ? "text-primary" : "text-muted-foreground"
                   )}
                 />
                 <p
                   className={cn(
-                    "text-xs font-medium",
+                    "text-[10px] md:text-xs font-medium whitespace-nowrap",
                     IsNext ? "text-primary" : "text-muted-foreground"
                   )}
                 >
@@ -234,7 +238,7 @@ export function NextPrayerCard() {
                 </p>
                 <p
                   className={cn(
-                    "text-xs font-mono tabular-nums",
+                    "text-[10px] md:text-xs font-mono tabular-nums whitespace-nowrap",
                     IsNext
                       ? "text-primary font-semibold"
                       : "text-muted-foreground"
