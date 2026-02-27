@@ -626,7 +626,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
     <div className="h-full w-full overflow-hidden flex items-start justify-center">
       <div
         ref={contentRef}
-        className="mushaf-page font-quran text-[19px] leading-[2.15] text-justify w-full max-w-[920px] px-2 pt-3 pb-4"
+p        className="mushaf-page font-quran text-[19px] leading-[2.15] text-justify w-full max-w-[920px] px-2 pt-3 pb-4"
         dir="rtl"
         style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}
       >
