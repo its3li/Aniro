@@ -33,8 +33,8 @@ export function DailyWisdomCard() {
   return (
     <GlassCard className="py-2">
       <GlassCardHeader className='flex flex-row items-center justify-between pb-3'>
-        <h2 className="text-lg font-bold">{isArabic ? 'حكمة اليوم' : 'Daily Wisdom'}</h2>
-        <Button variant="ghost" size="icon" onClick={fetchWisdom} aria-label={isArabic ? 'تحديث الحكمة' : 'Refresh wisdom'} className="h-10 w-10 text-muted-foreground">
+        <h2 className="text-lg font-bold">{isArabic ? 'ذكر اليوم' : 'Daily Wisdom'}</h2>
+        <Button variant="ghost" size="icon" onClick={fetchWisdom} aria-label={isArabic ? 'تحديث الذكر' : 'Refresh wisdom'} className="h-10 w-10 text-muted-foreground">
           <RefreshCw className="h-5 w-5" />
         </Button>
       </GlassCardHeader>
