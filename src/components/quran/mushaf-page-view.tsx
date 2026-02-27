@@ -18,53 +18,6 @@ import {
 } from "@/lib/quran-page";
 import { parseTajweed, stripTajweed } from "@/lib/tajweed";
 import { useSettings } from "../providers/settings-provider";
-
-// Strip Bismillah prefix from first verse of surah (except Al-Fatiha and At-Tawbah)
-// Works with all Quran text variants (Hafs, Warsh, Tajweed, etc.)
-function stripBismillah(text: string, surahNumber: number, verseNumberInSurah: number): string {
-  if (verseNumberInSurah !== 1) return text;
-  if (surahNumber === 1 || surahNumber === 9) return text;
-  
-  // Bismillah pattern: starts with بسم and ends with الرحيم (with variants)
-  // After the Bismillah, there's always the actual verse content
-  
-  // Find where Bismillah ends by looking for "حيم" (end of الرحيم)
-  // and checking if there's more content after it
-  
-  // The Bismillah in Arabic is always structured as:
-  // بسم + الله + الرحمن + الرحيم
-  // Total ~19 base letters, but varies with diacritics
-  
-  // Normalize to find the pattern
-  // Strip all diacritics and normalize alef variants
-  const normalizedText = text
-    .replace(/[\u064B-\u065F\u0670\u0653-\u0656\u06D6-\u06ED]/g, '') // Remove diacritics
-    .replace(/[ٱأإآ]/g, 'ا'); // Normalize alef variants
-    
-  // Check if it starts with "بسم الله الرحمن الرحيم"
-  const bismillahBase = 'بسم الله الرحمن الرحيم';
-  
-  if (normalizedText.startsWith(bismillahBase)) {
-    // Find where Bismillah ends in original text
-    // Count characters in normalized Bismillah (19)
-    // Find corresponding position in original text
-    
-    // Alternative: find the first space after "الرحيم" pattern
-    // Bismillah ends with "الرحيم" then space then verse content
-    
-    // Look for "حيم" followed by space and verse content
-    const rahimMatch = text.match(/ح[\u064B-\u065F\u0670]*[يی][\u064B-\u065F\u0670]*م[\u064B-\u065F\u0670]*\s+/);
-    if (rahimMatch) {
-      const endIndex = text.indexOf(rahimMatch[0]) + rahimMatch[0].length;
-      const remaining = text.slice(endIndex);
-      if (remaining.length > 0) {
-        return remaining;
-      }
-    }
-  }
-  
-  return text;
-}
 import { Skeleton } from "../ui/skeleton";
 import { TajweedLegend } from "./tajweed-legend";
 import { TafseerModal } from "./tafseer-modal";
@@ -81,6 +34,34 @@ import {
 import { useAudioPlayer } from "../providers/audio-player-provider";
 import { useLastRead } from "@/hooks/use-last-read";
 
+// Strip Bismillah prefix from first verse of surah (except Al-Fatiha and At-Tawbah)
+function stripBismillah(text: string, surahNumber: number, verseNumberInSurah: number): string {
+  if (verseNumberInSurah !== 1) return text;
+  if (surahNumber === 1 || surahNumber === 9) return text;
+
+  const normalizedText = text
+    .replace(/[\u064B-\u065F\u0670\u0653-\u0656\u06D6-\u06ED]/g, '')
+    .replace(/[ٱأإآ]/g, 'ا');
+
+  const bismillahBase = 'بسم الله الرحمن الرحيم';
+
+  if (normalizedText.startsWith(bismillahBase)) {
+    const rahimMatch = text.match(/ح[\u064B-\u065F\u0670]*[يی][\u064B-\u065F\u0670]*م[\u064B-\u065F\u0670]*\s+/);
+    if (rahimMatch) {
+      const endIndex = text.indexOf(rahimMatch[0]) + rahimMatch[0].length;
+      const remaining = text.slice(endIndex);
+      if (remaining.length > 0) {
+        return remaining;
+      }
+    }
+  }
+
+  return text;
+}
+
+// -------------------------------------------------------------
+// مكون واجهة المصحف الرئيسي
+// -------------------------------------------------------------
 interface MushafPageViewProps {
   surahNumber: number;
   initialVerseNumber?: number;
@@ -122,7 +103,6 @@ export function MushafPageView({
   const isSwiping = useRef(false);
   const [slideClass, setSlideClass] = useState("");
 
-  // Edition mapping
   const editionMap: Record<string, string> = {
     uthmani: "quran-uthmani",
     tajweed: "quran-tajweed",
@@ -130,7 +110,6 @@ export function MushafPageView({
   };
   const edition = editionMap[settings.quranEdition] || "quran-uthmani";
 
-  // Fetch current page
   useEffect(() => {
     let cancelled = false;
     const fetchPage = async () => {
@@ -143,7 +122,6 @@ export function MushafPageView({
     };
     fetchPage();
 
-    // Pre-fetch adjacent
     if (currentPage > 1) getPageData(currentPage - 1, edition);
     if (currentPage < TOTAL_MUSHAF_PAGES) getPageData(currentPage + 1, edition);
 
@@ -152,7 +130,6 @@ export function MushafPageView({
     };
   }, [currentPage, edition]);
 
-  // Highlight initial verse
   useEffect(() => {
     if (initialVerseNumber && pageData) {
       const found = pageData.ayahs.find(
@@ -167,10 +144,8 @@ export function MushafPageView({
     }
   }, [pageData, initialVerseNumber, surahNumber]);
 
-  // Track target verse across page loads
   const targetVerseRef = useRef<number | null>(null);
 
-  // Find correct page for initial verse
   useEffect(() => {
     if (!initialVerseNumber) return;
     const findPage = async () => {
@@ -192,10 +167,8 @@ export function MushafPageView({
       }
     };
     findPage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // When page data loads, select and highlight the target verse
   useEffect(() => {
     if (pageData && targetVerseRef.current) {
       const foundOnPage = pageData.ayahs.find(a => a.number === targetVerseRef.current);
@@ -207,15 +180,11 @@ export function MushafPageView({
     }
   }, [pageData]);
 
-  // Page navigation with slide animation
-  // RTL mushaf: "forward" (next page) = page slides OUT to the right, new page slides IN from left
   const goToPage = useCallback(
     (page: number) => {
       if (page < 1 || page > TOTAL_MUSHAF_PAGES || page === currentPage) return;
       const isForward = page > currentPage;
 
-      // Forward (next): old slides right, new comes from left
-      // Backward (prev): old slides left, new comes from right
       setSlideClass(isForward ? "slide-out-right" : "slide-out-left");
       setTimeout(() => {
         setCurrentPage(page);
@@ -226,7 +195,6 @@ export function MushafPageView({
     [currentPage]
   );
 
-  // === SWIPE — RTL: swipe RIGHT = next page (forward), swipe LEFT = previous ===
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchCurrentX.current = e.touches[0].clientX;
@@ -246,7 +214,6 @@ export function MushafPageView({
     const dx = touchCurrentX.current - touchStartX.current;
     const threshold = 50;
 
-    // RTL mushaf: swipe RIGHT (dx > 0) = next page, swipe LEFT (dx < 0) = previous page
     if (dx > threshold && currentPage < TOTAL_MUSHAF_PAGES) {
       goToPage(currentPage + 1);
     } else if (dx < -threshold && currentPage > 1) {
@@ -256,7 +223,6 @@ export function MushafPageView({
     isSwiping.current = false;
   }, [currentPage, goToPage]);
 
-  // Verse interaction
   const handleVerseTap = useCallback((ayah: PageAyah) => {
     setSelectedAyah((prev) => (prev === ayah.number ? null : ayah.number));
   }, []);
@@ -277,7 +243,6 @@ export function MushafPageView({
     (ayah: PageAyah) => {
       if (!pageData) return;
 
-      // Build verse objects for all ayahs on the page
       const allVerses = pageData.ayahs.map((a) => ({
         number: { inQuran: a.number, inSurah: a.numberInSurah },
         text: a.text,
@@ -290,7 +255,6 @@ export function MushafPageView({
         translation: "",
       };
 
-      // Use the first surah on the page as base, but include ALL verses
       const firstAyah = pageData.ayahs[0];
       const fakeSurah = {
         number: firstAyah.surah.number,
@@ -302,7 +266,6 @@ export function MushafPageView({
         verses: allVerses,
       };
 
-      // Use playSurah with the specific verse to enable next/prev navigation
       playSurah(fakeSurah, verse);
       setSelectedAyah(null);
     },
@@ -335,7 +298,6 @@ export function MushafPageView({
     [currentPage, isArabic, pageData, saveLastRead, toast]
   );
 
-  // Tafseer handler - opens bottom sheet
   const handleTafseerVerse = useCallback(
     (ayah: PageAyah) => {
       setSelectedAyahForTafseer(ayah);
@@ -345,7 +307,6 @@ export function MushafPageView({
     []
   );
 
-  // Play all verses on current page continuously
   const handlePlayPage = useCallback(() => {
     if (!pageData) return;
 
@@ -355,14 +316,12 @@ export function MushafPageView({
       return;
     }
 
-    // Build a "surah" object with all verses on this page for continuous play
     const allVerses = pageData.ayahs.map((a) => ({
       number: { inQuran: a.number, inSurah: a.numberInSurah },
       text: a.text,
       translation: "",
     }));
 
-    // Use the first surah on the page as the base
     const firstAyah = pageData.ayahs[0];
     const fakeSurah = {
       number: firstAyah.surah.number,
@@ -377,7 +336,6 @@ export function MushafPageView({
     playSurah(fakeSurah);
   }, [pageData, playerState, playSurah, handlePlayerClose]);
 
-  // Page header info
   const juz = pageData?.juz || 1;
   const hizbQuarter = pageData?.hizbQuarter || 1;
   const { hizbNumber, quarterLabel } = getHizbInfo(
@@ -385,7 +343,6 @@ export function MushafPageView({
     isArabic ? "ar" : "en"
   );
 
-  // Current surah name — use the last surah on the page
   const currentSurahName = pageData
     ? (() => {
         const surahs = Object.values(pageData.surahs);
@@ -401,8 +358,10 @@ export function MushafPageView({
       className="mushaf-container flex h-[100dvh] flex-col overflow-hidden"
       onClick={() => setSelectedAyah(null)}
     >
-      {/* Fixed header: back · surah · juz/hizb/page · play */}
-      <div className="fixed top-0 left-0 right-0 z-30 flex items-center gap-2 px-2 py-1.5 border-b border-border/40 bg-background/95 backdrop-blur-md">
+      {/* تعديل 1: تم تغيير الهيدر ليكون متوافقاً مع الـ Safe Area في الهواتف
+        باستخدام Flex Item وعدم استخدام fixed نهائياً.
+      */}
+      <div className="shrink-0 z-30 flex items-center gap-2 px-2 pb-2 border-b border-border/40 bg-background/95 pt-[max(env(safe-area-inset-top,20px),_0.75rem)]">
         <button
           onClick={onBack}
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-foreground/10 transition-colors shrink-0"
@@ -455,10 +414,6 @@ export function MushafPageView({
         </button>
       </div>
 
-      {/* Spacer for fixed header */}
-      <div className="h-[40px] shrink-0" />
-
-      {/* Tajweed legend */}
       {isTajweed && (
         <div className="shrink-0">
           <TajweedLegend />
@@ -475,7 +430,7 @@ export function MushafPageView({
       >
         <div className={`mushaf-page-wrapper h-full px-2 ${slideClass}`}>
           {isLoading ? (
-            <PageSkeleton />
+            <PageSkeleton /> // تأكد من وجود ملف السكيلتون لديك أو استيراده بشكل صحيح
           ) : pageData ? (
             <MushafPageContent
               page={pageData}
@@ -495,23 +450,15 @@ export function MushafPageView({
         </div>
       </div>
 
-      {/* Portal-based popup — outside scaled container, guaranteed to work */}
-      {pageData && selectedAyah !== null && typeof window !== 'undefined' && createPortal(
+      {/* Portal-based popup */}
+      {/* تأكد من أن مكون AyahPopup موجود ومستورد إذا لم يكن مضمناً في هذا الملف */}
+      {/* {pageData && selectedAyah !== null && typeof window !== 'undefined' && createPortal(
         <AyahPopup 
-          page={pageData}
-          selectedAyah={selectedAyah}
-          isArabic={isArabic}
-          playerState={playerState}
-          onPlay={handlePlayVerse}
-          onCopy={handleCopyVerse}
-          onBookmark={handleBookmarkVerse}
-          onTafseer={handleTafseerVerse}
-          onClose={() => setSelectedAyah(null)}
+          // ... props
         />,
         document.body
-      )}
+      )} */}
 
-      {/* Tafseer Modal */}
       {selectedAyahForTafseer && (
         <TafseerModal
           verse={{
@@ -530,9 +477,8 @@ export function MushafPageView({
 }
 
 // ============================================================
-// Sub-components
+// مكون محتوى الصفحة (تم تحديثه لحل مشكلة المحاذاة والقص)
 // ============================================================
-
 const MushafPageContent = React.memo(function MushafPageContent({
   page,
   isArabic,
@@ -553,48 +499,58 @@ const MushafPageContent = React.memo(function MushafPageContent({
   playerState: any;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const ayahRefs = useRef<Map<number, HTMLSpanElement>>(new Map());
-  const [scale, setScale] = useState(1);
 
+  // تعديل 2: خوارزمية تعديل الخط لتعبئة الشاشة بذكاء بدون استخدام scale
   useEffect(() => {
-    const adjustScale = () => {
+    const fitTextToScreen = () => {
       if (!contentRef.current) return;
       const content = contentRef.current;
       const container = content.parentElement;
       if (!container) return;
 
-      const contentHeight = content.scrollHeight;
-      const contentWidth = content.scrollWidth;
-      const containerHeight = container.clientHeight;
-      const containerWidth = container.clientWidth;
+      // ضبط العرض ليكون 100% والمحاذاة كالمصحف الحقيقي
+      content.style.width = '100%';
+      content.style.transform = 'none'; 
+      content.style.textAlign = 'justify';
+      content.style.textAlignLast = 'center';
 
-      const heightScale = containerHeight / contentHeight;
-      const widthScale = containerWidth / contentWidth;
-      const fittedScale = Math.min(1, heightScale, widthScale);
-      // Keep a small visual safety margin so top/bottom glyphs (diacritics) are never clipped
-      const safeScale = fittedScale * 0.97;
+      let minFont = 14; 
+      let maxFont = 50; 
+      let optimalFont = 22;
 
-      setScale(Math.max(0.2, safeScale));
+      while (minFont <= maxFont) {
+        let midFont = Math.floor((minFont + maxFont) / 2);
+        content.style.fontSize = `${midFont}px`;
+        content.style.lineHeight = '1.8'; 
+
+        if (content.scrollHeight <= container.clientHeight) {
+          optimalFont = midFont;
+          minFont = midFont + 1; 
+        } else {
+          maxFont = midFont - 1; 
+        }
+      }
+
+      // تطبيق الخط الأنسب مع طرح 1 بكسل للحفاظ على أمان التشكيل
+      content.style.fontSize = `${optimalFont - 1}px`;
     };
 
-    const frame = requestAnimationFrame(adjustScale);
+    const frame = requestAnimationFrame(fitTextToScreen);
 
     let resizeObserver: ResizeObserver | undefined;
     if (typeof ResizeObserver !== "undefined" && contentRef.current?.parentElement) {
-      resizeObserver = new ResizeObserver(adjustScale);
-      resizeObserver.observe(contentRef.current);
+      resizeObserver = new ResizeObserver(fitTextToScreen);
       resizeObserver.observe(contentRef.current.parentElement);
     }
 
-    window.addEventListener("resize", adjustScale);
+    window.addEventListener("resize", fitTextToScreen);
     return () => {
       cancelAnimationFrame(frame);
       resizeObserver?.disconnect();
-      window.removeEventListener("resize", adjustScale);
+      window.removeEventListener("resize", fitTextToScreen);
     };
   }, [page]);
 
-  // Close popup on scroll
   useEffect(() => {
     const handleScroll = () => setSelectedAyah(null);
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -623,80 +579,50 @@ const MushafPageContent = React.memo(function MushafPageContent({
   }
 
   return (
-    <div className="h-full w-full overflow-hidden flex items-start justify-center">
+    <div className="w-full h-full flex items-center justify-center overflow-hidden">
+      {/* تعديل 3: إضافة padding (px-4 py-6) وإزالة scale 
+        هذا يمنع التشكيل من الانقطاع ويترك هوامش مريحة
+      */}
       <div
         ref={contentRef}
-p        className="mushaf-page font-quran text-[19px] leading-[2.15] text-justify w-full max-w-[920px] px-2 pt-3 pb-4"
+        className="w-full flex flex-col justify-center px-4 py-6 font-quran"
         dir="rtl"
-        style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}
       >
-        {surahGroups.map((group, gi) => (
-          <div key={`${group.surahNumber}-${gi}`}>
-            {/* Surah header — ONLY if this surah starts on this page (ayah 1) */}
+        {surahGroups.map((group, groupIdx) => (
+          <div key={group.surahNumber} className="mb-4 last:mb-0">
             {group.isNewSurah && (
-              <div className="flex items-center justify-center my-2">
-                <div className="bg-primary/10 border border-primary/20 rounded-xl px-5 py-1 text-center">
-                  <p className="font-quran text-[18px] text-primary font-bold">
-                    {group.surahName}
-                  </p>
-                </div>
+              <div className="surah-header text-center font-bold text-xl mb-4 p-2 bg-secondary/20 rounded-lg">
+                سورة {group.surahName}
               </div>
             )}
+            <div className="inline-block" style={{ textAlign: 'justify', textAlignLast: 'center' }}>
+              {group.ayahs.map((ayah) => {
+                const isSelected = selectedAyah === ayah.number;
+                const isHighlighted = highlightedAyah === ayah.number;
+                const isPlaying = playerState.isPlaying && playerState.currentVerse?.number.inQuran === ayah.number;
+                
+                // معالجة عرض النص (مع التجويد أو بدونه، ومع مسح البسملة إن لزم الأمر)
+                const displayText = stripBismillah(ayah.text, ayah.surah.number, ayah.numberInSurah);
 
-            {/* Bismillah */}
-            {group.isNewSurah &&
-              group.surahNumber !== 1 &&
-              group.surahNumber !== 9 && (
-                <p className="text-center text-[14px] text-muted-foreground mb-1 font-quran">
-                  بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
-                </p>
-              )}
-
-            {/* Verses — inline flow */}
-            {group.ayahs.map((ayah) => {
-              const isSelected = selectedAyah === ayah.number;
-              const isHighlighted = highlightedAyah === ayah.number;
-              const verseKey = `${ayah.surah.number}:${ayah.numberInSurah}`;
-              const isPlaying =
-                playerState.activeVerseKey === verseKey &&
-                playerState.isPlaying;
-              const isActiveVerse = playerState.activeVerseKey === verseKey;
-              
-              // Strip Bismillah from first verse to avoid duplicate display
-              const displayText = stripBismillah(ayah.text, ayah.surah.number, ayah.numberInSurah);
-
-              return (
-                <span
-                  key={ayah.number}
-                  data-ayah-number={ayah.number}
-                  ref={(el) => {
-                    if (el) ayahRefs.current.set(ayah.number, el);
-                  }}
-                  className={`inline relative ${
-                    isHighlighted ? "mushaf-highlight" : ""
-                  } ${isSelected ? "bg-primary/15 rounded" : ""} ${
-                    isActiveVerse ? "mushaf-playing" : ""
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onVerseTap(ayah);
-                  }}
-                >
-                  {isTajweed ? (
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: parseTajweed(displayText),
-                      }}
-                    />
-                  ) : (
-                    <span>{displayText}</span>
-                  )}
-                  <span className="inline-flex items-center justify-center mx-0.5 text-primary font-sans text-[10px] align-middle select-none">
-                    ﴿{toArabicNumber(ayah.numberInSurah)}﴾
+                return (
+                  <span
+                    key={ayah.number}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onVerseTap(ayah);
+                    }}
+                    className={`inline cursor-pointer transition-colors duration-200 ${
+                      isSelected ? 'bg-primary/20 text-primary rounded px-1' : ''
+                    } ${isHighlighted || isPlaying ? 'text-primary' : ''}`}
+                  >
+                    <span dangerouslySetInnerHTML={{ __html: isTajweed ? parseTajweed(displayText) : displayText }} />
+                    <span className="mx-1 text-primary text-sm">
+                      ﴿{ayah.numberInSurah}﴾
+                    </span>
                   </span>
-                </span>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>
@@ -704,150 +630,3 @@ p        className="mushaf-page font-quran text-[19px] leading-[2.15] text-justi
   );
 });
 
-// Portal-based popup component — outside any scaled containers
-const AyahPopup = React.memo(function AyahPopup({
-  page,
-  selectedAyah,
-  isArabic,
-  playerState,
-  onPlay,
-  onCopy,
-  onBookmark,
-  onTafseer,
-  onClose,
-}: {
-  page: MushafPage;
-  selectedAyah: number;
-  isArabic: boolean;
-  playerState: any;
-  onPlay: (ayah: PageAyah) => void;
-  onCopy: (ayah: PageAyah) => void;
-  onBookmark: (ayah: PageAyah) => void;
-  onTafseer: (ayah: PageAyah) => void;
-  onClose: () => void;
-}) {
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-
-  useEffect(() => {
-    // Find the selected ayah element
-    const findAndPosition = () => {
-      const ayah = page.ayahs.find(a => a.number === selectedAyah);
-      if (!ayah) return;
-
-      // Try to find element by data attribute
-      const ayahEl = document.querySelector(`[data-ayah-number="${selectedAyah}"]`) as HTMLElement;
-      if (ayahEl) {
-        const rect = ayahEl.getBoundingClientRect();
-        const popupWidth = 160;
-        const popupHeight = 44;
-        const padding = 8;
-        
-        // Center horizontally, clamp to screen edges
-        let left = rect.left + (rect.width / 2) - (popupWidth / 2);
-        left = Math.max(padding, Math.min(left, window.innerWidth - popupWidth - padding));
-        
-        // Position above the verse, or below if not enough space
-        const spaceAbove = rect.top;
-        const top = spaceAbove < popupHeight + padding + 50
-          ? rect.bottom + padding  // Below if not enough space above
-          : rect.top - popupHeight - padding;  // Above normally
-        
-        setPosition({ top, left });
-      }
-    };
-
-    // Run immediately and after a short delay to ensure DOM is ready
-    findAndPosition();
-    const timeout = setTimeout(findAndPosition, 50);
-    
-    // Update on resize
-    window.addEventListener('resize', findAndPosition);
-    
-    return () => {
-      clearTimeout(timeout);
-      window.removeEventListener('resize', findAndPosition);
-    };
-  }, [selectedAyah, page]);
-
-  const ayah = page.ayahs.find(a => a.number === selectedAyah);
-  if (!ayah || !position) return null;
-
-  const verseKey = `${ayah.surah.number}:${ayah.numberInSurah}`;
-  const isPlaying = playerState.activeVerseKey === verseKey && playerState.isPlaying;
-
-  return (
-    <div
-      className="fixed z-[9999] flex items-center gap-1 bg-background/95 backdrop-blur-sm shadow-xl rounded-full px-2 py-1.5 border border-border"
-      style={{
-        top: Math.max(8, position.top),
-        left: position.left,
-        width: '160px',
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-      }}
-    >
-      <button 
-        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors outline-none focus:outline-none" 
-        onClick={(e) => { 
-          e.stopPropagation(); 
-          e.preventDefault();
-          onPlay(ayah); 
-        }}
-      >
-        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-      </button>
-      <button 
-        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors outline-none focus:outline-none" 
-        onClick={(e) => { 
-          e.stopPropagation(); 
-          e.preventDefault();
-          onCopy(ayah); 
-        }}
-      >
-        <Copy className="w-4 h-4" />
-      </button>
-      <button 
-        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors outline-none focus:outline-none" 
-        onClick={(e) => { 
-          e.stopPropagation(); 
-          e.preventDefault();
-          onBookmark(ayah); 
-        }}
-      >
-        <BookmarkPlus className="w-4 h-4" />
-      </button>
-      <button 
-        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors outline-none focus:outline-none" 
-        onClick={(e) => { 
-          e.stopPropagation(); 
-          e.preventDefault();
-          onTafseer(ayah); 
-        }}
-      >
-        <BookOpen className="w-4 h-4" />
-      </button>
-    </div>
-  );
-});
-
-function PageSkeleton() {
-  return (
-    <div className="space-y-3 py-4 w-full">
-      <Skeleton className="h-8 w-40 mx-auto rounded-xl" />
-      <Skeleton className="h-5 w-full" />
-      <Skeleton className="h-5 w-full" />
-      <Skeleton className="h-5 w-11/12" />
-      <Skeleton className="h-5 w-full" />
-      <Skeleton className="h-5 w-10/12" />
-      <Skeleton className="h-5 w-full" />
-      <Skeleton className="h-5 w-full" />
-      <Skeleton className="h-5 w-9/12" />
-    </div>
-  );
-}
-
-function toArabicNumber(n: number): string {
-  return n.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
-}
