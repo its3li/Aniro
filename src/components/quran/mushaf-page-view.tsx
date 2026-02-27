@@ -481,6 +481,7 @@ export function MushafPageView({
               page={pageData}
               isArabic={isArabic}
               isTajweed={isTajweed}
+              appFontSize={settings.fontSize}
               selectedAyah={selectedAyah}
               highlightedAyah={highlightedAyah}
               onVerseTap={handleVerseTap}
@@ -537,6 +538,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
   page,
   isArabic,
   isTajweed,
+  appFontSize,
   selectedAyah,
   highlightedAyah,
   onVerseTap,
@@ -546,6 +548,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
   page: MushafPage;
   isArabic: boolean;
   isTajweed: boolean;
+  appFontSize: number;
   selectedAyah: number | null;
   highlightedAyah: number | null;
   onVerseTap: (ayah: PageAyah) => void;
@@ -575,10 +578,22 @@ const MushafPageContent = React.memo(function MushafPageContent({
       setScale(Math.max(0.4, newScale));
     };
 
-    requestAnimationFrame(adjustScale);
+    const frame = requestAnimationFrame(adjustScale);
+
+    let resizeObserver: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== "undefined" && contentRef.current?.parentElement) {
+      resizeObserver = new ResizeObserver(adjustScale);
+      resizeObserver.observe(contentRef.current);
+      resizeObserver.observe(contentRef.current.parentElement);
+    }
+
     window.addEventListener("resize", adjustScale);
-    return () => window.removeEventListener("resize", adjustScale);
-  }, [page]);
+    return () => {
+      cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", adjustScale);
+    };
+  }, [page, appFontSize]);
 
   // Close popup on scroll
   useEffect(() => {
