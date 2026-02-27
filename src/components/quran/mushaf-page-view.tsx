@@ -570,9 +570,11 @@ const MushafPageContent = React.memo(function MushafPageContent({
 
       const heightScale = containerHeight / contentHeight;
       const widthScale = containerWidth / contentWidth;
-      const newScale = Math.min(1, heightScale, widthScale);
+      const fittedScale = Math.min(1, heightScale, widthScale);
+      // Keep a small visual safety margin so top/bottom glyphs (diacritics) are never clipped
+      const safeScale = fittedScale * 0.97;
 
-      setScale(Math.max(0.25, newScale));
+      setScale(Math.max(0.2, safeScale));
     };
 
     const frame = requestAnimationFrame(adjustScale);
@@ -624,7 +626,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
     <div className="h-full w-full overflow-hidden flex items-start justify-center">
       <div
         ref={contentRef}
-        className="mushaf-page font-quran text-[19px] leading-[2.15] text-justify w-full max-w-[920px] overflow-hidden"
+p        className="mushaf-page font-quran text-[19px] leading-[2.15] text-justify w-full max-w-[920px] px-2 pt-3 pb-4"
         dir="rtl"
         style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}
       >
