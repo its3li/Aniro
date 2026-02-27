@@ -502,6 +502,9 @@ export function MushafPageView({
 // ============================================================
 // مكون محتوى الصفحة
 // ============================================================
+// ============================================================
+// مكون محتوى الصفحة (بعد التحديث الجذري لملء الشاشة بالكامل)
+// ============================================================
 const MushafPageContent = React.memo(function MushafPageContent({
   page,
   isArabic,
@@ -530,29 +533,48 @@ const MushafPageContent = React.memo(function MushafPageContent({
       const container = content.parentElement;
       if (!container) return;
 
+      // 1. إعطاء النص صلاحية التمدد الكامل
       content.style.width = '100%';
       content.style.transform = 'none'; 
       content.style.textAlign = 'justify';
       content.style.textAlignLast = 'center';
 
+      // 2. خوارزمية العرض: البحث عن أقصى حجم خط ممكن (رفعنا الحد الأقصى لـ 100 للشاشات الدقيقة)
       let minFont = 14; 
-      let maxFont = 50; 
+      let maxFont = 100; 
       let optimalFont = 22;
+      
+      // نثبت تباعد الأسطر المبدئي أثناء قياس الخط
+      content.style.lineHeight = '1.5';
 
       while (minFont <= maxFont) {
         let midFont = Math.floor((minFont + maxFont) / 2);
         content.style.fontSize = `${midFont}px`;
-        content.style.lineHeight = '1.8'; 
 
-        if (content.scrollHeight <= container.clientHeight) {
+        if (content.scrollHeight <= container.clientHeight && content.scrollWidth <= container.clientWidth) {
           optimalFont = midFont;
           minFont = midFont + 1; 
         } else {
           maxFont = midFont - 1; 
         }
       }
+      
+      content.style.fontSize = `${optimalFont}px`;
 
-      content.style.fontSize = `${optimalFont - 1}px`;
+      // 3. خوارزمية الطول: البحث عن أفضل تباعد بين الأسطر لملء الفراغ (فوق وتحت)
+      let optimalLH = 1.5;
+      for (let lh = 1.5; lh <= 2.8; lh += 0.05) {
+        content.style.lineHeight = `${lh}`;
+        // إذا كان النص سيبدأ بالخروج من الشاشة، نتوقف
+        if (content.scrollHeight <= container.clientHeight) {
+          optimalLH = lh;
+        } else {
+          break;
+        }
+      }
+      
+      // تطبيق أفضل تباعد أسطر وجدناه
+      content.style.lineHeight = `${optimalLH}`;
     };
 
     const frame = requestAnimationFrame(fitTextToScreen);
@@ -599,20 +621,23 @@ const MushafPageContent = React.memo(function MushafPageContent({
   }
 
   return (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden">
+    // تم تقليل المسافات لأقصى حد (px-1) لكي يلامس النص الحواف اليمين واليسار
+    <div className="w-full h-full flex items-center justify-center overflow-hidden px-1">
       <div
         ref={contentRef}
-        className="w-full flex flex-col justify-center px-4 py-6 font-quran"
+        // أزلنا الـ py-6 واستخدمنا pb-2 فقط كحماية للتشكيل في آخر سطر
+        className="w-full font-quran pb-2"
         dir="rtl"
       >
         {surahGroups.map((group, groupIdx) => (
-          <div key={group.surahNumber} className="mb-4 last:mb-0">
+          <div key={group.surahNumber} className="mb-2 last:mb-0">
             {group.isNewSurah && (
-              <div className="surah-header text-center font-bold text-xl mb-4 p-2 bg-secondary/20 rounded-lg">
+              // تم إضافة mx-2 لعنوان السورة حتى لا يلتصق هو الآخر بالأطراف تماماً
+              <div className="surah-header text-center font-bold text-xl mb-3 p-2 bg-secondary/20 rounded-lg mx-2">
                 سورة {group.surahName}
               </div>
             )}
-            <div className="inline-block" style={{ textAlign: 'justify', textAlignLast: 'center' }}>
+            <div className="w-full block" style={{ textAlign: 'justify', textAlignLast: 'center' }}>
               {group.ayahs.map((ayah) => {
                 const isSelected = selectedAyah === ayah.number;
                 const isHighlighted = highlightedAyah === ayah.number;
@@ -629,7 +654,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
                     }}
                     className={`inline cursor-pointer transition-colors duration-200 ${
                       isSelected ? 'bg-primary/20 text-primary rounded px-1' : ''
-                   } ${isHighlighted || isPlaying ? 'text-primary' : ''}`}
+                    } ${isHighlighted || isPlaying ? 'text-primary' : ''}`}
                   >
                     <span dangerouslySetInnerHTML={{ __html: isTajweed ? parseTajweed(displayText) : displayText }} />
                     <span className="mx-1 text-primary text-sm">
