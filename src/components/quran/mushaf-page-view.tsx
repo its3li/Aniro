@@ -572,12 +572,24 @@ const MushafPageContent = React.memo(function MushafPageContent({
       const widthScale = containerWidth / contentWidth;
       const newScale = Math.min(1, heightScale, widthScale);
 
-      setScale(Math.max(0.4, newScale));
+      setScale(Math.max(0.25, newScale));
     };
 
-    requestAnimationFrame(adjustScale);
+    const frame = requestAnimationFrame(adjustScale);
+
+    let resizeObserver: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== "undefined" && contentRef.current?.parentElement) {
+      resizeObserver = new ResizeObserver(adjustScale);
+      resizeObserver.observe(contentRef.current);
+      resizeObserver.observe(contentRef.current.parentElement);
+    }
+
     window.addEventListener("resize", adjustScale);
-    return () => window.removeEventListener("resize", adjustScale);
+    return () => {
+      cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", adjustScale);
+    };
   }, [page]);
 
   // Close popup on scroll
@@ -612,7 +624,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
     <div className="h-full w-full overflow-hidden flex items-start justify-center">
       <div
         ref={contentRef}
-        className="mushaf-page font-quran text-[1.2rem] leading-[2.2] text-justify w-full max-w-[920px] overflow-hidden"
+        className="mushaf-page font-quran text-[19px] leading-[2.15] text-justify w-full max-w-[920px] overflow-hidden"
         dir="rtl"
         style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}
       >
@@ -622,7 +634,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
             {group.isNewSurah && (
               <div className="flex items-center justify-center my-2">
                 <div className="bg-primary/10 border border-primary/20 rounded-xl px-5 py-1 text-center">
-                  <p className="font-quran text-base text-primary font-bold">
+                  <p className="font-quran text-[18px] text-primary font-bold">
                     {group.surahName}
                   </p>
                 </div>
@@ -633,7 +645,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
             {group.isNewSurah &&
               group.surahNumber !== 1 &&
               group.surahNumber !== 9 && (
-                <p className="text-center text-sm text-muted-foreground mb-1 font-quran">
+                <p className="text-center text-[14px] text-muted-foreground mb-1 font-quran">
                   بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
                 </p>
               )}
@@ -677,7 +689,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
                   ) : (
                     <span>{displayText}</span>
                   )}
-                  <span className="inline-flex items-center justify-center mx-0.5 text-primary font-sans text-[0.6rem] align-middle select-none">
+                  <span className="inline-flex items-center justify-center mx-0.5 text-primary font-sans text-[10px] align-middle select-none">
                     ﴿{toArabicNumber(ayah.numberInSurah)}﴾
                   </span>
                 </span>
