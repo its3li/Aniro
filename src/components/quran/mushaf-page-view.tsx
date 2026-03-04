@@ -204,6 +204,8 @@ export function MushafPageView({
       if (page < 1 || page > TOTAL_MUSHAF_PAGES || page === currentPage) return;
       const isForward = page > currentPage;
 
+      // Forward (next page): old slides out to left, new slides in from right
+      // Backward (prev page): old slides out to right, new slides in from left
       setSlideClass(isForward ? "slide-out-right" : "slide-out-left");
       setTimeout(() => {
         setCurrentPage(page);
@@ -233,10 +235,12 @@ export function MushafPageView({
     const dx = touchCurrentX.current - touchStartX.current;
     const threshold = 50;
 
-    if (dx > threshold && currentPage < TOTAL_MUSHAF_PAGES) {
-      goToPage(currentPage + 1);
-    } else if (dx < -threshold && currentPage > 1) {
+    // Swipe RIGHT (dx > 0) → previous page
+    // Swipe LEFT  (dx < 0) → next page
+    if (dx > threshold && currentPage > 1) {
       goToPage(currentPage - 1);
+    } else if (dx < -threshold && currentPage < TOTAL_MUSHAF_PAGES) {
+      goToPage(currentPage + 1);
     }
 
     isSwiping.current = false;
@@ -248,9 +252,8 @@ export function MushafPageView({
 
   const handleCopyVerse = useCallback(
     (ayah: PageAyah) => {
-      const text = `${stripTajweed(ayah.text)} (${
-        isArabic ? ayah.surah.name : ayah.surah.englishName
-      }:${ayah.numberInSurah})`;
+      const text = `${stripTajweed(ayah.text)} (${isArabic ? ayah.surah.name : ayah.surah.englishName
+        }:${ayah.numberInSurah})`;
       navigator.clipboard.writeText(text);
       toast({ title: isArabic ? "تم نسخ الآية" : "Verse copied" });
       setSelectedAyah(null);
@@ -364,10 +367,10 @@ export function MushafPageView({
 
   const currentSurahName = pageData
     ? (() => {
-        const surahs = Object.values(pageData.surahs);
-        const s = surahs[surahs.length - 1];
-        return isArabic ? s.name : s.englishName;
-      })()
+      const surahs = Object.values(pageData.surahs);
+      const s = surahs[surahs.length - 1];
+      return isArabic ? s.name : s.englishName;
+    })()
     : "";
 
   const isPagePlaying = playerState.isContinuous && playerState.isPlaying;
@@ -534,69 +537,6 @@ const MushafPageContent = React.memo(function MushafPageContent({
     return String(num).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
   };
 
-  useEffect(() => {
-    const fitTextToScreen = () => {
-      if (!contentRef.current) return;
-      const content = contentRef.current;
-      const container = content.parentElement;
-      if (!container) return;
-
-      content.style.width = '100%';
-      content.style.transform = 'none'; 
-      
-      // التعديل هنا: محاذاة للأطراف مع توزيع ذكي للمسافات
-      content.style.textAlign = 'justify';
-      content.style.textJustify = 'inter-word';
-      content.style.textAlignLast = 'center'; // السطر الأخير يكون في المنتصف لأنه غالباً غير مكتمل
-
-      let minFont = 14; 
-      let maxFont = 100; 
-      let optimalFont = 22;
-      
-      content.style.lineHeight = '1.5';
-
-      while (minFont <= maxFont) {
-        let midFont = Math.floor((minFont + maxFont) / 2);
-        content.style.fontSize = `${midFont}px`;
-
-        if (content.scrollHeight <= container.clientHeight && content.scrollWidth <= container.clientWidth) {
-          optimalFont = midFont;
-          minFont = midFont + 1; 
-        } else {
-          maxFont = midFont - 1; 
-        }
-      }
-      
-      content.style.fontSize = `${optimalFont}px`;
-
-      let optimalLH = 1.5;
-      for (let lh = 1.5; lh <= 2.8; lh += 0.05) {
-        content.style.lineHeight = `${lh}`;
-        if (content.scrollHeight <= container.clientHeight) {
-          optimalLH = lh;
-        } else {
-          break;
-        }
-      }
-      
-      content.style.lineHeight = `${optimalLH}`;
-    };
-
-    const frame = requestAnimationFrame(fitTextToScreen);
-
-    let resizeObserver: ResizeObserver | undefined;
-    if (typeof ResizeObserver !== "undefined" && contentRef.current?.parentElement) {
-      resizeObserver = new ResizeObserver(fitTextToScreen);
-      resizeObserver.observe(contentRef.current.parentElement);
-    }
-
-    window.addEventListener("resize", fitTextToScreen);
-    return () => {
-      cancelAnimationFrame(frame);
-      resizeObserver?.disconnect();
-      window.removeEventListener("resize", fitTextToScreen);
-    };
-  }, [page]);
 
   useEffect(() => {
     const handleScroll = () => setSelectedAyah(null);
@@ -626,53 +566,66 @@ const MushafPageContent = React.memo(function MushafPageContent({
   }
 
   return (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden px-1">
+    <div className="w-full h-full overflow-y-auto overflow-x-hidden px-4 py-4">
       <div
         ref={contentRef}
-        className="w-full font-quran pb-2"
-        dir="rtl"
+        className="w-full quran-text"
+        style={{ fontSize: '1.25rem' }}
       >
-        {surahGroups.map((group, groupIdx) => (
-          <div key={group.surahNumber} className="mb-2 last:mb-0">
-            {group.isNewSurah && (
-              <div className="surah-header text-center font-bold text-xl mb-3 p-2 bg-secondary/20 rounded-lg mx-2">
-                سورة {group.surahName}
-              </div>
-            )}
-            {/* التعديل هنا أيضاً لضمان تطبيق الضبط المحسن على النصوص */}
-            <div className="w-full block" style={{ 
-              textAlign: 'justify', 
-              textJustify: 'inter-word', 
-              textAlignLast: 'center' 
-            }}>
-              {group.ayahs.map((ayah) => {
-                const isSelected = selectedAyah === ayah.number;
-                const isHighlighted = highlightedAyah === ayah.number;
-                const isPlaying = playerState.isPlaying && playerState.currentVerse?.number.inQuran === ayah.number;
-                
-                const displayText = stripBismillah(ayah.text, ayah.surah.number, ayah.numberInSurah);
+        {page.ayahs.map((ayah) => {
+          const isSelected = selectedAyah === ayah.number;
+          const isHighlighted = highlightedAyah === ayah.number;
+          const isPlaying = playerState.isPlaying && playerState.currentVerse?.number.inQuran === ayah.number;
+          const displayText = stripBismillah(ayah.text, ayah.surah.number, ayah.numberInSurah);
 
-                return (
+          return (
+            <React.Fragment key={ayah.number}>
+              {/* عنوان السورة عند بداية سورة جديدة */}
+              {ayah.numberInSurah === 1 && (
+                <div
+                  className="w-full text-center my-3 py-2 px-4 rounded-xl border border-primary/30 bg-primary/5"
+                  style={{ lineHeight: 'normal' }}
+                >
                   <span
-                    key={ayah.number}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onVerseTap(ayah);
-                    }}
-                    className={`inline cursor-pointer transition-colors duration-200 ${
-                      isSelected ? 'bg-primary/20 text-primary rounded px-1' : ''
-                    } ${isHighlighted || isPlaying ? 'text-primary' : ''}`}
+                    className="font-bold text-primary text-base"
+                    style={{ fontFamily: '"Noto Naskh Arabic","Scheherazade New","Amiri",serif' }}
                   >
-                    <span dangerouslySetInnerHTML={{ __html: isTajweed ? parseTajweed(displayText) : displayText }} />
-                    <span className="mx-1 text-primary text-sm">
-                      ﴿{toArabicNumerals(ayah.numberInSurah)}﴾
-                    </span>
+                    سورة {isArabic ? ayah.surah.name : ayah.surah.englishName}
                   </span>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+                </div>
+              )}
+
+              {/* الآية: inline تتدفق جنب بعضها */}
+              <span
+                onClick={(e) => { e.stopPropagation(); onVerseTap(ayah); }}
+                className={`cursor-pointer rounded transition-colors duration-150 px-0.5
+                  ${isSelected ? 'bg-primary/15 text-primary' : ''}
+                  ${isHighlighted || isPlaying ? 'bg-primary/10' : ''}
+                `}
+              >
+                {isTajweed
+                  ? <span dangerouslySetInnerHTML={{ __html: parseTajweed(displayText, isArabic ? 'ar' : 'en') }} />
+                  : displayText
+                }
+                {/* رقم الآية في دائرة */}
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', margin: '0 0.25em', fontSize: '0.6em', lineHeight: 1 }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: '1.9em', height: '1.9em',
+                    border: '1px solid hsl(var(--primary))',
+                    color: 'hsl(var(--primary))',
+                    borderRadius: '50%',
+                    fontFamily: 'serif',
+                    lineHeight: 1,
+                  }}>
+                    {toArabicNumerals(ayah.numberInSurah)}
+                  </span>
+                </span>
+                {' '}
+              </span>
+            </React.Fragment>
+          );
+        })}
       </div>
     </div>
   );

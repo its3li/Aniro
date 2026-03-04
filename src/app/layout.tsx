@@ -31,9 +31,24 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=Scheherazade+New:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Scheherazade+New:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        <style>{`
+          @font-face {
+            font-family: 'hafs';
+            src: url('/fonts/naskh.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+          }
+          .quran-text {
+            font-family: 'hafs', 'Noto Naskh Arabic', 'Scheherazade New', serif;
+            text-align: justify;
+            direction: rtl;
+            line-height: 2.5;
+          }
+        `}</style>
       </head>
       <body className={cn('font-body antialiased bg-background min-h-screen')}>
         <ThemeProvider
