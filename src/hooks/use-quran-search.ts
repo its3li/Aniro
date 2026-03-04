@@ -12,6 +12,7 @@ export interface QuranSearchResult {
     surahEnglishName: string;
     ayahNumber: number;
     ayahText: string;
+    edition: string;
     score: number;
 }
 
@@ -47,6 +48,19 @@ function processTerm(term: string): string {
     return normalizeArabic(term).toLowerCase();
 }
 
+// Aggressively strip all tajweed bracket tags securely without deleting Arabic text
+function stripAllBrackets(text: string): string {
+    // Tajweed tags format: [ruleCode[ArabicText]] or [ruleCode:number[ArabicText]]
+    // This regex removes the opening tag part e.g. `[h[`, `[h:8630[`
+    let clean = text.replace(/\[[a-zA-Z0-9:]+\[/g, '');
+    // Remove the closing bracket part e.g. `]`
+    clean = clean.replace(/\]/g, '');
+    // Remove remaining stray English letters, colons, and brackets
+    clean = clean.replace(/[a-zA-Z\[\]:]/g, '');
+    // Clean up extra spaces
+    return clean.replace(/\s+/g, ' ').trim();
+}
+
 // Build index from bundled documents - LAZY loading
 async function buildIndexFromDocuments(): Promise<MiniSearch<any> | null> {
     try {
@@ -55,7 +69,7 @@ async function buildIndexFromDocuments(): Promise<MiniSearch<any> | null> {
             return null;
         }
         const compactDocs: CompactAyah[] = await response.json();
-        
+
         const miniSearch = new MiniSearch({
             fields: ['normalizedText', 'ayahText', 'surahName'],
             storeFields: ['surahNumber', 'surahName', 'surahEnglishName', 'ayahNumber', 'ayahText', 'edition'],
@@ -67,18 +81,18 @@ async function buildIndexFromDocuments(): Promise<MiniSearch<any> | null> {
             },
             processTerm,
         });
-        
+
         const documents = compactDocs.map(d => ({
             id: d.id,
             surahNumber: d.s,
             surahName: d.n,
             surahEnglishName: d.e,
             ayahNumber: d.a,
-            ayahText: d.t,
+            ayahText: stripAllBrackets(d.t),
             edition: d.ed,
-            normalizedText: normalizeArabic(d.t),
+            normalizedText: normalizeArabic(stripAllBrackets(d.t)),
         }));
-        
+
         // Add in chunks to avoid blocking
         const CHUNK_SIZE = 500;
         for (let i = 0; i < documents.length; i += CHUNK_SIZE) {
@@ -87,7 +101,7 @@ async function buildIndexFromDocuments(): Promise<MiniSearch<any> | null> {
             // Yield to main thread
             await new Promise(resolve => setTimeout(resolve, 0));
         }
-        
+
         return miniSearch;
     } catch (err) {
         console.error('[QuranSearch] Failed to build:', err);
@@ -95,7 +109,7 @@ async function buildIndexFromDocuments(): Promise<MiniSearch<any> | null> {
     }
 }
 
-const INDEX_CACHE_KEY = 'quran_search_index_v3';
+const INDEX_CACHE_KEY = 'quran_search_index_v7';
 
 export function useQuranSearch() {
     const [isIndexing, setIsIndexing] = useState(false);
@@ -134,7 +148,7 @@ export function useQuranSearch() {
                     miniSearchRef.current = miniSearch;
                     setIsIndexed(true);
                     // Cache for next time (async, don't wait)
-                    set(INDEX_CACHE_KEY, JSON.stringify(miniSearch)).catch(() => {});
+                    set(INDEX_CACHE_KEY, JSON.stringify(miniSearch)).catch(() => { });
                 }
             } catch (err) {
                 console.error('[QuranSearch] Init failed:', err);
@@ -147,8 +161,8 @@ export function useQuranSearch() {
         return initPromise;
     }, [isIndexed]);
 
-    // Search function - lazy load only when user searches
-    const search = useCallback(async (query: string): Promise<QuranSearchResult[]> => {
+    // Search function - filters by edition + deduplicates
+    const search = useCallback(async (query: string, edition?: string): Promise<QuranSearchResult[]> => {
         if (!query.trim()) {
             setSearchResults([]);
             return [];
@@ -160,16 +174,32 @@ export function useQuranSearch() {
             return [];
         }
 
-        const results = miniSearchRef.current.search(query);
-        const mappedResults: QuranSearchResult[] = results.map((result: SearchResult) => ({
-            id: result.id as string,
-            surahNumber: result.surahNumber as number,
-            surahName: result.surahName as string,
-            surahEnglishName: result.surahEnglishName as string,
-            ayahNumber: result.ayahNumber as number,
-            ayahText: result.ayahText as string,
-            score: result.score,
-        }));
+        const rawResults = miniSearchRef.current.search(query);
+
+        // Deduplicate by (surahNumber, ayahNumber) — keep first match per verse
+        const seen = new Set<string>();
+        const mappedResults: QuranSearchResult[] = [];
+
+        for (const result of rawResults) {
+            const resultEdition = result.edition as string | undefined;
+            // Filter by edition if provided (allow results with no edition as fallback)
+            if (edition && resultEdition && resultEdition !== edition) continue;
+
+            const key = `${result.surahNumber as number}:${result.ayahNumber as number}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+
+            mappedResults.push({
+                id: result.id as string,
+                surahNumber: result.surahNumber as number,
+                surahName: result.surahName as string,
+                surahEnglishName: result.surahEnglishName as string,
+                ayahNumber: result.ayahNumber as number,
+                ayahText: result.ayahText as string,
+                edition: resultEdition || '',
+                score: result.score,
+            });
+        }
 
         setSearchResults(mappedResults);
         return mappedResults;

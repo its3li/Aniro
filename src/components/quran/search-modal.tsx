@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useQuranSearch, type QuranSearchResult } from '@/hooks/use-quran-search';
 import { useSettings } from '@/components/providers/settings-provider';
+import { stripTajweed } from '@/lib/tajweed';
 import { cn } from '@/lib/utils';
 
 interface SearchModalProps {
@@ -24,18 +25,50 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     const { settings } = useSettings();
     const isArabic = settings.language === 'ar';
 
-    // Debounced search
+    // Map settings edition key → JSON edition string
+    const editionMap: Record<string, string> = {
+        uthmani: 'quran-uthmani',
+        tajweed: 'quran-tajweed',
+        warsh: 'quran-warsh',
+        shubah: 'quran-shouba',
+    };
+    const activeEdition = editionMap[settings.quranEdition] || 'quran-uthmani';
+
+    // Debounced search — pass edition to filter from inside the hook
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             if (query.trim().length >= 2) {
-                search(query);
+                search(query, activeEdition);
             } else {
                 clearResults();
             }
         }, 300);
 
         return () => clearTimeout(timeoutId);
-    }, [query, search, clearResults]);
+    }, [query, search, clearResults, activeEdition]);
+
+    // Clean surah name: strip "سورة " prefix and tashkeel
+    const cleanSurahName = (name: string) =>
+        name
+            .replace(/^سُورَةُ\s*/u, '')
+            .replace(/^سورة\s*/u, '')
+            .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '');
+
+    // Clean ayah text: aggressively remove ALL tajweed bracket tags securely without deleting Arabic text
+    const cleanAyahText = (text: string) => {
+        // Tajweed tags format: [ruleCode[ArabicText]] or [ruleCode:number[ArabicText]]
+        // This regex removes the opening tag part e.g. `[h[`, `[h:8630[`
+        let clean = text.replace(/\[[a-zA-Z0-9:]+\[/g, '');
+        // Remove the closing bracket part e.g. `]`
+        clean = clean.replace(/\]/g, '');
+        // Remove remaining stray English letters, colons, and brackets
+        clean = clean.replace(/[a-zA-Z\[\]:]/g, '');
+        // Clean up extra spaces
+        return clean.replace(/\s+/g, ' ').trim();
+    };
+
+    // Results already filtered + deduped inside hook
+    const filteredResults = searchResults;
 
     // Focus input when modal opens
     useEffect(() => {
@@ -47,8 +80,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     // Handle result selection - navigate to the verse
     const handleResultSelect = useCallback(
         (result: QuranSearchResult) => {
-            // Navigate to the Quran page with surah and ayah params
-            router.push(`/quran?surah=${result.surahNumber}&ayah=${result.ayahNumber}`);
+            router.push(`/mushaf?surah=${result.surahNumber}&ayah=${result.ayahNumber}`);
             onClose();
             setQuery('');
             clearResults();
@@ -117,9 +149,14 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 {/* Search Results */}
                 <div className="flex-1 overflow-y-auto max-h-[50vh] px-4 pb-4">
                     <div className="px-4 pb-4">
-                        {searchResults.length > 0 ? (
+                        {filteredResults.length > 0 ? (
                             <div className="flex flex-col gap-2">
-                                {searchResults.map((result, index) => (
+                                <p className="text-xs text-muted-foreground mb-1 text-right">
+                                    {isArabic
+                                        ? `${filteredResults.length} نتيجة`
+                                        : `${filteredResults.length} results`}
+                                </p>
+                                {filteredResults.map((result, index) => (
                                     <button
                                         key={`${result.id}-${index}`}
                                         onClick={() => handleResultSelect(result)}
@@ -136,7 +173,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-2 mb-1">
                                                     <span className="font-semibold text-sm">
-                                                        {isArabic ? result.surahName : result.surahEnglishName}
+                                                        {isArabic ? `سورة ${cleanSurahName(result.surahName)}` : result.surahEnglishName}
                                                     </span>
                                                     <span className="text-xs text-muted-foreground">
                                                         {isArabic ? `آية ${result.ayahNumber}` : `Ayah ${result.ayahNumber}`}
@@ -146,7 +183,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                                     className="text-sm text-muted-foreground line-clamp-2 font-quran leading-relaxed"
                                                     dir="rtl"
                                                 >
-                                                    {result.ayahText}
+                                                    {cleanAyahText(result.ayahText)}
                                                 </p>
                                             </div>
                                         </div>

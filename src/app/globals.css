@@ -123,6 +123,15 @@
 }
 
 /* Tajweed Styles — Mushaf Tajweed Color Coding */
+tajweed {
+  display: inline;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: nowrap;
+  text-rendering: optimizeLegibility;
+}
+
 /* Red spectrum: Madd rules */
 .madda_necessary {
   color: #A10000;
@@ -267,9 +276,24 @@
   scrollbar-width: none;
 }
 
-/* Currently playing verse glow */
-.mushaf-playing {
-  background: hsl(var(--primary) / 0.12);
-  border-radius: 4px;
-  transition: background 0.3s ease;
+/* Currently playing verse glow + pulse animation */
+.playing-ayah {
+  background: hsl(var(--primary) / 0.18) !important;
+  border-radius: 6px;
+  animation: ayahPulse 1.8s ease-in-out infinite;
+  box-shadow: 0 0 12px hsl(var(--primary) / 0.15);
+}
+
+@keyframes ayahPulse {
+
+  0%,
+  100% {
+    background: hsl(var(--primary) / 0.15);
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.1);
+  }
+
+  50% {
+    background: hsl(var(--primary) / 0.25);
+    box-shadow: 0 0 16px hsl(var(--primary) / 0.2);
+  }
 }

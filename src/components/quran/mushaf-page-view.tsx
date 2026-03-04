@@ -16,6 +16,7 @@ import {
   type MushafPage,
   type PageAyah,
 } from "@/lib/quran-page";
+import { cn } from "@/lib/utils";
 import { parseTajweed, stripTajweed } from "@/lib/tajweed";
 import { useSettings } from "../providers/settings-provider";
 import { Skeleton } from "../ui/skeleton";
@@ -111,6 +112,7 @@ export function MushafPageView({
   const [pageData, setPageData] = useState<MushafPage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAyah, setSelectedAyah] = useState<number | null>(null);
+  const [selectedAyahPos, setSelectedAyahPos] = useState<{ x: number; y: number } | null>(null);
   const [highlightedAyah, setHighlightedAyah] = useState<number | null>(null);
   const [selectedAyahForTafseer, setSelectedAyahForTafseer] = useState<PageAyah | null>(null);
   const [isTafseerOpen, setTafseerOpen] = useState(false);
@@ -204,8 +206,9 @@ export function MushafPageView({
       if (page < 1 || page > TOTAL_MUSHAF_PAGES || page === currentPage) return;
       const isForward = page > currentPage;
 
-      // Forward (next page): old slides out to left, new slides in from right
-      // Backward (prev page): old slides out to right, new slides in from left
+      // Because Arabic is RTL:
+      // Forward (Next page) means swiping right (dx > 0) -> Old page slides out right, new slides in from left
+      // Backward (Prev page) means swiping left (dx < 0) -> Old page slides out left, new slides in from right
       setSlideClass(isForward ? "slide-out-right" : "slide-out-left");
       setTimeout(() => {
         setCurrentPage(page);
@@ -235,20 +238,40 @@ export function MushafPageView({
     const dx = touchCurrentX.current - touchStartX.current;
     const threshold = 50;
 
-    // Swipe RIGHT (dx > 0) → previous page
-    // Swipe LEFT  (dx < 0) → next page
-    if (dx > threshold && currentPage > 1) {
-      goToPage(currentPage - 1);
-    } else if (dx < -threshold && currentPage < TOTAL_MUSHAF_PAGES) {
+    // Swipe RIGHT (dx > 0) → NEXT page (page + 1)
+    // Swipe LEFT  (dx < 0) → PREVIOUS page (page - 1)
+    if (dx > threshold && currentPage < TOTAL_MUSHAF_PAGES) {
       goToPage(currentPage + 1);
+    } else if (dx < -threshold && currentPage > 1) {
+      goToPage(currentPage - 1);
     }
 
     isSwiping.current = false;
   }, [currentPage, goToPage]);
 
-  const handleVerseTap = useCallback((ayah: PageAyah) => {
-    setSelectedAyah((prev) => (prev === ayah.number ? null : ayah.number));
+  const handleVerseTap = useCallback((ayah: PageAyah, e?: React.MouseEvent) => {
+    setSelectedAyah((prev) => {
+      if (prev === ayah.number) {
+        setTimeout(() => setSelectedAyahPos(null), 0);
+        return null;
+      } else {
+        if (e) {
+          const y = e.clientY - 60;
+          const x = Math.max(8, Math.min(e.clientX - 90, window.innerWidth - 188));
+          setTimeout(() => setSelectedAyahPos({ x, y }), 0);
+        } else {
+          setTimeout(() => setSelectedAyahPos(null), 0);
+        }
+        return ayah.number;
+      }
+    });
   }, []);
+
+  useEffect(() => {
+    if (selectedAyah === null) {
+      setSelectedAyahPos(null);
+    }
+  }, [selectedAyah]);
 
   const handleCopyVerse = useCallback(
     (ayah: PageAyah) => {
@@ -469,21 +492,56 @@ export function MushafPageView({
         </div>
       </div>
 
-      {/* Portal-based popup (Uncomment if AyahPopup is available and imported) */}
-      {/* {pageData && selectedAyah !== null && typeof window !== 'undefined' && createPortal(
-        <AyahPopup 
-          page={pageData}
-          selectedAyah={selectedAyah}
-          isArabic={isArabic}
-          playerState={playerState}
-          onPlay={handlePlayVerse}
-          onCopy={handleCopyVerse}
-          onBookmark={handleBookmarkVerse}
-          onTafseer={handleTafseerVerse}
-          onClose={() => setSelectedAyah(null)}
-        />,
+      {/* Portal-based popup */}
+      {pageData && selectedAyah !== null && selectedAyahPos !== null && typeof window !== 'undefined' && createPortal(
+        <div
+          className="fixed z-[9999] flex items-center gap-1 bg-background shadow-xl rounded-full px-2 py-1.5 border border-border"
+          style={{
+            top: Math.max(8, selectedAyahPos.y),
+            left: selectedAyahPos.x,
+            width: '180px',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {(() => {
+            const verse = pageData.ayahs.find(a => a.number === selectedAyah);
+            if (!verse) return null;
+
+            const verseKey = `${verse.surah.number}:${verse.numberInSurah}`;
+            const isPlaying = playerState.activeVerseKey === verseKey && playerState.isPlaying;
+
+            return (
+              <>
+                <button
+                  className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
+                  onClick={() => handlePlayVerse(verse)}
+                >
+                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                </button>
+                <button
+                  className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
+                  onClick={() => handleCopyVerse(verse)}
+                >
+                  <Copy className="w-5 h-5" />
+                </button>
+                <button
+                  className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
+                  onClick={() => handleBookmarkVerse(verse)}
+                >
+                  <BookmarkPlus className="w-5 h-5" />
+                </button>
+                <button
+                  className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors outline-none focus:outline-none focus-visible:outline-none"
+                  onClick={() => handleTafseerVerse(verse)}
+                >
+                  <BookOpen className="w-5 h-5" />
+                </button>
+              </>
+            );
+          })()}
+        </div>,
         document.body
-      )} */}
+      )}
 
       {selectedAyahForTafseer && (
         <TafseerModal
@@ -526,17 +584,17 @@ const MushafPageContent = React.memo(function MushafPageContent({
   isTajweed: boolean;
   selectedAyah: number | null;
   highlightedAyah: number | null;
-  onVerseTap: (ayah: PageAyah) => void;
+  onVerseTap: (ayah: PageAyah, e: React.MouseEvent) => void;
   setSelectedAyah: (ayah: number | null) => void;
   playerState: any;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const playingRef = useRef<HTMLSpanElement>(null);
 
   // تحويل الأرقام الإنجليزية إلى عربية
   const toArabicNumerals = (num: number) => {
     return String(num).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
   };
-
 
   useEffect(() => {
     const handleScroll = () => setSelectedAyah(null);
@@ -544,26 +602,12 @@ const MushafPageContent = React.memo(function MushafPageContent({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [setSelectedAyah]);
 
-  const surahGroups: {
-    surahNumber: number;
-    surahName: string;
-    ayahs: typeof page.ayahs;
-    isNewSurah: boolean;
-  }[] = [];
-  let currentSurahNum = -1;
-
-  for (const ayah of page.ayahs) {
-    if (ayah.surah.number !== currentSurahNum) {
-      currentSurahNum = ayah.surah.number;
-      surahGroups.push({
-        surahNumber: ayah.surah.number,
-        surahName: isArabic ? ayah.surah.name : ayah.surah.englishName,
-        ayahs: [],
-        isNewSurah: ayah.numberInSurah === 1,
-      });
+  // Auto-scroll to the currently playing verse
+  useEffect(() => {
+    if (playingRef.current) {
+      playingRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-    surahGroups[surahGroups.length - 1].ayahs.push(ayah);
-  }
+  }, [playerState.activeVerseKey]);
 
   return (
     <div className="w-full h-full overflow-y-auto overflow-x-hidden px-4 py-4">
@@ -575,7 +619,8 @@ const MushafPageContent = React.memo(function MushafPageContent({
         {page.ayahs.map((ayah) => {
           const isSelected = selectedAyah === ayah.number;
           const isHighlighted = highlightedAyah === ayah.number;
-          const isPlaying = playerState.isPlaying && playerState.currentVerse?.number.inQuran === ayah.number;
+          const verseKey = `${ayah.surah.number}:${ayah.numberInSurah}`;
+          const isPlaying = playerState.isPlaying && playerState.activeVerseKey === verseKey;
           const displayText = stripBismillah(ayah.text, ayah.surah.number, ayah.numberInSurah);
 
           return (
@@ -590,18 +635,21 @@ const MushafPageContent = React.memo(function MushafPageContent({
                     className="font-bold text-primary text-base"
                     style={{ fontFamily: '"Noto Naskh Arabic","Scheherazade New","Amiri",serif' }}
                   >
-                    سورة {isArabic ? ayah.surah.name : ayah.surah.englishName}
+                    {isArabic ? ayah.surah.name : `Surah ${ayah.surah.englishName}`}
                   </span>
                 </div>
               )}
 
               {/* الآية: inline تتدفق جنب بعضها */}
               <span
-                onClick={(e) => { e.stopPropagation(); onVerseTap(ayah); }}
-                className={`cursor-pointer rounded transition-colors duration-150 px-0.5
-                  ${isSelected ? 'bg-primary/15 text-primary' : ''}
-                  ${isHighlighted || isPlaying ? 'bg-primary/10' : ''}
-                `}
+                ref={isPlaying ? playingRef : undefined}
+                onClick={(e) => { e.stopPropagation(); onVerseTap(ayah, e); }}
+                className={cn(
+                  'cursor-pointer rounded-md transition-all duration-500 ease-in-out px-1 py-0.5',
+                  isSelected && 'bg-primary/15 text-primary',
+                  isPlaying && 'playing-ayah bg-primary/20 text-primary',
+                  !isPlaying && isHighlighted && 'bg-primary/10',
+                )}
               >
                 {isTajweed
                   ? <span dangerouslySetInnerHTML={{ __html: parseTajweed(displayText, isArabic ? 'ar' : 'en') }} />

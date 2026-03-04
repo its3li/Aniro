@@ -122,12 +122,9 @@ export function parseTajweed(text: string, lang: "ar" | "en" = "en"): string {
     if (rule) {
       const idAttribute = id ? ` data-tajweed=":${id}"` : "";
       const description = lang === "ar" ? rule.descriptionAr : rule.description;
-      const clusterMatch = content.match(
-        /^([\u0621-\u064A\u0671][\u064B-\u065F\u0670\u06D6-\u06ED]*)(.*)$/u
-      );
-      const highlighted = clusterMatch ? clusterMatch[1] : content;
-      const remainder = clusterMatch ? clusterMatch[2] : "";
-      return `<tajweed class="${rule.className}" data-type="${rule.type}" data-description="${description}"${idAttribute}>${highlighted}</tajweed>${remainder}`;
+      // Use ZWJ (Zero Width Joiner) to help maintain Arabic ligatures across tags
+      // \u200D is the ZWJ character
+      return `<tajweed class="${rule.className}" data-type="${rule.type}" data-description="${description}"${idAttribute}>\u200D${content}\u200D</tajweed>`;
     }
     return match;
   });
