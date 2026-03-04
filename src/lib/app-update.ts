@@ -1,7 +1,7 @@
 // App version - must match android/app/build.gradle versionCode and versionName
 export const APP_VERSION = {
-  versionCode: 9,
-  versionName: '6.3',
+  versionCode: 10,
+  versionName: '6.4',
 };
 
 // URL to check for updates - version.json is in the same repo as the code
@@ -29,19 +29,19 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
         'Accept': 'application/vnd.github.v3.raw',
       },
     });
-    
+
     if (!response.ok) {
       console.error('Failed to check for updates:', response.status);
       return null;
     }
-    
+
     const updateInfo: UpdateInfo = await response.json();
-    
+
     // Compare version codes
     if (updateInfo.versionCode > APP_VERSION.versionCode) {
       return updateInfo;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error checking for updates:', error);
