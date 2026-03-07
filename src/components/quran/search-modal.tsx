@@ -80,7 +80,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     // Handle result selection - navigate to the verse
     const handleResultSelect = useCallback(
         (result: QuranSearchResult) => {
-            router.push(`/mushaf?surah=${result.surahNumber}&ayah=${result.ayahNumber}`);
+            router.push(`/quran?surah=${result.surahNumber}&ayah=${result.ayahNumber}`);
             onClose();
             setQuery('');
             clearResults();

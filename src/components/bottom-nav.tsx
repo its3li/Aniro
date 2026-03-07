@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 
 const navItems = [
   { href: '/', label: 'Home', labelAr: 'الرئيسية', icon: Home },
-  { href: '/mushaf', label: 'Quran', labelAr: 'القرآن', icon: BookOpen },
+  { href: '/quran', label: 'Quran', labelAr: 'القرآن', icon: BookOpen },
   { href: '/azkar', label: 'Azkar', labelAr: 'الأذكار', icon: HandsPraying },
   { href: '/qibla', label: 'Qibla', labelAr: 'القبلة', icon: Compass },
   { href: '/settings', label: 'Settings', labelAr: 'الإعدادات', icon: SettingsIcon },

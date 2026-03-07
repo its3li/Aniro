@@ -21,16 +21,16 @@ import { useLastRead } from '@/hooks/use-last-read';
 function stripBismillah(text: string, surahNumber: number, verseNumberInSurah: number): string {
   if (verseNumberInSurah !== 1) return text;
   if (surahNumber === 1 || surahNumber === 9) return text;
-  
+
   // Normalize to find the pattern
   // Strip all diacritics and normalize alef variants
   const normalizedText = text
     .replace(/[\u064B-\u065F\u0670\u0653-\u0656\u06D6-\u06ED]/g, '') // Remove diacritics
     .replace(/[ٱأإآ]/g, 'ا'); // Normalize alef variants
-    
+
   // Check if it starts with "بسم الله الرحمن الرحيم"
   const bismillahBase = 'بسم الله الرحمن الرحيم';
-  
+
   if (normalizedText.startsWith(bismillahBase)) {
     // Find where Bismillah ends in original text
     // Look for "حيم" followed by space and verse content
@@ -43,7 +43,7 @@ function stripBismillah(text: string, surahNumber: number, verseNumberInSurah: n
       }
     }
   }
-  
+
   return text;
 }
 
@@ -190,14 +190,14 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
       const rect = verseEl.getBoundingClientRect();
       const popupWidth = 180;
       const padding = 8;
-      
+
       // Center horizontally, clamp to screen edges
       let left = rect.left + (rect.width / 2) - (popupWidth / 2);
       left = Math.max(padding, Math.min(left, window.innerWidth - popupWidth - padding));
-      
+
       // Position above the verse
       const top = rect.top - 60;
-      
+
       setPopupRect({ top, left });
     }
   }, [selectedVerseForPopup, surah.number]);
@@ -206,10 +206,10 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
   useEffect(() => {
     const handleScroll = () => setSelectedVerseForPopup(null);
     const handleResize = () => setSelectedVerseForPopup(null);
-    
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', handleResize);
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
@@ -259,12 +259,12 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                 const isPlaying = playerState.activeVerseKey === verseKey && playerState.isPlaying;
                 const isVerseActive = playerState.activeVerseKey === verseKey;
                 const isSelected = selectedVerseForPopup?.number.inQuran === verse.number.inQuran;
-                
+
                 // Strip Bismillah from first verse text (for Hafs/Warsh editions where it's embedded)
-                const displayText = index === 0 
+                const displayText = index === 0
                   ? stripBismillah(verse.text, surah.number, verse.number.inSurah)
                   : verse.text;
-                
+
                 return (
                   <div
                     key={verse.number.inQuran}
@@ -305,26 +305,26 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                 const isPlaying = playerState.activeVerseKey === verseKey && playerState.isPlaying;
                 return (
                   <>
-                    <button 
-                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors" 
+                    <button
+                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
                       onClick={() => handleVersePlayClick(verse)}
                     >
                       {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                     </button>
-                    <button 
-                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors" 
+                    <button
+                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
                       onClick={() => handleCopyVerse(verse)}
                     >
                       <Copy className="w-5 h-5" />
                     </button>
-                    <button 
-                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors" 
+                    <button
+                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
                       onClick={() => handleBookmarkVerse(verse)}
                     >
                       <BookmarkPlus className="w-5 h-5" />
                     </button>
-                    <button 
-                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors outline-none focus:outline-none focus-visible:outline-none" 
+                    <button
+                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors outline-none focus:outline-none focus-visible:outline-none"
                       onClick={() => handleOpenTafseer(verse)}
                     >
                       <BookOpen className="w-5 h-5" />

@@ -656,7 +656,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
                   : displayText
                 }
                 {/* رقم الآية في دائرة */}
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', margin: '0 0.25em', fontSize: '0.6em', lineHeight: 1 }}>
+                <span className="inline-flex items-center justify-center mr-1 ml-0.5" style={{ fontSize: '0.6em', lineHeight: 1 }}>
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     width: '1.9em', height: '1.9em',
@@ -669,7 +669,6 @@ const MushafPageContent = React.memo(function MushafPageContent({
                     {toArabicNumerals(ayah.numberInSurah)}
                   </span>
                 </span>
-                {' '}
               </span>
             </React.Fragment>
           );
