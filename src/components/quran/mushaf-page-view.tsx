@@ -645,7 +645,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
                 ref={isPlaying ? playingRef : undefined}
                 onClick={(e) => { e.stopPropagation(); onVerseTap(ayah, e); }}
                 className={cn(
-                  'cursor-pointer rounded-md transition-all duration-500 ease-in-out px-1 py-0.5',
+                  'cursor-pointer rounded-md transition-all duration-500 ease-in-out px-0.5 py-0.5',
                   isSelected && 'bg-primary/15 text-primary',
                   isPlaying && 'playing-ayah bg-primary/20 text-primary',
                   !isPlaying && isHighlighted && 'bg-primary/10',
@@ -656,7 +656,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
                   : displayText
                 }
                 {/* رقم الآية في دائرة */}
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', margin: '0 0.25em', fontSize: '0.6em', lineHeight: 1 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginInline: '0.12em', fontSize: '0.6em', lineHeight: 1 }}>
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     width: '1.9em', height: '1.9em',
@@ -669,7 +669,6 @@ const MushafPageContent = React.memo(function MushafPageContent({
                     {toArabicNumerals(ayah.numberInSurah)}
                   </span>
                 </span>
-                {' '}
               </span>
             </React.Fragment>
           );

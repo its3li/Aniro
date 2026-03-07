@@ -11,7 +11,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useSettings, type QuranEdition } from '../providers/settings-provider';
-import { Book, List } from 'lucide-react';
+import { Book, Rows3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function QuranSettings() {
@@ -48,17 +48,23 @@ export function QuranSettings() {
                     <div className="flex items-center justify-between py-3 last:pb-0">
                         <Label className="text-sm">{isArabic ? 'طريقة العرض' : 'View Mode'}</Label>
                         <div className='flex items-center gap-2 bg-secondary rounded-lg p-1.5'>
-                            <Label htmlFor="quran-view-mode">
-                                <List className={cn("w-4 h-4", settings.quranViewMode === 'list' ? 'text-primary' : 'text-muted-foreground')} />
+                            <Label htmlFor="quran-view-mode" className="flex items-center gap-1 text-xs">
+                                <Rows3 className={cn("w-4 h-4", settings.quranViewMode === 'list' ? 'text-primary' : 'text-muted-foreground')} />
+                                <span className={cn(settings.quranViewMode === 'list' ? 'text-foreground' : 'text-muted-foreground')}>
+                                    {isArabic ? 'آيات' : 'Verses'}
+                                </span>
                             </Label>
                             <Switch
                                 id="quran-view-mode"
-                                checked={settings.quranViewMode === 'page'}
-                                onCheckedChange={(checked) => setQuranViewMode(checked ? 'page' : 'list')}
+                                checked={settings.quranViewMode === 'list'}
+                                onCheckedChange={(checked) => setQuranViewMode(checked ? 'list' : 'page')}
                                 dir="ltr"
                             />
-                            <Label htmlFor="quran-view-mode">
+                            <Label htmlFor="quran-view-mode" className="flex items-center gap-1 text-xs">
                                 <Book className={cn("w-4 h-4", settings.quranViewMode === 'page' ? 'text-primary' : 'text-muted-foreground')} />
+                                <span className={cn(settings.quranViewMode === 'page' ? 'text-foreground' : 'text-muted-foreground')}>
+                                    {isArabic ? 'صفحات' : 'Pages'}
+                                </span>
                             </Label>
                         </div>
                     </div>

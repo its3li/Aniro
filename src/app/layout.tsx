@@ -44,7 +44,7 @@ export default function RootLayout({
           }
           .quran-text {
             font-family: 'hafs', 'Noto Naskh Arabic', 'Scheherazade New', serif;
-            text-align: justify;
+            text-align: right;
             direction: rtl;
             line-height: 2.5;
           }
