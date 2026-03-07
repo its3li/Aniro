@@ -261,9 +261,9 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                 const isSelected = selectedVerseForPopup?.number.inQuran === verse.number.inQuran;
                 
                 // Strip Bismillah from first verse text (for Hafs/Warsh editions where it's embedded)
-                const displayText = index === 0 
+                const displayText = (index === 0 
                   ? stripBismillah(verse.text, surah.number, verse.number.inSurah)
-                  : verse.text;
+                  : verse.text).replace(/\s+/g, '');
                 
                 return (
                   <div
@@ -278,7 +278,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                       ) : (
                         displayText
                       )}
-                      <span className="text-primary font-sans text-sm mx-1.5">
+                      <span className="text-primary font-sans text-sm mx-0">
                         ({verse.number.inSurah})
                       </span>
                     </p>

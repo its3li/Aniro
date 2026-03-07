@@ -621,7 +621,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
           const isHighlighted = highlightedAyah === ayah.number;
           const verseKey = `${ayah.surah.number}:${ayah.numberInSurah}`;
           const isPlaying = playerState.isPlaying && playerState.activeVerseKey === verseKey;
-          const displayText = stripBismillah(ayah.text, ayah.surah.number, ayah.numberInSurah);
+          const displayText = stripBismillah(ayah.text, ayah.surah.number, ayah.numberInSurah).replace(/\s+/g, '');
 
           return (
             <React.Fragment key={ayah.number}>
@@ -656,7 +656,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
                   : displayText
                 }
                 {/* رقم الآية في دائرة */}
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', margin: '0 0.25em', fontSize: '0.6em', lineHeight: 1 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', margin: '0 0.1em', fontSize: '0.6em', lineHeight: 1 }}>
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     width: '1.9em', height: '1.9em',
@@ -669,7 +669,6 @@ const MushafPageContent = React.memo(function MushafPageContent({
                     {toArabicNumerals(ayah.numberInSurah)}
                   </span>
                 </span>
-                {' '}
               </span>
             </React.Fragment>
           );

@@ -1,7 +1,6 @@
 'use client';
 
 import { GlassCard, GlassCardContent, GlassCardHeader } from '../glass-card';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import {
     Select,
@@ -13,6 +12,7 @@ import {
 import { useSettings, type QuranEdition } from '../providers/settings-provider';
 import { Book, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '../ui/button';
 
 export function QuranSettings() {
     const { settings, setQuranViewMode, setQuranEdition } = useSettings();
@@ -47,19 +47,27 @@ export function QuranSettings() {
                     {/* View Mode */}
                     <div className="flex items-center justify-between py-3 last:pb-0">
                         <Label className="text-sm">{isArabic ? 'طريقة العرض' : 'View Mode'}</Label>
-                        <div className='flex items-center gap-2 bg-secondary rounded-lg p-1.5'>
-                            <Label htmlFor="quran-view-mode">
-                                <List className={cn("w-4 h-4", settings.quranViewMode === 'list' ? 'text-primary' : 'text-muted-foreground')} />
-                            </Label>
-                            <Switch
-                                id="quran-view-mode"
-                                checked={settings.quranViewMode === 'page'}
-                                onCheckedChange={(checked) => setQuranViewMode(checked ? 'page' : 'list')}
-                                dir="ltr"
-                            />
-                            <Label htmlFor="quran-view-mode">
-                                <Book className={cn("w-4 h-4", settings.quranViewMode === 'page' ? 'text-primary' : 'text-muted-foreground')} />
-                            </Label>
+                        <div className='flex items-center gap-1 bg-secondary rounded-lg p-1'>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className={cn('w-8 h-8 rounded-md', settings.quranViewMode === 'list' && 'bg-background text-primary')}
+                                onClick={() => setQuranViewMode('list')}
+                                aria-label={isArabic ? 'وضع الآيات' : 'Verses mode'}
+                            >
+                                <List className={cn('w-4 h-4', settings.quranViewMode === 'list' ? 'text-primary' : 'text-muted-foreground')} />
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className={cn('w-8 h-8 rounded-md', settings.quranViewMode === 'page' && 'bg-background text-primary')}
+                                onClick={() => setQuranViewMode('page')}
+                                aria-label={isArabic ? 'وضع الصفحات' : 'Pages mode'}
+                            >
+                                <Book className={cn('w-4 h-4', settings.quranViewMode === 'page' ? 'text-primary' : 'text-muted-foreground')} />
+                            </Button>
                         </div>
                     </div>
                 </div>
