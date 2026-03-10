@@ -1,57 +1,264 @@
-# تطبيق أنيرو (Aniro) 🌙
+<div align="center">
 
-أهلاً بيك في **أنيرو**، رفيقك اليومي لكل حاجة تخص عباداتك ويومك، بتصميم شيك ومريح للعين، ومليان مميزات هتسهل عليك حياتك. التطبيق معمول عشان يكون معاك في كل وقت، سواء معاك نت أو لا.
+<img src="./assets/icon.png" width="120" height="120" alt="Aniro Logo">
 
-## 📥 حمل التطبيق
-تقدر تحمل نسخة الأندرويد (APK) من هنا:
-**[رابط التحميل المؤقت هيتحط هنا]**
+# 🌙 Aniro V3
 
----
+**Your Digital Companion for Islamic Worship**  
+*رفيقك الرقمي للعبادات اليومية*
 
-## ✨ مميزات التطبيق بالتفصيل
+[![Next.js](https://img.shields.io/badge/Next.js%2015-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React%2019-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Capacitor](https://img.shields.io/badge/Capacitor-119EFF?style=for-the-badge&logo=capacitor&logoColor=white)](https://capacitorjs.com/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-### 🏠 الصفحة الرئيسية
-أول ما تفتح التطبيق هتشوف تصميم رايق ومريح:
-- **ترحيب وتاريخ هجري**: التطبيق بيصبح عليك وبيوريك التاريخ الهجري النهاردة بخط عربي جميل.
-- **الصلاة الجاية**: كارت مميز بيوريك إيه الصلاة اللي عليها الدور، وفاضل عليها قد إيه بالظبط (عداد تنازلي).
-- **مواقيت اليوم**: شريط بيعرضلك كل صلوات اليوم عشان تبقى عارف مواعيدك.
-- **حكمة اليوم**: كل يوم حكمة أو حديث جديد ينور يومك.
+[📱 Download APK](#-download) • [🚀 Features](#-features) • [🛠️ Tech Stack](#%EF%B8%8F-tech-stack) • [📸 Screenshots](#-screenshots) • [🤝 Contribute](#-contribute)
 
-### 🕌 مواقيت الصلاة والأذان
-- **دقة عالية**: المواقيت بتتحسب بناءً على مكانك الحالي (المدينة والدولة) بدقة.
-- **تنبيهات الأذان**: التطبيق هيأذن لك في وقت الصلاة حتى لو قافل التطبيق (شغال في الخلفية)، بصوت أذان جميل.
-- **تخصيص الحساب**: تقدر تختار طريقة حساب المواقيت اللي تريحك (زي رابطة العالم الإسلامي، هيئة المساحة المصرية، وغيرها).
-- **تعديل التوقيت**: لو فيه فرق دقيقة أو دقيقتين، تقدر تعدلهم يدويًا من الإعدادات.
-
-### 📖 القرآن الكريم
-تجربة قراءة متكاملة:
-- **المصحف كامل**: كل السور موجودة وتقدر تقلب بينهم بسهولة.
-- **أوضاع القراءة**:
-  - **نظام القائمة**: الآيات تحت بعضها لسهولة القراءة.
-  - **نظام الصفحات**: زي المصحف الورقي بالظبط.
-- **أحكام التجويد**: الآيات متلونة عشان تعرف أحكام التجويد وأنت بتقرأ (الإخفاء، الإدغام، المدود، وغيرها).
-- **التفسير**: لو وقفت قدامك آية، دوس عليها دوسة طويلة هيطلعلك تفسيرها فوراً.
-- **الاستماع**: تقدر تشغل القرآن بصوت قراء كتير مشهورين (زي الحصري، المنشاوي، العفاسي، وغيرهم).
-
-### 📿 الأذكار والتسبيح
-- **أذكار لكل وقت**: أذكار الصباح، المساء، النوم، الصلاة، وغيرها متقسمة بشكل منظم.
-- **عداد التسبيح**: سبحة إلكترونية تعد معاك وأنت بتقول الأذكار، مع هزاز خفيف عشان تحس بكل تسبيحة.
-
-### ⚙️ الإعدادات والتحكم
-التطبيق بتاعك، شكله زي ما تحب:
-- **المكان**: التطبيق بيحدد مكانك تلقائي، وتقدر تعمل تحديث للمكان لو سافرت.
-- **اللغة**: التطبيق بيدعم العربي والإنجليزي بالكامل.
-- **المظهر (Theme)**:
-  - **الوضع الداكن (Dark Mode)**: مريح للعين بالليل.
-  - **الوضع الفاتح**: ألوان زاهية وجميلة.
-- **الخط**: تقدر تكبر أو تصغر خط التطبيق كله عشان يناسب نظرك.
-- **التوقيت الصيفي**: تقدر تظبطه يدوي أو تخليه تلقائي.
-
-### 🎨 التصميم والأداء
-- **شكل انسيابي**: خلفيات "أورورا" متحركة وهادية، وكروت زجاجية (Glassmorphism) شكلها مودرن.
-- **سريع وخفيف**: التطبيق بيفتح بسرعة (شاشة تحميل بتظهر مرة واحدة بس أول ما تفتح)، وشغال معاك طلقة.
-- **بدون إنترنت**: معظم مميزات التطبيق (زي قراءة القرآن والأذكار ومواقيت الصلاة المحسوبة) شغالة من غير ما تحتاج نت.
+</div>
 
 ---
 
-نتمنى التطبيق يعجبكم ويكون في ميزان حسناتنا وحسناتكم. لو عندك أي ملحوظة، متترددش تقولنا! ❤️
+## 📱 Download
+
+| Platform | Status | Link |
+|----------|--------|------|
+| Android | ✅ Available | [Download APK](https://github.com/its3li/Aniro-V3/releases) |
+| iOS | 🚧 Coming Soon | — |
+| Web | ✅ Live Demo | [aniro.app](https://aniro.app) |
+
+---
+
+## 🚀 Features
+
+### 🏠 Smart Home Dashboard
+<p align="center">
+  <img src="./assets/night-mode.png" width="300" alt="Home Screen">
+</p>
+
+- **Hijri Date Display** — Beautiful Arabic typography showing today's Islamic date
+- **Next Prayer Card** — Live countdown to the next prayer with animated timer
+- **Daily Prayer Strip** — Quick view of all today's prayer times
+- **Daily Wisdom** — Rotating hadith and Islamic quotes to start your day
+
+### 🕌 Accurate Prayer Times
+- **GPS-Based Location** — Auto-detects your city/country for precise calculations
+- **Multiple Calculation Methods** — Choose from: Muslim World League, Egyptian General Authority, and more
+- **Background Notifications** — Adhan plays even when app is closed
+- **Manual Time Adjustment** — Fine-tune by minutes if needed
+
+### 📖 Complete Quran Experience
+- **Full Mushaf** — Complete Quran with all 114 surahs
+- **Two Reading Modes**:
+  - **List Mode** — Verses in continuous scroll
+  - **Page Mode** — Like the physical Mushaf
+- **Tajweed Color-Coding** — Visual rules for proper recitation
+- **Tafsir Integration** — Long-press any verse for instant explanation
+- **Audio Recitation** — Famous reciters: Al-Husary, Al-Minshawi, Al-Afasy, and more
+
+### 📿 Azkar & Digital Tasbih
+- **Organized Collections** — Morning, Evening, Sleep, Prayer azkar
+- **Digital Tasbih** — Electronic counter with haptic feedback
+- **Progress Tracking** — See your daily azkar completion
+
+### ⚙️ Personalization
+- **Dark/Light Mode** — Aurora gradient backgrounds with glassmorphism design
+- **Font Scaling** — Adjustable text size for accessibility
+- **Bilingual Support** — Full Arabic & English interface
+- **Offline-First** — Core features work without internet
+
+---
+
+## 🛠️ Tech Stack
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Aniro V3 Architecture                 │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │   Next.js   │  │   React     │  │    TypeScript       │  │
+│  │     15      │  │     19      │  │       5.x           │  │
+│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
+│         └─────────────────┴────────────────────┘             │
+│                           │                                  │
+│  ┌────────────────────────┼────────────────────────┐        │
+│  │                    UI Layer                       │        │
+│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐   │        │
+│  │  │  Radix UI  │ │ Tailwind   │ │ shadcn/ui  │   │        │
+│  │  │ Components │ │   CSS 3.4  │ │ Components │   │        │
+│  │  └────────────┘ └────────────┘ └────────────┘   │        │
+│  └────────────────────────┬────────────────────────┘        │
+│                           │                                  │
+│  ┌────────────────────────┼────────────────────────┐        │
+│  │                 Native Layer                    │        │
+│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐   │        │
+│  │  │ Capacitor  │ │Geolocation │ │Local Notif.│   │        │
+│  │  │    8.x     │ │   Plugin   │ │   Plugin   │   │        │
+│  │  └────────────┘ └────────────┘ └────────────┘   │        │
+│  └────────────────────────┬────────────────────────┘        │
+│                           │                                  │
+│  ┌────────────────────────┼────────────────────────┐        │
+│  │                 Data & AI Layer                 │        │
+│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐   │        │
+│  │  │  Adhan.js  │ │  Firebase  │ │  Genkit    │   │        │
+│  │  │Prayer Calc │ │   Auth     │ │   AI/ML    │   │        │
+│  │  └────────────┘ └────────────┘ └────────────┘   │        │
+│  └──────────────────────────────────────────────────┘        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Core Technologies
+| Category | Technology | Purpose |
+|----------|------------|---------|
+| **Framework** | Next.js 15 + React 19 | App architecture |
+| **Language** | TypeScript 5 | Type safety |
+| **Styling** | Tailwind CSS 3.4 + shadcn/ui | Modern UI |
+| **Mobile** | Capacitor 8 | Native Android app |
+| **Icons** | Lucide React | Consistent iconography |
+| **State** | React Hook Form + Zod | Form management |
+| **AI** | Genkit + Google GenAI | Smart features |
+
+### Native Capabilities (Capacitor Plugins)
+- `@capacitor/geolocation` — GPS for prayer time calculations
+- `@capacitor/local-notifications` — Adhan reminders
+- `@capacitor/preferences` — Local settings storage
+
+---
+
+## 📸 Screenshots
+
+<div align="center">
+
+| Home Screen | Prayer Times | Quran Reader |
+|-------------|--------------|--------------|
+| <img src="./assets/night-mode.png" width="250"> | <img src="./assets/praying.png" width="250"> | <img src="./assets/quran.png" width="250"> |
+| *Hijri date, next prayer, daily wisdom* | *Accurate timings, multiple methods* | *Tajweed colors, tafsir, audio* |
+
+</div>
+
+---
+
+## 🏗️ Project Structure
+
+```
+Aniro-V3/
+├── 📁 android/                 # Native Android project (Capacitor)
+├── 📁 assets/                   # App icons & images
+├── 📁 src/
+│   ├── 📁 app/                  # Next.js app router
+│   │   ├── 📁 api/              # API routes
+│   │   ├── 📁 quran/            # Quran feature pages
+│   │   ├── 📁 prayer/           # Prayer times pages
+│   │   └── 📁 azkar/            # Azkar pages
+│   ├── 📁 components/
+│   │   ├── 📁 ui/               # shadcn/ui components
+│   │   └── 📁 quran/            # Custom Quran components
+│   ├── 📁 hooks/                # Custom React hooks
+│   ├── 📁 lib/                  # Utilities & helpers
+│   ├── 📁 types/                # TypeScript definitions
+│   └── 📁 ai/                   # Genkit AI flows
+├── 📁 public/                   # Static assets
+├── 📄 capacitor.config.ts         # Capacitor configuration
+├── 📄 next.config.ts            # Next.js configuration
+└── 📄 tailwind.config.ts         # Tailwind customization
+```
+
+---
+
+## 🚦 Getting Started
+
+### Prerequisites
+- Node.js 20+
+- Android Studio (for Android builds)
+- Git
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/its3li/Aniro-V3.git
+cd Aniro-V3
+
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Sync with Android
+npx cap sync android
+
+# Open Android Studio
+npx cap open android
+```
+
+---
+
+## 🤝 Contribute
+
+We welcome contributions! Here's how:
+
+```bash
+# Fork & clone
+git clone https://github.com/YOUR_USERNAME/Aniro-V3.git
+
+# Create branch
+git checkout -b feature/amazing-feature
+
+# Make changes & commit
+git commit -m "feat: add amazing feature"
+
+# Push & PR
+git push origin feature/amazing-feature
+```
+
+### Contribution Areas
+- 🐛 Bug fixes
+- ✨ New features
+- 🌍 Translations (i18n)
+- 📱 iOS support
+- 🎨 UI/UX improvements
+- 📚 Documentation
+
+---
+
+## 📊 Stats
+
+<div align="center">
+
+![GitHub stars](https://img.shields.io/github/stars/its3li/Aniro-V3?style=social)
+![GitHub forks](https://img.shields.io/github/forks/its3li/Aniro-V3?style=social)
+![GitHub watchers](https://img.shields.io/github/watchers/its3li/Aniro-V3?style=social)
+
+</div>
+
+---
+
+## 🙏 Acknowledgments
+
+- **Adhan Library** — Accurate prayer time calculations
+- **Quran.com API** — Quranic data and translations
+- **Capacitor Team** — Making web apps native
+- **shadcn/ui** — Beautiful accessible components
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+
+**Made with ❤️ by [Ali](https://github.com/its3li)**
+
+*"And whoever does an atom's weight of good will see it"* — Quran 99:7
+
+[⬆ Back to Top](#-aniro-v3)
+
+</div>
