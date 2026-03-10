@@ -2,7 +2,7 @@
 
 <img src="./assets/icon.png" width="120" height="120" alt="Aniro Logo">
 
-# 🌙 Aniro V3
+# 🌙 Aniro V6
 
 **Your Digital Companion for Islamic Worship**  
 *رفيقك الرقمي للعبادات اليومية*
