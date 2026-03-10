@@ -42,11 +42,12 @@
 - **Daily Prayer Strip** — Quick view of all today's prayer times
 - **Daily Wisdom** — Rotating hadith and Islamic quotes to start your day
 
-### 🕌 Accurate Prayer Times
+### 🕌 Accurate Prayer Times & Qibla
 - **GPS-Based Location** — Auto-detects your city/country for precise calculations
 - **Multiple Calculation Methods** — Choose from: Muslim World League, Egyptian General Authority, and more
 - **Background Notifications** — Adhan plays even when app is closed
 - **Manual Time Adjustment** — Fine-tune by minutes if needed
+- **🧭 Qibla Compass** — Accurate direction to the Kaaba with smooth animation
 
 ### 📖 Complete Quran Experience
 - **Full Mushaf** — Complete Quran with all 114 surahs
@@ -101,9 +102,10 @@
 │  ┌────────────────────────┼────────────────────────┐        │
 │  │                 Data & AI Layer                 │        │
 │  │  ┌────────────┐ ┌────────────┐ ┌────────────┐   │        │
-│  │  │  Adhan.js  │ │  Firebase  │ │  Genkit    │   │        │
-│  │  │Prayer Calc │ │   Auth     │ │   AI/ML    │   │        │
-│  │  └────────────┘ └────────────┘ └────────────┘   │        │
+│  │  │  Adhan.js  │ │   IDB      │ │  Genkit    │   │        │
+│  │  │Prayer Calc │ │  (IndexedDB)│ │  الذكاء    │   │        │
+│  │  └────────────┘ └────────────┘ │  الاصطناعي  │   │        │
+│  │                              └────────────┘   │        │
 │  └──────────────────────────────────────────────────┘        │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -117,12 +119,16 @@
 | **Mobile** | Capacitor 8 | Native Android app |
 | **Icons** | Lucide React | Consistent iconography |
 | **State** | React Hook Form + Zod | Form management |
-| **AI** | Genkit + Google GenAI | Smart features |
+| **AI** | Genkit + Google GenAI | الذكاء الاصطناعي |
 
 ### Native Capabilities (Capacitor Plugins)
 - `@capacitor/geolocation` — GPS for prayer time calculations
 - `@capacitor/local-notifications` — Adhan reminders
 - `@capacitor/preferences` — Local settings storage
+
+### Storage
+- **IndexedDB (IDB-Keyval)** — Offline-first data storage
+- **Capacitor Preferences** — Settings & cache
 
 ---
 
