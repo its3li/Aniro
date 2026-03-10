@@ -100,12 +100,11 @@
 │  └────────────────────────┬────────────────────────┘        │
 │                           │                                  │
 │  ┌────────────────────────┼────────────────────────┐        │
-│  │                 Data & AI Layer                 │        │
+│  │                    Data Layer                  │        │
 │  │  ┌────────────┐ ┌────────────┐ ┌────────────┐   │        │
-│  │  │  Adhan.js  │ │   IDB      │ │  Genkit    │   │        │
-│  │  │Prayer Calc │ │  (IndexedDB)│ │  الذكاء    │   │        │
-│  │  └────────────┘ └────────────┘ │  الاصطناعي  │   │        │
-│  │                              └────────────┘   │        │
+│  │  │  Adhan.js  │ │   IDB      │ │  Minisearch│   │        │
+│  │  │Prayer Calc │ │  (IndexedDB)│ │  Search    │   │        │
+│  │  └────────────┘ └────────────┘ └────────────┘   │        │
 │  └──────────────────────────────────────────────────┘        │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -119,7 +118,7 @@
 | **Mobile** | Capacitor 8 | Native Android app |
 | **Icons** | Lucide React | Consistent iconography |
 | **State** | React Hook Form + Zod | Form management |
-| **AI** | Genkit + Google GenAI | الذكاء الاصطناعي |
+| **Search** | Minisearch | Offline search in Quran |
 
 ### Native Capabilities (Capacitor Plugins)
 - `@capacitor/geolocation` — GPS for prayer time calculations
@@ -162,8 +161,7 @@ Aniro-V3/
 │   │   └── 📁 quran/            # Custom Quran components
 │   ├── 📁 hooks/                # Custom React hooks
 │   ├── 📁 lib/                  # Utilities & helpers
-│   ├── 📁 types/                # TypeScript definitions
-│   └── 📁 ai/                   # Genkit AI flows
+│   └── 📁 types/                # TypeScript definitions
 ├── 📁 public/                   # Static assets
 ├── 📄 capacitor.config.ts         # Capacitor configuration
 ├── 📄 next.config.ts            # Next.js configuration
