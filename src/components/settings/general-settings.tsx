@@ -7,11 +7,11 @@ import { useLocation } from '@/hooks/use-location';
 import { useTheme } from '../providers/theme-provider';
 import { useSettings } from '../providers/settings-provider';
 import { cn } from '@/lib/utils';
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, Brain } from 'lucide-react';
 
 export function GeneralSettings() {
   const { theme, setTheme } = useTheme();
-  const { settings, setLanguage, setAzanMode, setIncludeIshraq } = useSettings();
+  const { settings, setLanguage, setAzanMode, setIncludeIshraq, setFajrQuizEnabled } = useSettings();
   const { city, country, refreshLocation, isLoading } = useLocation();
   const isArabic = settings.language === 'ar';
 
@@ -90,7 +90,7 @@ export function GeneralSettings() {
           </div>
 
           {/* Include Ishraq */}
-          <div className="flex items-center justify-between py-3 last:pb-0">
+          <div className="flex items-center justify-between py-3">
             <div className="flex flex-col gap-0.5">
               <Label className="text-sm">{isArabic ? 'صلاة الضحى' : 'Duha Prayer'}</Label>
               <p className="text-[11px] text-muted-foreground">
@@ -101,6 +101,25 @@ export function GeneralSettings() {
               id="ishraq-switch"
               checked={settings.includeIshraq}
               onCheckedChange={setIncludeIshraq}
+              dir="ltr"
+            />
+          </div>
+
+          {/* Fajr Quiz */}
+          <div className="flex items-center justify-between py-3 last:pb-0">
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-amber-500" />
+              <div className="flex flex-col gap-0.5">
+                <Label className="text-sm">{isArabic ? 'تحدي الاستيقاظ' : 'Wake-up Challenge'}</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  {isArabic ? 'أكمل الآية لإيقاف أذان الفجر' : 'Complete the verse to stop Fajr adhan'}
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="fajr-quiz-switch"
+              checked={settings.fajrQuizEnabled}
+              onCheckedChange={setFajrQuizEnabled}
               dir="ltr"
             />
           </div>

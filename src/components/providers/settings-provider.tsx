@@ -30,6 +30,7 @@ type Settings = {
   appTheme: 'system' | 'light' | 'dark';
   azanMode: AzanMode;
   includeIshraq: boolean;
+  fajrQuizEnabled: boolean;
 };
 
 type SettingsProviderState = {
@@ -48,6 +49,7 @@ type SettingsProviderState = {
   setAppTheme: (theme: 'system' | 'light' | 'dark') => void;
   setAzanMode: (mode: AzanMode) => void;
   setIncludeIshraq: (include: boolean) => void;
+  setFajrQuizEnabled: (enabled: boolean) => void;
   availableReciters: Reciter[];
 };
 
@@ -66,6 +68,7 @@ const defaultSettings: Settings = {
   appTheme: 'system',
   azanMode: 'full',
   includeIshraq: true,
+  fajrQuizEnabled: true,
 };
 
 const SettingsProviderContext = createContext<SettingsProviderState>({
@@ -84,6 +87,7 @@ const SettingsProviderContext = createContext<SettingsProviderState>({
   setAppTheme: () => null,
   setAzanMode: () => null,
   setIncludeIshraq: () => null,
+  setFajrQuizEnabled: () => null,
   availableReciters: availableReciters,
 });
 
@@ -96,7 +100,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       if (storedSettings) {
         // Merge stored settings with defaults to avoid breaking changes
         const parsedSettings = JSON.parse(storedSettings);
-        setSettings(prev => ({ ...defaultSettings, ...prev, ...parsedSettings }));
+        setSettings({ ...defaultSettings, ...parsedSettings });
       }
     } catch (error) {
       console.error("Could not load settings", error);
@@ -109,29 +113,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.style.fontSize = `${settings.fontSize}px`;
       document.documentElement.dir = settings.language === 'ar' ? 'rtl' : 'ltr';
       document.documentElement.lang = settings.language;
-
-      const applyTheme = () => {
-        const isDark =
-          settings.appTheme === 'dark' ||
-          (settings.appTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-        if (isDark) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      };
-
-      applyTheme();
-
-      // Listen for system changes if in system mode
-      if (settings.appTheme === 'system') {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        const handleChange = () => applyTheme();
-        mediaQuery.addEventListener('change', handleChange);
-        return () => mediaQuery.removeEventListener('change', handleChange);
-      }
-
     } catch (error) {
       console.error("Could not save settings", error);
     }
@@ -141,7 +122,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const syncWidget = async () => {
       try {
-        // @ts-ignore
+        // @ts-expect-error WidgetData is registered only in native builds
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.WidgetData) {
           // Get cached location from localStorage (set by useLocation hook)
           let latitude = 21.4225; // Default: Mecca (Kaaba)
@@ -158,7 +139,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             }
           } catch {}
           
-          // @ts-ignore
+          // @ts-expect-error WidgetData is registered only in native builds
           await window.Capacitor.Plugins.WidgetData.updateData({
             latitude,
             longitude,
@@ -167,7 +148,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             dstMode: settings.dstMode,
             widgetBackgroundColor: settings.widgetTheme === 'default' ? '#24252B' : settings.widgetBackgroundColor,
             useSystemWidgetColor: settings.widgetTheme === 'system',
-            language: settings.language
+            language: settings.language,
+            azanMode: settings.azanMode,
+            includeIshraq: settings.includeIshraq
           });
         }
       } catch (e) {
@@ -175,7 +158,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
     };
     syncWidget();
-  }, [settings.calculationMethod, settings.prayerOffset, settings.dstMode, settings.widgetBackgroundColor, settings.widgetTheme, settings.language]);
+  }, [settings.calculationMethod, settings.prayerOffset, settings.dstMode, settings.widgetBackgroundColor, settings.widgetTheme, settings.language, settings.azanMode, settings.includeIshraq]);
 
   const setFontSize = (size: number) => {
     setSettings(s => ({ ...s, fontSize: size }));
@@ -233,6 +216,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setSettings(s => ({ ...s, includeIshraq: include }));
   }
 
+  const setFajrQuizEnabled = (enabled: boolean) => {
+    setSettings(s => ({ ...s, fajrQuizEnabled: enabled }));
+  }
+
   const value = {
     settings,
     setFontSize,
@@ -249,6 +236,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setAppTheme,
     setAzanMode,
     setIncludeIshraq,
+    setFajrQuizEnabled,
     availableReciters,
   };
 

@@ -122,9 +122,9 @@ export function parseTajweed(text: string, lang: "ar" | "en" = "en"): string {
     if (rule) {
       const idAttribute = id ? ` data-tajweed=":${id}"` : "";
       const description = lang === "ar" ? rule.descriptionAr : rule.description;
-      // Use ZWJ (Zero Width Joiner) to help maintain Arabic ligatures across tags
-      // \u200D is the ZWJ character
-      return `<tajweed class="${rule.className}" data-type="${rule.type}" data-description="${description}"${idAttribute}>\u200D${content}\u200D</tajweed>`;
+      // Use <span> instead of custom <tajweed> elements — browsers maintain
+      // Arabic text shaping (ligature joining) across <span> but NOT custom elements
+      return `<span class="tajweed ${rule.className}" data-type="${rule.type}" data-description="${description}"${idAttribute}>${content}</span>`;
     }
     return match;
   });

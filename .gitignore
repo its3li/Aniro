@@ -43,3 +43,16 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+# local release and debug artifacts
+*.zip
+*.diff
+*.patch
+build.log
+build-output.log
+Task
+
+# AI agent workspaces
+.claude/
+.gemini/
+.agents/

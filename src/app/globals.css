@@ -84,6 +84,10 @@
     user-select: none;
   }
 
+  .font-quran {
+    font-family: 'hafs', 'Noto Naskh Arabic', 'Scheherazade New', 'Amiri', serif;
+  }
+
   /* Allow text selection specifically in content areas */
   .selectable,
   .font-quran,
@@ -123,13 +127,16 @@
 }
 
 /* Tajweed Styles — Mushaf Tajweed Color Coding */
-tajweed {
+.tajweed {
   display: inline;
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
-  white-space: nowrap;
+  white-space: normal;
   text-rendering: optimizeLegibility;
+  word-break: keep-all;
+  letter-spacing: 0;
+  -webkit-text-stroke: 0;
 }
 
 /* Red spectrum: Madd rules */

@@ -7,8 +7,8 @@ android {
         applicationId "com.aniro.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 11
-        versionName "6.5"
+        versionCode 12
+        versionName "6.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -21,19 +21,29 @@ android {
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21
     }
+    def releaseStoreFile = project.findProperty('ANIRO_UPLOAD_STORE_FILE') ?: System.getenv('ANIRO_UPLOAD_STORE_FILE')
+    def releaseStorePassword = project.findProperty('ANIRO_UPLOAD_STORE_PASSWORD') ?: System.getenv('ANIRO_UPLOAD_STORE_PASSWORD')
+    def releaseKeyAlias = project.findProperty('ANIRO_UPLOAD_KEY_ALIAS') ?: System.getenv('ANIRO_UPLOAD_KEY_ALIAS')
+    def releaseKeyPassword = project.findProperty('ANIRO_UPLOAD_KEY_PASSWORD') ?: System.getenv('ANIRO_UPLOAD_KEY_PASSWORD')
+    def hasReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it }
+
     signingConfigs {
         release {
-            storeFile file('aniro-release.keystore')
-            storePassword 'aniro2024'
-            keyAlias 'aniro'
-            keyPassword 'aniro2024'
+            if (hasReleaseSigning) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
         }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
@@ -61,12 +71,3 @@ dependencies {
 }
 
 apply from: 'capacitor.build.gradle'
-
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
-}

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import type { AzkarItem } from "@/lib/azkar";
 import { Button } from '@/components/ui/button';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSettings } from '../providers/settings-provider';
 
@@ -72,6 +72,14 @@ export function ZikrCard({ item, categoryId, index }: ZikrCardProps) {
         )}>
           {item.arabic}
         </p>
+
+        {/* Note Alert */}
+        {item.note && (
+          <div className="flex items-center gap-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-sm">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+            <span className="text-amber-700 dark:text-amber-400 font-medium leading-relaxed">{item.note}</span>
+          </div>
+        )}
 
         {/* Translation (if not Arabic language setting) */}
         {!isArabic && (

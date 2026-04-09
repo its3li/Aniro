@@ -3,6 +3,7 @@ export interface AzkarItem {
     arabic: string;
     translation: string;
     repetitions?: number;
+    note?: string;
 }
   
 export interface AzkarCategory {
@@ -352,6 +353,12 @@ export const azkarData: AzkarCategory = {
             translation: 'Allah is the Greatest.',
             repetitions: 33,
           },
+          {
+            arabic: 'لا إلَهَ إلَّا اللهُ، وحدَه لا شَريكَ له، له المُلكُ وله الحَمدُ، وهو على كُلِّ شَيءٍ قديرٌ',
+            translation: 'None has the right to be worshipped but Allah alone, Who has no partner. His is the dominion and His is the praise, and He is Able to do all things.',
+            repetitions: 1,
+            note: '⚠️ بعد صلاة الفجر والمغرب: تُقال 10 مرات',
+          },
         ],
       },
       {
@@ -528,12 +535,14 @@ export const azkarData: AzkarCategory = {
             color: 'from-teal-400 to-cyan-600',
             items: [{
               arabic: 'اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ',
-              translation: 'O Allah, open the gates of Your mercy for me. (upon entering)',
+              translation: 'O Allah, open the gates of Your mercy for me.',
               repetitions: 1,
+              note: '🛭 عند الدخول للمسجد',
             }, {
               arabic: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ',
-              translation: 'O Allah, I ask You from Your bounty. (upon leaving)',
+              translation: 'O Allah, I ask You from Your bounty.',
               repetitions: 1,
+              note: '🚪 عند الخروج من المسجد',
             }]
           }
         ]

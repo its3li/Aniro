@@ -1,17 +1,26 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useSettings } from './settings-provider';
-import { getPrayerTimes, PrayerTime, getTotalOffset } from '@/lib/prayer';
+import { getPrayerTimes, getTotalOffset } from '@/lib/prayer';
 import { useLocation } from '@/hooks/use-location';
+import { FajrQuizModal } from '@/components/prayer/fajr-quiz-modal';
 
 export function AzanPlayer() {
     const { settings } = useSettings();
     const { coordinates } = useLocation();
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const lastPlayedPrayerRef = useRef<string | null>(null);
+    const [showFajrQuiz, setShowFajrQuiz] = useState(false);
+
+    // On native, we don't render the web azan player at all — but we DO render
+    // the quiz modal since it's a React component
+    const isNative = Capacitor.isNativePlatform();
 
     useEffect(() => {
+        if (isNative) return;
+
         // Initialize audio element
         if (!audioRef.current) {
             audioRef.current = new Audio('/azan.mp3');
@@ -19,7 +28,6 @@ export function AzanPlayer() {
 
         const checkPrayerTime = () => {
             const now = new Date();
-            // Use location if available, otherwise defaults (Mecca)
             const lat = coordinates?.latitude;
             const lng = coordinates?.longitude;
 
@@ -29,20 +37,30 @@ export function AzanPlayer() {
             const currentPrayer = prayers.find(p => {
                 const prayerTime = p.date;
                 const diff = Math.abs(now.getTime() - prayerTime.getTime());
-                // Check if within 1 minute of prayer time
                 return diff < 60000;
             });
 
             if (currentPrayer && lastPlayedPrayerRef.current !== currentPrayer.name) {
-                // Play Azan
-                if (audioRef.current) {
-                    audioRef.current.play().catch(e => console.error("Error playing Azan:", e));
-                    lastPlayedPrayerRef.current = currentPrayer.name;
+                lastPlayedPrayerRef.current = currentPrayer.name;
+
+                // If this is Fajr AND quiz is enabled — show quiz (audio keeps playing)
+                if (currentPrayer.name === 'fajr' && settings.fajrQuizEnabled) {
+                    if (audioRef.current) {
+                        audioRef.current.loop = true;
+                        audioRef.current.play().catch(e => console.error("Error playing Azan:", e));
+                    }
+                    setShowFajrQuiz(true);
+                } else {
+                    // Non-Fajr prayer or quiz disabled — just play once
+                    if (audioRef.current) {
+                        audioRef.current.loop = false;
+                        audioRef.current.play().catch(e => console.error("Error playing Azan:", e));
+                    }
                 }
             }
         };
 
-        const intervalId = setInterval(checkPrayerTime, 10000); // Check every 10 seconds
+        const intervalId = setInterval(checkPrayerTime, 10000);
 
         return () => {
             clearInterval(intervalId);
@@ -51,7 +69,19 @@ export function AzanPlayer() {
                 audioRef.current = null;
             }
         };
-    }, [settings.prayerOffset, settings.dstMode, coordinates, settings.calculationMethod]);
+    }, [settings.prayerOffset, settings.dstMode, coordinates, settings.calculationMethod, settings.fajrQuizEnabled, isNative]);
 
-    return null; // This component doesn't render anything
+    const handleQuizSolved = () => {
+        // Stop the adhan
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            audioRef.current.loop = false;
+        }
+        setShowFajrQuiz(false);
+    };
+
+    return (
+        <FajrQuizModal open={showFajrQuiz} onSolved={handleQuizSolved} />
+    );
 }

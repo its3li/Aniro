@@ -49,6 +49,26 @@ export default function RootLayout({
             line-height: 2.5;
           }
         `}</style>
+        {/* Blocking script: apply dark mode BEFORE React hydration to prevent white flash */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            try {
+              var theme = localStorage.getItem('ui-theme');
+              if (!theme) {
+                var appSettings = localStorage.getItem('app-settings');
+                if (appSettings) {
+                  var parsed = JSON.parse(appSettings);
+                  theme = parsed.appTheme || 'dark';
+                }
+              }
+              if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches) || theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+              }
+            } catch(e) {
+              document.documentElement.classList.add('dark');
+            }
+          })();
+        `}} />
       </head>
       <body className={cn('font-body antialiased bg-background min-h-screen')}>
         <ThemeProvider

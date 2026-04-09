@@ -1,14 +1,14 @@
 // App version - must match android/app/build.gradle versionCode and versionName
 export const APP_VERSION = {
-  versionCode: 11,
-  versionName: '6.5',
+  versionCode: 12,
+  versionName: '6.6',
 };
 
 // URL to check for updates - version.json is in the same repo as the code
-const UPDATE_CHECK_URL = 'https://api.github.com/repos/its3li/Aniro-V3/contents/version.json';
+const UPDATE_CHECK_URL = 'https://api.github.com/repos/its3li/Aniro/contents/version.json';
 
 // Landing page for downloads
-const LANDING_PAGE_URL = 'https://aniro.vercel.app/';
+const LANDING_PAGE_URL = 'https://github.com/its3li/Aniro/releases/latest';
 
 export interface UpdateInfo {
   versionCode: number;
