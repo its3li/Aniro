@@ -26,7 +26,7 @@
 |----------|--------|------|
 | Android | ✅ Available | [Download APK](https://github.com/its3li/Aniro-V3/releases) |
 | iOS | 🚧 Coming Soon | — |
-| Web | ✅ Live Demo | [aniro.app](https://aniro.app) |
+| Web | 🚧 Coming Soon | — |
 
 ---
 
