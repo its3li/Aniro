@@ -1,20 +1,25 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Surah, Verse } from '@/lib/quran';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, Pause, PlayCircle, PauseCircle, Copy, BookmarkPlus, BookOpen } from 'lucide-react';
+import { ArrowLeft, Play, Pause, PlayCircle, PauseCircle, Copy, BookmarkPlus, BookOpen, Settings2 } from 'lucide-react';
 import { TafseerModal } from './tafseer-modal';
 import { useSettings } from '../providers/settings-provider';
-import { parseTajweed, stripTajweed } from '@/lib/tajweed';
+import { stripTajweed } from '@/lib/tajweed';
 import { TajweedLegend } from './tajweed-legend';
 import { MushafPageView } from './mushaf-page-view';
+import { TajweedText } from './tajweed-text';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAudioPlayer } from '../providers/audio-player-provider';
 import { useLastRead } from '@/hooks/use-last-read';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 
 // Strip Bismillah prefix from first verse of surah (except Al-Fatiha and At-Tawbah)
 // Works with all Quran text variants (Hafs, Warsh, Tajweed, etc.)
@@ -64,9 +69,12 @@ interface QuranReaderProps {
 }
 
 export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderProps) {
-  const { settings } = useSettings();
-  const { quranViewMode, language, quranEdition } = settings;
+  const { settings, setFontSize, setQuranTajweedEnabled } = useSettings();
+  const { quranViewMode, language, quranEdition, quranTajweedEnabled } = settings;
   const isArabic = language === 'ar';
+  const canUseTajweed = quranEdition === 'uthmani';
+  const isTajweed = canUseTajweed && quranTajweedEnabled;
+  const activeViewMode = quranViewMode;
   const { toast } = useToast();
   const { saveLastRead } = useLastRead();
 
@@ -79,6 +87,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
   const [selectedVerseForTafseer, setSelectedVerseForTafseer] = useState<Verse | null>(null);
   const [isTafseerOpen, setTafseerOpen] = useState(false);
   const [selectedVerseForPopup, setSelectedVerseForPopup] = useState<Verse | null>(null);
+  const [showTranslation, setShowTranslation] = useState(false);
 
   const verseRefs = useRef<Map<string, HTMLElement | null>>(new Map());
 
@@ -94,7 +103,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
 
   // Scroll to initial verse (from search) — list mode only
   useEffect(() => {
-    if (quranViewMode === 'page') return; // Page mode handles this internally
+    if (activeViewMode === 'page') return; // Page mode handles this internally
     if (surah && typeof surah.number === 'number' && typeof initialVerseNumber === 'number') {
       const verseKey = `${surah.number}:${initialVerseNumber}`;
       setTimeout(() => {
@@ -108,7 +117,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
         }
       }, 500);
     }
-  }, [surah, initialVerseNumber, quranViewMode]);
+  }, [surah, initialVerseNumber, activeViewMode]);
 
 
   const handleVersePlayClick = (verse: Verse) => {
@@ -128,16 +137,6 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
       const startVerse = activeVerseKey ? surah.verses.find(v => `${surah.number}:${v.number.inSurah}` === activeVerseKey) : undefined;
       playSurah(surah, startVerse);
     }
-  };
-
-  const handleCopy = (verse: Verse) => {
-    const textToCopy = `${stripTajweed(verse.text)} (${isArabic ? surah.name : surah.englishName}:${verse.number.inSurah})`;
-    navigator.clipboard.writeText(textToCopy);
-    toast({ title: isArabic ? 'تم نسخ الآية' : 'Verse copied to clipboard' });
-  };
-
-  const handleLongPress = (verse: Verse) => {
-    setSelectedVerseForPopup(verse);
   };
 
   // Show popup immediately on click (no delay)
@@ -179,27 +178,37 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
   const [popupRect, setPopupRect] = useState<{ top: number; left: number } | null>(null);
 
   useEffect(() => {
+    let timeoutId: number | undefined;
+
     if (!selectedVerseForPopup) {
-      setPopupRect(null);
-      return;
+      timeoutId = window.setTimeout(() => setPopupRect(null), 0);
+      return () => {
+        if (timeoutId) window.clearTimeout(timeoutId);
+      };
     }
 
-    const verseKey = `${surah.number}:${selectedVerseForPopup.number.inSurah}`;
-    const verseEl = verseRefs.current.get(verseKey);
-    if (verseEl) {
-      const rect = verseEl.getBoundingClientRect();
-      const popupWidth = 180;
-      const padding = 8;
+    timeoutId = window.setTimeout(() => {
+      const verseKey = `${surah.number}:${selectedVerseForPopup.number.inSurah}`;
+      const verseEl = verseRefs.current.get(verseKey);
+      if (verseEl) {
+        const rect = verseEl.getBoundingClientRect();
+        const popupWidth = 180;
+        const padding = 8;
 
-      // Center horizontally, clamp to screen edges
-      let left = rect.left + (rect.width / 2) - (popupWidth / 2);
-      left = Math.max(padding, Math.min(left, window.innerWidth - popupWidth - padding));
+        // Center horizontally, clamp to screen edges
+        let left = rect.left + (rect.width / 2) - (popupWidth / 2);
+        left = Math.max(padding, Math.min(left, window.innerWidth - popupWidth - padding));
 
-      // Position above the verse
-      const top = rect.top - 60;
+        // Position above the verse
+        const top = rect.top - 60;
 
-      setPopupRect({ top, left });
-    }
+        setPopupRect({ top, left });
+      }
+    }, 0);
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
   }, [selectedVerseForPopup, surah.number]);
 
   // Close popup on scroll or resize
@@ -218,7 +227,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
 
   return (
     <div>
-      {quranViewMode === 'page' ? (
+      {activeViewMode === 'page' ? (
         <MushafPageView surahNumber={surah.number} initialVerseNumber={initialVerseNumber} onBack={onBack} />
       ) : (
         <>
@@ -232,14 +241,69 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                 <h1 className="text-base font-semibold truncate">{isArabic ? surah.name : surah.englishName}</h1>
                 <p className="text-xs text-muted-foreground truncate">{isArabic ? surah.englishName : surah.name}</p>
               </div>
-              <Button variant="ghost" size="icon" className="shrink-0 w-9 h-9" onClick={handleToggleContinuousPlay}>
+              <Button variant="ghost" size="icon" className="shrink-0 w-9 h-9 rounded-lg" onClick={handleToggleContinuousPlay}>
                 {isSurahPlaying ? <PauseCircle className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
               </Button>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="shrink-0 w-9 h-9 rounded-lg">
+                    <Settings2 className="w-5 h-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="rounded-t-lg border-border bg-background pb-[calc(1.5rem+var(--safe-area-bottom,0px))]">
+                  <SheetHeader className="text-start">
+                    <SheetTitle>{isArabic ? 'إعدادات القراءة' : 'Reader Settings'}</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-5 space-y-5">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-semibold">{isArabic ? 'حجم الخط' : 'Font Size'}</Label>
+                        <span className="font-mono text-xs text-muted-foreground">{settings.fontSize}px</span>
+                      </div>
+                      <Slider
+                        min={14}
+                        max={22}
+                        step={1}
+                        value={[settings.fontSize]}
+                        onValueChange={(value) => setFontSize(value[0])}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-4 rounded-lg border border-border/70 p-3">
+                      <div>
+                        <Label htmlFor="reader-translation" className="text-sm font-semibold">
+                          {isArabic ? 'عرض الترجمة' : 'Show Translation'}
+                        </Label>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {isArabic ? 'تظهر أسفل كل آية في وضع القائمة' : 'Shown under each verse in list mode'}
+                        </p>
+                      </div>
+                      <Switch id="reader-translation" checked={showTranslation} onCheckedChange={setShowTranslation} dir="ltr" />
+                    </div>
+                    <div className="flex items-center justify-between gap-4 rounded-lg border border-border/70 p-3">
+                      <div>
+                        <Label htmlFor="reader-tajweed" className="text-sm font-semibold">
+                          {isArabic ? 'ألوان التجويد' : 'Tajweed Colors'}
+                        </Label>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {isArabic ? 'متاحة لمصحف حفص فقط' : 'Available for Hafs only'}
+                        </p>
+                      </div>
+                      <Switch
+                        id="reader-tajweed"
+                        checked={isTajweed}
+                        onCheckedChange={setQuranTajweedEnabled}
+                        disabled={!canUseTajweed}
+                        dir="ltr"
+                      />
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </header>
 
           {/* Tajweed legend */}
-          {quranEdition === 'tajweed' && (
+          {isTajweed && (
             <div className="sticky top-[52px] z-10">
               <TajweedLegend />
             </div>
@@ -256,7 +320,6 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
               )}
               {surah.verses.map((verse, index) => {
                 const verseKey = `${surah.number}:${verse.number.inSurah}`;
-                const isPlaying = playerState.activeVerseKey === verseKey && playerState.isPlaying;
                 const isVerseActive = playerState.activeVerseKey === verseKey;
                 const isSelected = selectedVerseForPopup?.number.inQuran === verse.number.inQuran;
 
@@ -272,9 +335,9 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                     onClick={() => handleVerseClick(verse)}
                     className={cn("relative bg-card border border-border p-4 rounded-xl text-center cursor-pointer overflow-hidden select-none touch-manipulation", isVerseActive && 'bg-primary/10', isSelected && 'bg-primary/10 ring-2 ring-primary/30')}
                   >
-                    <p className="text-right font-quran text-xl leading-loose">
-                      {quranEdition === 'tajweed' ? (
-                        <span dangerouslySetInnerHTML={{ __html: parseTajweed(displayText) }} />
+                    <p className="tajweed-text text-right font-quran text-xl leading-loose" dir="rtl" lang="ar">
+                      {isTajweed ? (
+                        <TajweedText text={displayText} lang={isArabic ? 'ar' : 'en'} />
                       ) : (
                         displayText
                       )}
@@ -282,6 +345,11 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                         ({verse.number.inSurah})
                       </span>
                     </p>
+                    {showTranslation && verse.translation && (
+                      <p className="mt-3 border-t border-border/60 pt-3 text-sm leading-relaxed text-muted-foreground" dir={isArabic ? 'rtl' : 'ltr'}>
+                        {verse.translation}
+                      </p>
+                    )}
                   </div>
                 )
               })}

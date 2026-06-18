@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface CompassState {
     /** Device heading in degrees (0-360, 0 = North). null if unavailable. */
@@ -11,6 +11,34 @@ interface CompassState {
     hasPermission: boolean;
     /** Error message if any. */
     error: string | null;
+}
+
+interface WebKitDeviceOrientationEvent extends DeviceOrientationEvent {
+    webkitCompassHeading?: number;
+}
+
+interface DeviceOrientationEventConstructorWithPermission {
+    requestPermission?: () => Promise<'granted' | 'denied' | 'prompt'>;
+}
+
+type OrientationEventName = 'deviceorientation' | 'deviceorientationabsolute';
+
+function getDeviceOrientationConstructor() {
+    return DeviceOrientationEvent as unknown as DeviceOrientationEventConstructorWithPermission;
+}
+
+function addOrientationListener(
+    eventName: OrientationEventName,
+    listener: (event: DeviceOrientationEvent) => void
+) {
+    window.addEventListener(eventName, listener as EventListener, true);
+}
+
+function removeOrientationListener(
+    eventName: OrientationEventName,
+    listener: (event: DeviceOrientationEvent) => void
+) {
+    window.removeEventListener(eventName, listener as EventListener, true);
 }
 
 /**
@@ -24,40 +52,31 @@ export function useCompass() {
         hasPermission: false,
         error: null,
     });
-
-    // Track if we are receiving absolute events to ignore relative ones
     const isAbsoluteRef = useRef(false);
 
     const handleOrientation = useCallback((event: DeviceOrientationEvent) => {
         let heading: number | null = null;
-        const isAbsoluteEvent = (event.type === 'deviceorientationabsolute');
+        const isAbsoluteEvent = event.type === 'deviceorientationabsolute';
 
         if (isAbsoluteEvent) {
             isAbsoluteRef.current = true;
         }
 
-        // iOS - True North
-        if ((event as any).webkitCompassHeading !== undefined) {
-            heading = (event as any).webkitCompassHeading;
-            // iOS events are usually consistent, no need to flag absolute ref unless needed
-        }
-        // Android - Absolute North
-        else if (isAbsoluteEvent && event.alpha !== null) {
+        const webkitEvent = event as WebKitDeviceOrientationEvent;
+        if (webkitEvent.webkitCompassHeading !== undefined) {
+            heading = webkitEvent.webkitCompassHeading;
+        } else if (isAbsoluteEvent && event.alpha !== null) {
             heading = 360 - event.alpha;
-        }
-        // Fallback - Relative North
-        // Only use if we haven't established absolute support
-        else if (!isAbsoluteRef.current && event.alpha !== null) {
+        } else if (!isAbsoluteRef.current && event.alpha !== null) {
             heading = 360 - event.alpha;
         }
 
         if (heading !== null) {
-            // Normalize to 0-360
             heading = (heading % 360 + 360) % 360;
-
+            const roundedHeading = Math.round(heading);
             setState(prev => ({
                 ...prev,
-                heading: Math.round(heading!),
+                heading: roundedHeading,
                 isSupported: true,
                 hasPermission: true,
                 error: null,
@@ -67,15 +86,11 @@ export function useCompass() {
 
     const requestPermission = useCallback(async () => {
         try {
-            // iOS 13+ requires explicit permission request
-            if (
-                typeof (DeviceOrientationEvent as any).requestPermission === 'function'
-            ) {
-                const permission = await (
-                    DeviceOrientationEvent as any
-                ).requestPermission();
+            const permissionRequester = getDeviceOrientationConstructor().requestPermission;
+            if (typeof permissionRequester === 'function') {
+                const permission = await permissionRequester();
                 if (permission === 'granted') {
-                    window.addEventListener('deviceorientation', handleOrientation, true);
+                    addOrientationListener('deviceorientation', handleOrientation);
                     setState(prev => ({ ...prev, hasPermission: true, isSupported: true }));
                 } else {
                     setState(prev => ({
@@ -84,14 +99,13 @@ export function useCompass() {
                         error: 'Compass permission denied',
                     }));
                 }
-            } else {
-                // Android / desktop — just add listener
-                // Listen for both standard and absolute events
-                window.addEventListener('deviceorientationabsolute' as any, handleOrientation, true);
-                window.addEventListener('deviceorientation', handleOrientation, true);
-                setState(prev => ({ ...prev, hasPermission: true }));
+                return;
             }
-        } catch (err) {
+
+            addOrientationListener('deviceorientationabsolute', handleOrientation);
+            addOrientationListener('deviceorientation', handleOrientation);
+            setState(prev => ({ ...prev, hasPermission: true }));
+        } catch {
             setState(prev => ({
                 ...prev,
                 error: 'Failed to request compass permission',
@@ -100,60 +114,63 @@ export function useCompass() {
     }, [handleOrientation]);
 
     useEffect(() => {
-        // Check if the API exists at all
         if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) {
-            setState(prev => ({
-                ...prev,
-                isSupported: false,
-                error: 'Compass not available on this device',
-            }));
-            return;
+            const timeoutId = globalThis.setTimeout(() => {
+                setState(prev => ({
+                    ...prev,
+                    isSupported: false,
+                    error: 'Compass not available on this device',
+                }));
+            }, 0);
+
+            return () => globalThis.clearTimeout(timeoutId);
         }
 
-        // On Android / non-iOS, the event fires without permission
-        if (
-            typeof (DeviceOrientationEvent as any).requestPermission !== 'function'
-        ) {
-            // Test if we actually receive events
-            let received = false;
-            const testHandler = (e: DeviceOrientationEvent) => {
-                if (e.alpha !== null) {
-                    received = true;
-                    setState(prev => ({ ...prev, isSupported: true, hasPermission: true }));
-                    handleOrientation(e);
-                }
-            };
+        const permissionRequester = getDeviceOrientationConstructor().requestPermission;
+        if (typeof permissionRequester === 'function') {
+            const timeoutId = window.setTimeout(() => {
+                setState(prev => ({ ...prev, isSupported: true, hasPermission: false }));
+            }, 0);
 
-            window.addEventListener('deviceorientationabsolute' as any, testHandler, true);
-            window.addEventListener('deviceorientation', testHandler, true);
-
-            // After a short timeout, check if we received events
-            const timeout = setTimeout(() => {
-                window.removeEventListener('deviceorientationabsolute' as any, testHandler, true);
-                window.removeEventListener('deviceorientation', testHandler, true);
-                if (!received) {
-                    setState(prev => ({
-                        ...prev,
-                        isSupported: false,
-                        error: 'Compass not available on this device',
-                    }));
-                } else {
-                    // Keep listening with the real handler
-                    window.addEventListener('deviceorientationabsolute' as any, handleOrientation, true);
-                    window.addEventListener('deviceorientation', handleOrientation, true);
-                }
-            }, 1000);
-
-            return () => {
-                clearTimeout(timeout);
-                window.removeEventListener('deviceorientation', testHandler, true);
-                window.removeEventListener('deviceorientation', handleOrientation, true);
-                window.removeEventListener('deviceorientationabsolute' as any, handleOrientation, true);
-            };
-        } else {
-            // iOS — need user gesture to request permission
-            setState(prev => ({ ...prev, isSupported: true, hasPermission: false }));
+            return () => window.clearTimeout(timeoutId);
         }
+
+        let received = false;
+        const testHandler = (event: DeviceOrientationEvent) => {
+            if (event.alpha !== null) {
+                received = true;
+                setState(prev => ({ ...prev, isSupported: true, hasPermission: true }));
+                handleOrientation(event);
+            }
+        };
+
+        addOrientationListener('deviceorientationabsolute', testHandler);
+        addOrientationListener('deviceorientation', testHandler);
+
+        const timeoutId = window.setTimeout(() => {
+            removeOrientationListener('deviceorientationabsolute', testHandler);
+            removeOrientationListener('deviceorientation', testHandler);
+
+            if (!received) {
+                setState(prev => ({
+                    ...prev,
+                    isSupported: false,
+                    error: 'Compass not available on this device',
+                }));
+                return;
+            }
+
+            addOrientationListener('deviceorientationabsolute', handleOrientation);
+            addOrientationListener('deviceorientation', handleOrientation);
+        }, 1000);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+            removeOrientationListener('deviceorientation', testHandler);
+            removeOrientationListener('deviceorientationabsolute', testHandler);
+            removeOrientationListener('deviceorientation', handleOrientation);
+            removeOrientationListener('deviceorientationabsolute', handleOrientation);
+        };
     }, [handleOrientation]);
 
     return { ...state, requestPermission };

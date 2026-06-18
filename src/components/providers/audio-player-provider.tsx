@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useRef, useCallback, useEff
 import type { Surah, Verse } from '@/lib/quran';
 import { useSettings } from './settings-provider';
 
-type PlayerState = {
+export type PlayerState = {
   showPlayer: boolean;
   isPlaying: boolean;
   isContinuous: boolean;
@@ -56,6 +56,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
 
   // Ref to track latest reciter value (avoids stale closures)
   const reciterRef = useRef(quranReciter);
+  const playNextInQueueRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     playerStateRef.current = playerState;
@@ -68,7 +69,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
 
   const getVerseByKey = useCallback((key: string | null): Verse | undefined => {
     if (!key || !playerStateRef.current.surah) return undefined;
-    const verseNum = parseInt(key.split(':')[1]);
+    const verseNum = parseInt(key.split(':')[1], 10);
     return playerStateRef.current.surah.verses.find(v => v.number.inSurah === verseNum);
   }, []);
 
@@ -198,7 +199,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       isPlayingAudioRef.current = false;
       const { isContinuous: isCont } = playerStateRef.current;
       if (isCont) {
-        playNextInQueue();
+        void playNextInQueueRef.current();
       } else {
         setPlayerState(s => ({ ...s, isPlaying: false, progress: s.duration }));
       }
@@ -207,17 +208,21 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     currentAudio.onerror = () => {
       console.error(`Error playing audio for ${verseKey}`);
       isPlayingAudioRef.current = false;
-      if (playerStateRef.current.isContinuous) playNextInQueue(); // Silently skip to next
+      if (playerStateRef.current.isContinuous) void playNextInQueueRef.current(); // Silently skip to next
       else handlePlayerClose();
     };
 
     try {
       await currentAudio.play();
-    } catch (error) {
+    } catch {
       // This can happen if another play request interrupts.
       // The error handler will take care of moving on.
     }
-  }, [getVerseByKey, handlePlayerClose, fillAudioQueue]);
+  }, [handlePlayerClose, fillAudioQueue]);
+
+  useEffect(() => {
+    playNextInQueueRef.current = playNextInQueue;
+  }, [playNextInQueue]);
 
   const startPlayback = useCallback(async (surah: Surah, verseKey: string, isContinuous: boolean) => {
     cleanupAudio();
@@ -237,7 +242,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     playNextInQueue();
   }, [cleanupAudio, fillAudioQueue, playNextInQueue]);
 
-  const ensureReciterIsSet = (callback: () => void) => {
+  const ensureReciterIsSet = useCallback((callback: () => void) => {
     const hasSetReciter = localStorage.getItem('hasSetReciter') === 'true';
     if (hasSetReciter) {
       callback();
@@ -245,23 +250,23 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       pendingActionRef.current = callback;
       setReciterModalOpen(true);
     }
-  };
+  }, []);
 
-  const playVerse = (surah: Surah, verse: Verse) => {
+  const playVerse = useCallback((surah: Surah, verse: Verse) => {
     ensureReciterIsSet(() => {
       const verseKey = `${surah.number}:${verse.number.inSurah}`;
       startPlayback(surah, verseKey, false);
     });
-  };
+  }, [ensureReciterIsSet, startPlayback]);
 
-  const playSurah = (surah: Surah, startVerse?: Verse) => {
+  const playSurah = useCallback((surah: Surah, startVerse?: Verse) => {
     ensureReciterIsSet(() => {
       const startVerseKey = startVerse ? `${surah.number}:${startVerse.number.inSurah}` : `${surah.number}:${surah.verses[0].number.inSurah}`;
       startPlayback(surah, startVerseKey, true);
     });
-  };
+  }, [ensureReciterIsSet, startPlayback]);
 
-  const handlePlayPause = () => {
+  const handlePlayPause = useCallback(() => {
     const { isPlaying, activeVerseKey, surah, isContinuous } = playerStateRef.current;
     if (isPlaying) {
       audioRef.current?.pause();
@@ -272,9 +277,9 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     } else if (activeVerseKey && surah) {
       startPlayback(surah, activeVerseKey, isContinuous);
     }
-  };
+  }, [startPlayback]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     const { isContinuous, activeVerseKey, surah } = playerStateRef.current;
     if (!activeVerseKey || !surah) return;
     isPlayingAudioRef.current = false; // Force stop current playback logic
@@ -288,9 +293,9 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         handlePlayerClose();
       }
     }
-  };
+  }, [handlePlayerClose, playNextInQueue, playVerse]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     const { activeVerseKey, surah, isContinuous } = playerStateRef.current;
     if (!activeVerseKey || !surah) return;
 
@@ -303,16 +308,16 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     if (currentIdx > 0) {
       startPlayback(surah, `${surah.number}:${surah.verses[currentIdx - 1].number.inSurah}`, isContinuous);
     }
-  };
+  }, [startPlayback]);
 
-  const handleSeek = (value: number) => {
+  const handleSeek = useCallback((value: number) => {
     if (audioRef.current) {
       isSeekingRef.current = true;
       audioRef.current.currentTime = value;
       setPlayerState(s => ({ ...s, progress: value }));
       setTimeout(() => { isSeekingRef.current = false; }, 100);
     }
-  };
+  }, []);
 
   useEffect(() => () => cleanupAudio(), [cleanupAudio]);
 

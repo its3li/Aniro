@@ -1,12 +1,8 @@
 package com.aniro.app;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
-import android.appwidget.AppWidgetManager;
-import android.content.ComponentName;
 
-import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -52,26 +48,26 @@ public class WidgetDataPlugin extends Plugin {
             if (call.hasOption("language")) {
                 editor.putString("language", call.getString("language"));
             }
-            
-            // Commit changes
-            editor.apply();
+            if (call.hasOption("azanMode")) {
+                editor.putString("azanMode", call.getString("azanMode"));
+            }
+            if (call.hasOption("includeIshraq")) {
+                editor.putBoolean("includeIshraq", call.getBoolean("includeIshraq"));
+            }
+            if (call.hasOption("fajrQuizEnabled")) {
+                editor.putBoolean("fajrQuizEnabled", call.getBoolean("fajrQuizEnabled"));
+            }
+            if (call.hasOption("timeFormat")) {
+                editor.putString("timeFormat", call.getString("timeFormat"));
+            }
 
-            // Trigger Widget Update (Existing)
-            Intent intent = new Intent(context, PrayerWidgetProvider.class);
-            intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-            AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-            ComponentName thisWidget = new ComponentName(context, PrayerWidgetProvider.class);
-            int[] appWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget);
-            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
-            context.sendBroadcast(intent);
+            if (!editor.commit()) {
+                call.reject("Failed to save widget data");
+                return;
+            }
 
-            // Trigger Daily Prayers Widget Update
-            Intent intentDaily = new Intent(context, DailyPrayersWidgetProvider.class);
-            intentDaily.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-            ComponentName dailyWidget = new ComponentName(context, DailyPrayersWidgetProvider.class);
-            int[] dailyWidgetIds = appWidgetManager.getAppWidgetIds(dailyWidget);
-            intentDaily.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, dailyWidgetIds);
-            context.sendBroadcast(intentDaily);
+            AzanSchedulerHelper.rescheduleAll(context);
+            WidgetHelper.updateAllWidgets(context);
 
             call.resolve();
         } catch (Exception e) {

@@ -4,79 +4,88 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Background Layer (Full Size) -->
     <ImageView
         android:id="@+id/widget_background_fill"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_fill"
-        android:scaleType="fitXY" />
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_bg_fill" />
 
     <ImageView
         android:id="@+id/widget_background_border"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_border"
-        android:scaleType="fitXY" />
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_bg_border" />
 
-    <!-- Content Layer (With Padding) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="12dp"
+        android:baselineAligned="false"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:paddingStart="12dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="10dp">
 
-        <!-- Prayer Icon -->
-        <ImageView
-            android:id="@+id/widget_icon"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:src="@drawable/ic_prayer"
-            android:contentDescription="Prayer Icon" />
+        <FrameLayout
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginEnd="10dp">
 
-        <!-- Prayer Info Container -->
+            <ImageView
+                android:id="@+id/widget_icon"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/widget_name"
+                android:padding="8dp"
+                android:src="@drawable/ic_prayer" />
+        </FrameLayout>
+
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
+            android:gravity="center_vertical"
             android:orientation="vertical">
 
-            <!-- Next Prayer Label -->
             <TextView
                 android:id="@+id/widget_label"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:maxLines="1"
                 android:text="Next Prayer"
                 android:textColor="#AAAAAA"
-                android:textSize="10sp"
-                android:maxLines="1" />
+                android:textSize="11sp" />
 
-            <!-- Prayer Name -->
             <TextView
                 android:id="@+id/widget_prayer_name"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:includeFontPadding="false"
+                android:maxLines="1"
                 android:text="Fajr"
                 android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:maxLines="1" />
-
+                android:textSize="19sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Countdown (Right side) -->
         <Chronometer
             android:id="@+id/widget_time_remaining"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:countDown="true"
+            android:fontFamily="sans-serif-condensed"
+            android:includeFontPadding="false"
             android:textColor="#D4AF37"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:countDown="true" />
-
+            android:textSize="22sp"
+            android:textStyle="bold" />
     </LinearLayout>
-
 </FrameLayout>

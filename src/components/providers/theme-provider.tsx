@@ -45,7 +45,11 @@ export function ThemeProvider({
 
     root.classList.remove("light", "dark")
 
-    if (theme === "system") {
+    if (attribute !== "class") {
+      return
+    }
+
+    if (theme === "system" && enableSystem) {
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
         .matches
         ? "dark"
@@ -55,8 +59,8 @@ export function ThemeProvider({
       return
     }
 
-    root.classList.add(theme)
-  }, [theme])
+    root.classList.add(theme === "system" ? defaultTheme : theme)
+  }, [theme, attribute, defaultTheme, enableSystem])
 
   const value = {
     theme: theme,

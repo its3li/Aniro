@@ -413,6 +413,24 @@ export const azkarData: AzkarCategory = {
             repetitions: 1
           },
           {
+            arabic: 'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ',
+            translation: 'There is no might nor power except with Allah.',
+            repetitions: 1,
+            note: 'صحيح البخاري 6384: كنز من كنوز الجنة',
+          },
+          {
+            arabic: 'اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ',
+            translation: 'O Allah, send prayers and peace upon our Prophet Muhammad.',
+            repetitions: 10,
+            note: 'صحيح مسلم 408: من صلى على النبي مرة صلى الله عليه بها عشرا',
+          },
+          {
+            arabic: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ',
+            translation: 'Glory and praise be to Allah; glory be to Allah, the Magnificent.',
+            repetitions: 1,
+            note: 'متفق عليه: كلمتان خفيفتان على اللسان ثقيلتان في الميزان',
+          },
+          {
             arabic: 'اللَّهُمَّ اغْفِرْ لِي ذَنْبِي كُلَّهُ، دِقَّهُ وَجِلَّهُ، وَأَوَّلَهُ وَآخِرَهُ، وَعَلَانِيَتَهُ وَسِرَّهُ',
             translation: 'O Allah, forgive me all my sins, great and small, the first and the last, those that are apparent and those that are hidden.',
             repetitions: 1
@@ -513,7 +531,7 @@ export const azkarData: AzkarCategory = {
         name: 'Daily Duas',
         nameAr: 'أدعية يومية',
         icon: 'SunMoon',
-        color: 'from-green-400 to-emerald-600',
+        color: 'from-blue-900 to-amber-500',
         subCategories: [
           {
             id: 'wakeup-azkar',
@@ -537,13 +555,107 @@ export const azkarData: AzkarCategory = {
               arabic: 'اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ',
               translation: 'O Allah, open the gates of Your mercy for me.',
               repetitions: 1,
-              note: '🛭 عند الدخول للمسجد',
+              note: 'عند الدخول للمسجد',
             }, {
               arabic: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ',
               translation: 'O Allah, I ask You from Your bounty.',
               repetitions: 1,
-              note: '🚪 عند الخروج من المسجد',
+              note: 'عند الخروج من المسجد',
             }]
+          },
+          {
+            id: 'food-drink-azkar',
+            name: 'Food & Drink',
+            nameAr: 'أذكار الطعام والشراب',
+            icon: 'Utensils',
+            color: '',
+            items: [
+              {
+                arabic: 'بِسْمِ اللَّهِ',
+                translation: 'In the name of Allah.',
+                repetitions: 1,
+                note: 'Before eating or drinking.',
+              },
+              {
+                arabic: 'بِسْمِ اللَّهِ فِي أَوَّلِهِ وَآخِرِهِ',
+                translation: 'In the name of Allah at its beginning and its end.',
+                repetitions: 1,
+                note: 'If you forgot to say Bismillah at the beginning.',
+              },
+              {
+                arabic: 'الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنِي هَذَا، وَرَزَقَنِيهِ، مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ',
+                translation: 'All praise is for Allah who fed me this and provided it for me without any might or power from myself.',
+                repetitions: 1,
+                note: 'After eating.',
+              },
+            ],
+          },
+          {
+            id: 'home-azkar',
+            name: 'Entering & Leaving Home',
+            nameAr: 'دخول وخروج المنزل',
+            icon: 'DoorOpen',
+            color: '',
+            items: [
+              {
+                arabic: 'بِسْمِ اللَّهِ وَلَجْنَا، وَبِسْمِ اللَّهِ خَرَجْنَا، وَعَلَى اللَّهِ رَبِّنَا تَوَكَّلْنَا',
+                translation: 'In the name of Allah we enter, in the name of Allah we leave, and upon Allah our Lord we place our trust.',
+                repetitions: 1,
+                note: 'When entering home.',
+              },
+              {
+                arabic: 'بِسْمِ اللَّهِ، تَوَكَّلْتُ عَلَى اللَّهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ',
+                translation: 'In the name of Allah, I place my trust in Allah, and there is no might nor power except with Allah.',
+                repetitions: 1,
+                note: 'When leaving home.',
+              },
+            ],
+          },
+          {
+            id: 'travel-azkar',
+            name: 'Travel',
+            nameAr: 'أذكار السفر',
+            icon: 'Car',
+            color: '',
+            items: [
+              {
+                arabic: 'سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ، وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ',
+                translation: 'Glory is to Him who has subjected this to us, and we could never have it by our efforts. Surely to our Lord we are returning.',
+                repetitions: 1,
+                note: 'When mounting or starting a journey.',
+              },
+              {
+                arabic: 'اللَّهُمَّ إِنَّا نَسْأَلُكَ فِي سَفَرِنَا هَذَا الْبِرَّ وَالتَّقْوَى، وَمِنَ الْعَمَلِ مَا تَرْضَى',
+                translation: 'O Allah, we ask You in this journey for righteousness, piety, and deeds that please You.',
+                repetitions: 1,
+              },
+              {
+                arabic: 'آيِبُونَ، تَائِبُونَ، عَابِدُونَ، لِرَبِّنَا حَامِدُونَ',
+                translation: 'We return, repent, worship, and praise our Lord.',
+                repetitions: 1,
+                note: 'When returning from travel.',
+              },
+            ],
+          },
+          {
+            id: 'clothing-azkar',
+            name: 'Clothing',
+            nameAr: 'أذكار اللباس',
+            icon: 'Shirt',
+            color: '',
+            items: [
+              {
+                arabic: 'الْحَمْدُ لِلَّهِ الَّذِي كَسَانِي هَذَا الثَّوْبَ، وَرَزَقَنِيهِ، مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ',
+                translation: 'All praise is for Allah who clothed me with this garment and provided it for me without any might or power from myself.',
+                repetitions: 1,
+              },
+              {
+                arabic: 'اللَّهُمَّ لَكَ الْحَمْدُ، أَنْتَ كَسَوْتَنِيهِ، أَسْأَلُكَ خَيْرَهُ وَخَيْرَ مَا صُنِعَ لَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّهِ وَشَرِّ مَا صُنِعَ لَهُ',
+                translation: 'O Allah, praise is Yours. You clothed me with it. I ask You for its good and the good for which it was made, and I seek refuge in You from its evil and the evil for which it was made.',
+                repetitions: 1,
+                note: 'When wearing a new garment.',
+              },
+            ],
           }
         ]
       },

@@ -1,207 +1,183 @@
-import { useEffect, useCallback } from 'react';
-import { LocalNotifications, Channel, ScheduleOptions } from '@capacitor/local-notifications';
+import { useCallback, useEffect, useRef } from 'react';
+import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import { useLocation } from './use-location';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { useSettings } from '@/components/providers/settings-provider';
-import { getPrayerTimes, prayerNameMapping, getTotalOffset, PrayerTime } from '@/lib/prayer';
+import { useToast } from '@/hooks/use-toast';
+import { NativeAzan } from '@/lib/native-azan';
+const EXACT_ALARM_PROMPT_SESSION_KEY = 'aniro_azan_exact_alarm_prompted';
+const BATTERY_PROMPT_SESSION_KEY = 'aniro_azan_battery_prompted';
+const DND_PROMPT_SESSION_KEY = 'aniro_azan_dnd_prompted';
 
-const CHANNEL_ID = 'azan_channel';
+async function checkNotificationPermission(): Promise<boolean> {
+    if (!Capacitor.isNativePlatform()) {
+        return true;
+    }
 
-/**
- * Check and request all necessary permissions for Azan notifications.
- * 
- * On Android 12+, SCHEDULE_EXACT_ALARM requires special permission granted in Settings.
- * On Android 13+, POST_NOTIFICATIONS requires runtime permission.
- * 
- * @returns Object indicating which permissions are granted
- */
+    try {
+        let permissionStatus = await LocalNotifications.checkPermissions();
+
+        if (permissionStatus.display !== 'granted') {
+            permissionStatus = await LocalNotifications.requestPermissions();
+        }
+
+        return permissionStatus.display === 'granted';
+    } catch (error) {
+        console.error('[AzanScheduler] Notification permission check failed:', error);
+        return false;
+    }
+}
+
+function shouldPromptOnce(sessionKey: string): boolean {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    try {
+        if (sessionStorage.getItem(sessionKey) === '1') {
+            return false;
+        }
+        sessionStorage.setItem(sessionKey, '1');
+        return true;
+    } catch {
+        return true;
+    }
+}
+
 export async function checkAndRequestPermissions(): Promise<{
     notifications: boolean;
     exactAlarm: boolean;
+    notificationPolicyAccess: boolean;
+    ignoringBatteryOptimizations: boolean;
 }> {
-    const result = { notifications: false, exactAlarm: true };
-
-    // On web, permissions are not applicable
     if (!Capacitor.isNativePlatform()) {
-        return { notifications: true, exactAlarm: true };
+        return {
+            notifications: true,
+            exactAlarm: true,
+            notificationPolicyAccess: true,
+            ignoringBatteryOptimizations: true,
+        };
     }
 
-    try {
-        // Check current notification permission status
-        let permStatus = await LocalNotifications.checkPermissions();
-
-        // Request if not already granted
-        if (permStatus.display !== 'granted') {
-            permStatus = await LocalNotifications.requestPermissions();
-        }
-
-        result.notifications = permStatus.display === 'granted';
-
-        // Note: SCHEDULE_EXACT_ALARM on Android 12+ is a special permission
-        // that users must grant in Settings. The permission is declared in manifest.
-        // We can't programmatically request it, only check via platform-specific APIs.
-        // For now, we assume it's granted if the user has followed setup instructions.
-        // A more robust solution would use a native plugin to check AlarmManager.canScheduleExactAlarms()
-
-        return result;
-    } catch (error) {
-        console.error('[AzanScheduler] Permission check failed:', error);
-        return result;
-    }
-}
-
-/**
- * Create the notification channel for Azan notifications.
- * 
- * This is called as a fallback from TypeScript. The primary channel
- * creation happens in MainActivity.java with proper audio attributes.
- */
-async function createNotificationChannel(): Promise<void> {
-    if (!Capacitor.isNativePlatform()) return;
-
-    try {
-        const channel: Channel = {
-            id: CHANNEL_ID,
-            name: 'Azan Prayer Notifications',
-            description: 'Notifications for prayer times with Azan sound',
-            importance: 5, // IMPORTANCE_HIGH (5 = max)
-            visibility: 1, // VISIBILITY_PUBLIC - show on lock screen
-            sound: 'azan.mp3', // References res/raw/azan.mp3
-            vibration: true,
-            lights: true,
+    const notifications = await checkNotificationPermission();
+    const status = Capacitor.isPluginAvailable('Azan')
+        ? await NativeAzan.checkStatus()
+        : {
+            exactAlarm: true,
+            notifications: true,
+            notificationPolicyAccess: true,
+            ignoringBatteryOptimizations: true,
         };
 
-        await LocalNotifications.createChannel(channel);
-    } catch (error) {
-        // Channel may already exist (created by MainActivity), which is fine
-    }
+    return {
+        notifications: notifications && status.notifications,
+        exactAlarm: status.exactAlarm,
+        notificationPolicyAccess: status.notificationPolicyAccess,
+        ignoringBatteryOptimizations: status.ignoringBatteryOptimizations,
+    };
 }
 
-/**
- * Hook to schedule Azan prayer notifications with exact alarms.
- * 
- * Features:
- * - Schedules notifications for the next 7 days (35 prayer times)
- * - Uses allowWhileIdle for Doze mode support
- * - Automatically reschedules when app resumes
- * - Supports Arabic and English notifications
- */
 export function useAzanScheduler() {
-    const { coordinates } = useLocation();
     const { settings } = useSettings();
-    const { prayerOffset, dstMode, calculationMethod, language, azanMode, includeIshraq } = settings;
-    const isArabic = language === 'ar';
+    const { toast } = useToast();
+    const isSchedulingRef = useRef(false);
+    const isArabic = settings.language === 'ar';
 
     const scheduleAzanAlarms = useCallback(async () => {
-        if (!coordinates) {
+        if (!Capacitor.isNativePlatform() || !Capacitor.isPluginAvailable('Azan')) {
             return;
         }
 
-        // Check permissions first
-        const permissions = await checkAndRequestPermissions();
-        if (!permissions.notifications) {
-            console.warn('[AzanScheduler] Notification permission denied - cannot schedule');
+        if (isSchedulingRef.current) {
             return;
         }
 
-        // Ensure channel exists (fallback, main creation is in MainActivity)
-        await createNotificationChannel();
-
+        isSchedulingRef.current = true;
         try {
-            // Cancel all existing scheduled notifications to avoid duplicates
-            const pending = await LocalNotifications.getPending();
-            if (pending.notifications.length > 0) {
-                await LocalNotifications.cancel(pending);
+            const notifications = await checkNotificationPermission();
+            const status = await NativeAzan.checkStatus();
+
+            if (!notifications || !status.notifications) {
+                toast({
+                    title: isArabic
+                        ? '\u062a\u0646\u0628\u064a\u0647\u0627\u062a \u0627\u0644\u0623\u0630\u0627\u0646 \u0645\u062a\u0648\u0642\u0641\u0629'
+                        : 'Azan notifications are off',
+                    description: isArabic
+                        ? '\u0641\u0639\u0651\u0644 \u0625\u0634\u0639\u0627\u0631\u0627\u062a \u0627\u0644\u062a\u0637\u0628\u064a\u0642 \u062d\u062a\u0649 \u064a\u0638\u0647\u0631 \u0627\u0644\u0623\u0630\u0627\u0646 \u0648\u0627\u0644\u062a\u0646\u0628\u064a\u0647\u0627\u062a \u0641\u064a \u0648\u0642\u062a\u0647\u0627.'
+                        : 'Enable app notifications so azan alerts can appear on time.',
+                });
             }
 
-            const now = new Date();
-            const totalOffset = getTotalOffset(prayerOffset, dstMode);
-
-            // Collect prayers for the next 7 days
-            const allPrayers: PrayerTime[] = [];
-            for (let day = 0; day < 7; day++) {
-                const date = new Date(now);
-                date.setDate(date.getDate() + day);
-                const dayPrayers = getPrayerTimes(
-                    date,
-                    coordinates.latitude,
-                    coordinates.longitude,
-                    totalOffset,
-                    calculationMethod,
-                    includeIshraq
-                );
-                allPrayers.push(...dayPrayers);
+            if (!status.exactAlarm && shouldPromptOnce(EXACT_ALARM_PROMPT_SESSION_KEY)) {
+                toast({
+                    title: isArabic
+                        ? '\u0641\u0639\u0651\u0644 \u0645\u0646\u0628\u0647\u0627\u062a \u0627\u0644\u0623\u0630\u0627\u0646 \u0627\u0644\u062f\u0642\u064a\u0642\u0629'
+                        : 'Enable exact azan alarms',
+                    description: isArabic
+                        ? '\u0627\u0641\u062a\u062d \u0625\u0639\u062f\u0627\u062f Alarms & reminders \u0648\u0627\u0633\u0645\u062d \u0644\u0644\u062a\u0637\u0628\u064a\u0642 \u062d\u062a\u0649 \u064a\u0639\u0645\u0644 \u0627\u0644\u0623\u0630\u0627\u0646 \u0641\u064a \u0645\u064a\u0639\u0627\u062f\u0647.'
+                        : 'Allow Alarms & reminders so Android can fire azan at the exact prayer time.',
+                });
+                await NativeAzan.requestExactAlarmPermission();
             }
 
-            // Filter to only upcoming prayers and limit to 35 (5 prayers × 7 days)
-            const upcomingPrayers = allPrayers
-                .filter(p => p.date.getTime() > now.getTime())
-                .slice(0, 35);
-
-            // Build notification objects
-            const notifications = upcomingPrayers.map((prayer, index) => {
-                const prayerName = prayerNameMapping[prayer.name];
-                const title = isArabic
-                    ? `حان الآن وقت صلاة ${prayerName.ar}`
-                    : `It's time for ${prayerName.en} prayer`;
-                const body = isArabic
-                    ? (azanMode === 'full' ? 'حي على الصلاة، حي على الفلاح' : 'تذكير بالصلاة')
-                    : (azanMode === 'full' ? 'Come to prayer, come to success' : 'Prayer reminder');
-
-                // Skip sound for silent mode, or use default notification sound
-                const sound = azanMode === 'full' ? 'azan.mp3' : undefined;
-                const channel = azanMode === 'full' ? CHANNEL_ID : 'prayer_reminder';
-
-                return {
-                    id: 1000 + index, // Use unique IDs in 1000+ range to avoid conflicts
-                    title,
-                    body,
-                    schedule: {
-                        at: prayer.date,
-                        allowWhileIdle: true, // CRITICAL: Fire notification during Doze mode
-                    },
-                    channelId: channel,
-                    sound: sound,
-                    smallIcon: 'ic_stat_icon_config_sample',
-                    largeIcon: 'ic_launcher',
-                    ongoing: false,
-                    autoCancel: true,
-                    extra: {
-                        prayerName: prayer.name,
-                        prayerTime: prayer.date.toISOString(),
-                    },
-                };
-            });
-
-            if (notifications.length > 0) {
-                await LocalNotifications.schedule({ notifications } as ScheduleOptions);
-            } else {
+            if (!status.ignoringBatteryOptimizations && shouldPromptOnce(BATTERY_PROMPT_SESSION_KEY)) {
+                toast({
+                    title: isArabic
+                        ? '\u0627\u0633\u0645\u062d \u0644\u0644\u0623\u0630\u0627\u0646 \u0628\u0627\u0644\u0639\u0645\u0644 \u0641\u064a \u0627\u0644\u062e\u0644\u0641\u064a\u0629'
+                        : 'Let azan run in the background',
+                    description: isArabic
+                        ? '\u0623\u0648\u0642\u0641 \u062a\u062d\u0633\u064a\u0646 \u0627\u0644\u0628\u0637\u0627\u0631\u064a\u0629 \u0644\u0644\u062a\u0637\u0628\u064a\u0642 \u0644\u062a\u0642\u0644\u064a\u0644 \u062a\u0623\u062e\u0631 \u0627\u0644\u0623\u0630\u0627\u0646 \u0639\u0644\u0649 \u0628\u0639\u0636 \u0627\u0644\u0623\u062c\u0647\u0632\u0629.'
+                        : 'Disable battery optimization for this app to reduce missed or delayed azan playback.',
+                });
             }
 
+            if (!status.notificationPolicyAccess && shouldPromptOnce(DND_PROMPT_SESSION_KEY)) {
+                toast({
+                    title: isArabic
+                        ? '\u0625\u0630\u0646 \u0639\u062f\u0645 \u0627\u0644\u0625\u0632\u0639\u0627\u062c \u0627\u062e\u062a\u064a\u0627\u0631\u064a'
+                        : 'Do Not Disturb access is optional',
+                    description: isArabic
+                        ? '\u0628\u062f\u0648\u0646\u0647 \u0642\u062f \u064a\u0645\u0646\u0639 \u0648\u0636\u0639 \u0639\u062f\u0645 \u0627\u0644\u0625\u0632\u0639\u0627\u062c \u0635\u0648\u062a \u0627\u0644\u0623\u0630\u0627\u0646.'
+                        : 'Without it, Android Do Not Disturb may silence azan audio.',
+                });
+            }
+
+            await NativeAzan.refreshSchedule();
         } catch (error) {
-            console.error('[AzanScheduler] Failed to schedule notifications:', error);
+            console.error('[AzanScheduler] Failed to refresh azan schedule:', error);
+        } finally {
+            isSchedulingRef.current = false;
         }
-    }, [coordinates, prayerOffset, dstMode, calculationMethod, isArabic]);
+    }, [isArabic, toast]);
 
     useEffect(() => {
-        // Schedule on mount
         scheduleAzanAlarms();
 
-        // Re-schedule when app resumes from background
-        const handleResume = () => {
-            scheduleAzanAlarms();
-        };
-
-        // Listen for Capacitor app resume event
-        document.addEventListener('resume', handleResume);
+        let didUnmount = false;
+        let removeListener: (() => void) | undefined;
+        void App.addListener('appStateChange', ({ isActive }) => {
+            if (isActive) {
+                void scheduleAzanAlarms();
+            }
+        }).then(listener => {
+            if (didUnmount) {
+                void listener.remove();
+                return;
+            }
+            removeListener = () => {
+                void listener.remove();
+            };
+        });
 
         return () => {
-            document.removeEventListener('resume', handleResume);
+            didUnmount = true;
+            removeListener?.();
         };
     }, [scheduleAzanAlarms]);
 
     return {
         scheduleAzanAlarms,
-        checkAndRequestPermissions
+        checkAndRequestPermissions,
+        stopAzan: () => NativeAzan.stop(),
     };
 }

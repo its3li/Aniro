@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">أنيروا</string>
-    <string name="title_activity_main">أنيروا</string>
-    <string name="widget_description">عرض وقت الصلاة القادمة</string>
-    <string name="widget_name">مواقيت الصلاة</string>
-    <string name="daily_widget_description">عرض جميع أوقات الصلاة لليوم</string>
+    <string name="app_name">&#1571;&#1606;&#1610;&#1585;&#1608;</string>
+    <string name="title_activity_main">&#1571;&#1606;&#1610;&#1585;&#1608;</string>
+    <string name="widget_description">&#1610;&#1593;&#1585;&#1590; &#1575;&#1604;&#1593;&#1583; &#1575;&#1604;&#1578;&#1606;&#1575;&#1586;&#1604;&#1610; &#1604;&#1604;&#1589;&#1604;&#1575;&#1577; &#1575;&#1604;&#1602;&#1575;&#1583;&#1605;&#1577;</string>
+    <string name="widget_name">&#1605;&#1608;&#1575;&#1602;&#1610;&#1578; &#1575;&#1604;&#1589;&#1604;&#1575;&#1577;</string>
+    <string name="daily_widget_name">&#1589;&#1604;&#1608;&#1575;&#1578; &#1575;&#1604;&#1610;&#1608;&#1605;</string>
+    <string name="daily_widget_description">&#1610;&#1593;&#1585;&#1590; &#1605;&#1608;&#1575;&#1602;&#1610;&#1578; &#1575;&#1604;&#1589;&#1604;&#1575;&#1577; &#1604;&#1604;&#1610;&#1608;&#1605;</string>
 </resources>

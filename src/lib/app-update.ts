@@ -1,7 +1,7 @@
 // App version - must match android/app/build.gradle versionCode and versionName
 export const APP_VERSION = {
-  versionCode: 12,
-  versionName: '6.6',
+  versionCode: 13,
+  versionName: '6.7',
 };
 
 // URL to check for updates - version.json is in the same repo as the code
@@ -14,8 +14,11 @@ export interface UpdateInfo {
   versionCode: number;
   versionName: string;
   apkUrl?: string;
+  sha256?: string;
   releaseNotes?: string;
   forceUpdate?: boolean;
+  minSupportedVersionCode?: number;
+  rollout?: number;
 }
 
 /**
@@ -36,6 +39,12 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
     }
 
     const updateInfo: UpdateInfo = await response.json();
+    if (typeof updateInfo.rollout === 'number' && updateInfo.rollout < 100) {
+      const bucket = APP_VERSION.versionCode % 100;
+      if (bucket >= updateInfo.rollout) {
+        return null;
+      }
+    }
 
     // Compare version codes
     if (updateInfo.versionCode > APP_VERSION.versionCode) {

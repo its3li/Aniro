@@ -2,7 +2,7 @@
 
 <img src="./assets/icon.png" width="120" height="120" alt="Aniro Logo">
 
-# 🌙 Aniro V6
+# 🌙 Aniro
 
 **Your Digital Companion for Islamic Worship**  
 *رفيقك الرقمي للعبادات اليومية*
@@ -24,7 +24,7 @@
 
 | Platform | Status | Link |
 |----------|--------|------|
-| Android | ✅ Available | [Download APK](https://github.com/its3li/Aniro-V3/releases) |
+| Android | ✅ Available | [Download APK](https://github.com/its3li/Aniro/releases/latest) |
 | iOS | 🚧 Coming Soon | — |
 | Web | 🚧 Coming Soon | — |
 
@@ -75,7 +75,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Aniro V3 Architecture                 │
+│                         Aniro Architecture                   │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
 │  │   Next.js   │  │   React     │  │    TypeScript       │  │
@@ -147,14 +147,14 @@
 ## 🏗️ Project Structure
 
 ```
-Aniro-V3/
+Aniro/
 ├── 📁 android/                 # Native Android project (Capacitor)
 ├── 📁 assets/                   # App icons & images
 ├── 📁 src/
 │   ├── 📁 app/                  # Next.js app router
-│   │   ├── 📁 api/              # API routes
 │   │   ├── 📁 quran/            # Quran feature pages
-│   │   ├── 📁 prayer/           # Prayer times pages
+│   │   ├── 📁 qibla/            # Qibla feature pages
+│   │   ├── 📁 settings/         # Settings pages
 │   │   └── 📁 azkar/            # Azkar pages
 │   ├── 📁 components/
 │   │   ├── 📁 ui/               # shadcn/ui components
@@ -181,8 +181,8 @@ Aniro-V3/
 
 ```bash
 # Clone the repository
-git clone https://github.com/its3li/Aniro-V3.git
-cd Aniro-V3
+git clone https://github.com/its3li/Aniro.git
+cd Aniro
 
 # Install dependencies
 npm install
@@ -208,7 +208,7 @@ We welcome contributions! Here's how:
 
 ```bash
 # Fork & clone
-git clone https://github.com/YOUR_USERNAME/Aniro-V3.git
+git clone https://github.com/YOUR_USERNAME/Aniro.git
 
 # Create branch
 git checkout -b feature/amazing-feature
@@ -234,9 +234,9 @@ git push origin feature/amazing-feature
 
 <div align="center">
 
-![GitHub stars](https://img.shields.io/github/stars/its3li/Aniro-V3?style=social)
-![GitHub forks](https://img.shields.io/github/forks/its3li/Aniro-V3?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/its3li/Aniro-V3?style=social)
+![GitHub stars](https://img.shields.io/github/stars/its3li/Aniro?style=social)
+![GitHub forks](https://img.shields.io/github/forks/its3li/Aniro?style=social)
+![GitHub watchers](https://img.shields.io/github/watchers/its3li/Aniro?style=social)
 
 </div>
 
@@ -245,7 +245,7 @@ git push origin feature/amazing-feature
 ## 🙏 Acknowledgments
 
 - **Adhan Library** — Accurate prayer time calculations
-- **Quran.com API** — Quranic data and translations
+- **AlQuran Cloud API** — Network fallback for Quranic data and translations
 - **Capacitor Team** — Making web apps native
 - **shadcn/ui** — Beautiful accessible components
 
@@ -263,6 +263,6 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 *"And whoever does an atom's weight of good will see it"* — Quran 99:7
 
-[⬆ Back to Top](#-aniro-v3)
+[⬆ Back to Top](#-aniro)
 
 </div>

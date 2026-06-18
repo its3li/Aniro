@@ -4,31 +4,31 @@
 
 @layer base {
   :root {
-    --background: 0 0% 97%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 38 92% 50%;
+    --background: 42 43% 96%;
+    --foreground: 214 45% 12%;
+    --card: 42 36% 99%;
+    --card-foreground: 214 45% 12%;
+    --popover: 42 36% 99%;
+    --popover-foreground: 214 45% 12%;
+    --primary: 39 91% 48%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 38 92% 50%;
-    --accent-foreground: 222 47% 11%;
+    --secondary: 218 32% 91%;
+    --secondary-foreground: 218 45% 18%;
+    --muted: 42 18% 91%;
+    --muted-foreground: 216 12% 40%;
+    --accent: 218 54% 26%;
+    --accent-foreground: 44 37% 94%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
+    --border: 40 21% 84%;
+    --input: 40 21% 84%;
     --ring: 38 92% 50%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.75rem;
+    --radius: 0.5rem;
     --safe-area-top: env(safe-area-inset-top, 0px);
     --safe-area-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-left: env(safe-area-inset-left, 0px);
@@ -36,24 +36,24 @@
   }
 
   .dark {
-    --background: 224 20% 10%;
-    --foreground: 0 0% 95%;
-    --card: 224 20% 13%;
-    --card-foreground: 0 0% 95%;
-    --popover: 224 20% 13%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 38 92% 50%;
+    --background: 218 32% 8%;
+    --foreground: 44 37% 94%;
+    --card: 218 28% 12%;
+    --card-foreground: 44 37% 94%;
+    --popover: 218 28% 12%;
+    --popover-foreground: 44 37% 94%;
+    --primary: 39 92% 54%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 224 20% 16%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 224 20% 16%;
-    --muted-foreground: 220 9% 56%;
-    --accent: 38 92% 50%;
-    --accent-foreground: 222 47% 11%;
+    --secondary: 218 30% 18%;
+    --secondary-foreground: 44 37% 94%;
+    --muted: 218 20% 17%;
+    --muted-foreground: 217 13% 68%;
+    --accent: 218 54% 24%;
+    --accent-foreground: 44 37% 94%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 224 20% 18%;
-    --input: 224 20% 16%;
+    --border: 218 18% 22%;
+    --input: 218 18% 22%;
     --ring: 38 92% 50%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -76,6 +76,7 @@
 
   body {
     @apply bg-background text-foreground;
+    background: hsl(var(--background));
     font-feature-settings: "rlig" 1, "calt" 1;
     overscroll-behavior: none;
     overflow-x: hidden;
@@ -84,8 +85,15 @@
     user-select: none;
   }
 
-  .font-quran {
-    font-family: 'hafs', 'Noto Naskh Arabic', 'Scheherazade New', 'Amiri', serif;
+  .font-quran,
+  .quran-text {
+    font-family: var(--font-quran-local), 'Noto Naskh Arabic', serif;
+  }
+
+  .quran-text {
+    text-align: justify;
+    direction: rtl;
+    line-height: 2.5;
   }
 
   /* Allow text selection specifically in content areas */
@@ -101,6 +109,34 @@
 @layer utilities {
   .animate-fade-in {
     animation: fade-in 0.2s ease-out forwards;
+  }
+
+  .app-shell {
+    min-height: 100dvh;
+    background: hsl(var(--background));
+  }
+
+  .premium-panel {
+    border: 1px solid hsl(var(--border) / 0.82);
+    background: hsl(var(--card));
+    box-shadow:
+      0 1px 0 hsl(0 0% 100% / 0.06) inset,
+      0 14px 34px hsl(218 45% 5% / 0.12);
+  }
+
+  .dark .premium-panel {
+    box-shadow:
+      0 1px 0 hsl(0 0% 100% / 0.05) inset,
+      0 18px 42px hsl(0 0% 0% / 0.24);
+  }
+
+  .premium-control {
+    border: 1px solid hsl(var(--border) / 0.78);
+    background: hsl(var(--background) / 0.74);
+  }
+
+  .text-balance {
+    text-wrap: balance;
   }
 
   .active-verse-highlight {
@@ -127,16 +163,87 @@
 }
 
 /* Tajweed Styles — Mushaf Tajweed Color Coding */
+.tajweed-text {
+  direction: rtl;
+  unicode-bidi: plaintext;
+  text-align: right;
+  font-kerning: normal;
+  font-variant-ligatures: contextual;
+}
+
 .tajweed {
-  display: inline;
-  font-family: inherit;
+  display: contents;
+  font-family: inherit !important;
+  font-weight: inherit;
+  font-style: inherit;
   font-size: inherit;
   line-height: inherit;
+  direction: inherit;
+  unicode-bidi: normal;
+  background: transparent;
   white-space: normal;
   text-rendering: optimizeLegibility;
   word-break: keep-all;
-  letter-spacing: 0;
+  letter-spacing: normal;
   -webkit-text-stroke: 0;
+  font-kerning: inherit;
+  font-feature-settings: inherit;
+  font-variant-ligatures: inherit;
+}
+
+.tajweed * {
+  font-family: inherit !important;
+  font-weight: inherit;
+  font-style: inherit;
+}
+
+.mushaf-ayah {
+  display: inline;
+  direction: rtl;
+  unicode-bidi: normal;
+  text-align: inherit;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.mushaf-ayah .tajweed-text {
+  display: inline;
+  unicode-bidi: normal;
+  text-align: inherit;
+}
+
+.mushaf-ayah-number {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 2.05em;
+  height: 2.05em;
+  margin-inline: 0.28em;
+  border: 1.35px solid hsl(var(--primary));
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, hsl(var(--primary) / 0.12) 0 42%, transparent 43%),
+    hsl(var(--background) / 0.45);
+  box-shadow:
+    inset 0 0 0 0.17em hsl(var(--background)),
+    inset 0 0 0 0.22em hsl(var(--primary) / 0.26);
+  color: hsl(var(--primary));
+  direction: ltr;
+  font-family: 'Noto Naskh Arabic', 'Amiri Quran', serif;
+  font-size: 0.58em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1;
+  unicode-bidi: isolate;
+  vertical-align: middle;
+}
+
+.mushaf-ayah-number-text {
+  display: block;
+  line-height: 1;
+  min-width: 1ch;
+  text-align: center;
+  transform: translateY(-0.02em);
 }
 
 /* Red spectrum: Madd rules */
@@ -162,8 +269,14 @@
 /* مد طبيعي — حركتين (amber) */
 
 /* Green: Ghunnah & Ikhfa */
-.ikhf_shfw,
-.ikhf,
+.ikhf_shfw {
+  color: #169200;
+}
+
+.ikhf {
+  color: #169200;
+}
+
 .ghn {
   color: #169200;
 }
@@ -189,12 +302,18 @@
 }
 
 /* همزة وصل، حروف صامتة */
-.idghm_shfw,
+.idghm_shfw {
+  color: #169200;
+}
+
 .idgh_ghn,
-.idgh_w_ghn,
+.idgh_w_ghn {
+  color: #169200;
+}
+
 .idgh_mus,
 .idgh_mut {
-  color: #AAAAAA;
+  color: #A1A1A1;
 }
 
 /* إدغام */

@@ -53,6 +53,13 @@ build-output.log
 Task
 
 # AI agent workspaces
+.codex-run/
+.openclaude-profile.json
 .claude/
 .gemini/
 .agents/
+
+# browser smoke-test output
+/test-results/
+/playwright-report/
+/blob-report/

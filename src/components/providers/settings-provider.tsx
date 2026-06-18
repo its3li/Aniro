@@ -1,13 +1,13 @@
 
 'use client';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Reciter } from '@/lib/reciters';
 import { reciters as availableReciters } from '@/lib/reciters';
 
 
 type Language = 'en' | 'ar';
 type QuranViewMode = 'list' | 'page';
-export type QuranEdition = 'uthmani' | 'tajweed' | 'warsh' | 'shubah';
+export type QuranEdition = 'uthmani' | 'warsh';
 
 import { CalculationMethodName, DSTMode } from '@/lib/prayer';
 
@@ -22,6 +22,7 @@ type Settings = {
   language: Language;
   quranViewMode: QuranViewMode;
   quranEdition: QuranEdition;
+  quranTajweedEnabled: boolean;
   quranReciter: string;
   calculationMethod: CalculationMethodName;
   timeFormat: TimeFormat;
@@ -35,11 +36,14 @@ type Settings = {
 
 type SettingsProviderState = {
   settings: Settings;
+  hasLoadedSettings: boolean;
+  hadStoredSettings: boolean;
   setFontSize: (size: number) => void;
   setPrayerOffset: (offset: number) => void;
   setLanguage: (language: Language) => void;
   setQuranViewMode: (mode: QuranViewMode) => void;
   setQuranEdition: (edition: QuranEdition) => void;
+  setQuranTajweedEnabled: (enabled: boolean) => void;
   setQuranReciter: (reciter: string) => void;
   setCalculationMethod: (method: CalculationMethodName) => void;
   setDstMode: (mode: DSTMode) => void;
@@ -59,6 +63,7 @@ const defaultSettings: Settings = {
   language: 'ar',
   quranViewMode: 'list',
   quranEdition: 'uthmani',
+  quranTajweedEnabled: false,
   quranReciter: 'ar.mahermuaiqly',
   calculationMethod: 'muslim_world_league',
   dstMode: 'auto',
@@ -73,11 +78,14 @@ const defaultSettings: Settings = {
 
 const SettingsProviderContext = createContext<SettingsProviderState>({
   settings: defaultSettings,
+  hasLoadedSettings: false,
+  hadStoredSettings: false,
   setFontSize: () => null,
   setPrayerOffset: () => null,
   setLanguage: () => null,
   setQuranViewMode: () => null,
   setQuranEdition: () => null,
+  setQuranTajweedEnabled: () => null,
   setQuranReciter: () => null,
   setCalculationMethod: () => null,
   setDstMode: () => null,
@@ -93,21 +101,38 @@ const SettingsProviderContext = createContext<SettingsProviderState>({
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
+  const [hadStoredSettings, setHadStoredSettings] = useState(false);
 
   useEffect(() => {
     try {
       const storedSettings = localStorage.getItem('app-settings');
+      setHadStoredSettings(Boolean(storedSettings));
       if (storedSettings) {
         // Merge stored settings with defaults to avoid breaking changes
         const parsedSettings = JSON.parse(storedSettings);
-        setSettings({ ...defaultSettings, ...parsedSettings });
+        const wasLegacyTajweed = parsedSettings.quranEdition === 'tajweed';
+        const knownEditions: QuranEdition[] = ['uthmani', 'warsh'];
+        const storedEdition = knownEditions.includes(parsedSettings.quranEdition)
+          ? parsedSettings.quranEdition
+          : 'uthmani';
+        setSettings({
+          ...defaultSettings,
+          ...parsedSettings,
+          quranEdition: wasLegacyTajweed ? 'uthmani' : storedEdition,
+          quranTajweedEnabled: Boolean(parsedSettings.quranTajweedEnabled || wasLegacyTajweed),
+        });
       }
     } catch (error) {
       console.error("Could not load settings", error);
+    } finally {
+      setHasLoadedSettings(true);
     }
   }, []);
 
   useEffect(() => {
+    if (!hasLoadedSettings) return;
+
     try {
       localStorage.setItem('app-settings', JSON.stringify(settings));
       document.documentElement.style.fontSize = `${settings.fontSize}px`;
@@ -116,117 +141,89 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Could not save settings", error);
     }
-  }, [settings]);
+  }, [hasLoadedSettings, settings]);
 
-  // Sync with Native Widget
-  useEffect(() => {
-    const syncWidget = async () => {
-      try {
-        // @ts-expect-error WidgetData is registered only in native builds
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.WidgetData) {
-          // Get cached location from localStorage (set by useLocation hook)
-          let latitude = 21.4225; // Default: Mecca (Kaaba)
-          let longitude = 39.8262;
-          
-          try {
-            const cached = localStorage.getItem('aniro_location');
-            if (cached) {
-              const loc = JSON.parse(cached);
-              if (loc.latitude && loc.longitude) {
-                latitude = loc.latitude;
-                longitude = loc.longitude;
-              }
-            }
-          } catch {}
-          
-          // @ts-expect-error WidgetData is registered only in native builds
-          await window.Capacitor.Plugins.WidgetData.updateData({
-            latitude,
-            longitude,
-            calculationMethod: settings.calculationMethod,
-            prayerOffset: settings.prayerOffset,
-            dstMode: settings.dstMode,
-            widgetBackgroundColor: settings.widgetTheme === 'default' ? '#24252B' : settings.widgetBackgroundColor,
-            useSystemWidgetColor: settings.widgetTheme === 'system',
-            language: settings.language,
-            azanMode: settings.azanMode,
-            includeIshraq: settings.includeIshraq
-          });
-        }
-      } catch (e) {
-        console.error("Failed to sync widget data", e);
-      }
-    };
-    syncWidget();
-  }, [settings.calculationMethod, settings.prayerOffset, settings.dstMode, settings.widgetBackgroundColor, settings.widgetTheme, settings.language, settings.azanMode, settings.includeIshraq]);
-
-  const setFontSize = (size: number) => {
+  const setFontSize = useCallback((size: number) => {
     setSettings(s => ({ ...s, fontSize: size }));
-  };
+  }, []);
 
-  const setPrayerOffset = (offset: number) => {
+  const setPrayerOffset = useCallback((offset: number) => {
     setSettings(s => ({ ...s, prayerOffset: offset }));
-  };
+  }, []);
 
-  const setLanguage = (language: Language) => {
+  const setLanguage = useCallback((language: Language) => {
     setSettings(s => ({ ...s, language }));
-  };
+  }, []);
 
-  const setQuranViewMode = (mode: QuranViewMode) => {
+  const setQuranViewMode = useCallback((mode: QuranViewMode) => {
     setSettings(s => ({ ...s, quranViewMode: mode }));
-  };
+  }, []);
 
-  const setQuranEdition = (edition: QuranEdition) => {
-    setSettings(s => ({ ...s, quranEdition: edition }));
-  };
+  const setQuranEdition = useCallback((edition: QuranEdition) => {
+    setSettings(s => ({
+      ...s,
+      quranEdition: edition,
+      quranTajweedEnabled: edition === 'uthmani' ? s.quranTajweedEnabled : false,
+    }));
+  }, []);
 
-  const setAppTheme = (theme: 'system' | 'light' | 'dark') => {
+  const setQuranTajweedEnabled = useCallback((enabled: boolean) => {
+    setSettings(s => ({
+      ...s,
+      quranTajweedEnabled: s.quranEdition === 'uthmani' ? enabled : false,
+    }));
+  }, []);
+
+  const setAppTheme = useCallback((theme: 'system' | 'light' | 'dark') => {
     setSettings(s => ({ ...s, appTheme: theme }));
-  };
+  }, []);
 
-  const setQuranReciter = (reciter: string) => {
+  const setQuranReciter = useCallback((reciter: string) => {
     setSettings(s => ({ ...s, quranReciter: reciter }));
-  }
+  }, []);
 
-  const setCalculationMethod = (method: CalculationMethodName) => {
-    setSettings(s => ({ ...s, calculationMethod: method }));
-  }
+  const setCalculationMethod = useCallback((method: CalculationMethodName) => {
+    setSettings(s => s.calculationMethod === method ? s : ({ ...s, calculationMethod: method }));
+  }, []);
 
-  const setDstMode = (mode: DSTMode) => {
+  const setDstMode = useCallback((mode: DSTMode) => {
     setSettings(s => ({ ...s, dstMode: mode }));
-  }
+  }, []);
 
-  const setTimeFormat = (format: TimeFormat) => {
+  const setTimeFormat = useCallback((format: TimeFormat) => {
     setSettings(s => ({ ...s, timeFormat: format }));
-  }
+  }, []);
 
-  const setWidgetTheme = (theme: 'default' | 'system' | 'custom') => {
+  const setWidgetTheme = useCallback((theme: 'default' | 'system' | 'custom') => {
     setSettings(s => ({ ...s, widgetTheme: theme }));
-  }
+  }, []);
 
-  const setWidgetBackgroundColor = (color: string) => {
+  const setWidgetBackgroundColor = useCallback((color: string) => {
     setSettings(s => ({ ...s, widgetBackgroundColor: color }));
-  }
+  }, []);
 
-  const setAzanMode = (mode: AzanMode) => {
+  const setAzanMode = useCallback((mode: AzanMode) => {
     setSettings(s => ({ ...s, azanMode: mode }));
-  }
+  }, []);
 
-  const setIncludeIshraq = (include: boolean) => {
+  const setIncludeIshraq = useCallback((include: boolean) => {
     setSettings(s => ({ ...s, includeIshraq: include }));
-  }
+  }, []);
 
-  const setFajrQuizEnabled = (enabled: boolean) => {
+  const setFajrQuizEnabled = useCallback((enabled: boolean) => {
     setSettings(s => ({ ...s, fajrQuizEnabled: enabled }));
-  }
+  }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     settings,
+    hasLoadedSettings,
+    hadStoredSettings,
     setFontSize,
     setPrayerOffset,
     setLanguage,
     setQuranViewMode,
     setQuranEdition,
+    setQuranTajweedEnabled,
     setQuranReciter,
     setCalculationMethod,
     setDstMode,
@@ -238,7 +235,27 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setIncludeIshraq,
     setFajrQuizEnabled,
     availableReciters,
-  };
+  }), [
+    settings,
+    hasLoadedSettings,
+    hadStoredSettings,
+    setFontSize,
+    setPrayerOffset,
+    setLanguage,
+    setQuranViewMode,
+    setQuranEdition,
+    setQuranTajweedEnabled,
+    setQuranReciter,
+    setCalculationMethod,
+    setDstMode,
+    setTimeFormat,
+    setWidgetTheme,
+    setWidgetBackgroundColor,
+    setAppTheme,
+    setAzanMode,
+    setIncludeIshraq,
+    setFajrQuizEnabled,
+  ]);
 
   return (
     <SettingsProviderContext.Provider value={value}>

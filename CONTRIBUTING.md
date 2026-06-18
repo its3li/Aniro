@@ -1,4 +1,4 @@
-# Contributing to Aniro V3
+# Contributing to Aniro
 
 First off, thank you for considering contributing to Aniro! It's people like you that make this project a great tool for the Muslim community.
 
@@ -20,8 +20,8 @@ First off, thank you for considering contributing to Aniro! It's people like you
 ```bash
 # 1. Fork the repo
 # 2. Clone your fork
-git clone https://github.com/YOUR_USERNAME/Aniro-V3.git
-cd Aniro-V3
+git clone https://github.com/YOUR_USERNAME/Aniro.git
+cd Aniro
 
 # 3. Install dependencies
 npm install

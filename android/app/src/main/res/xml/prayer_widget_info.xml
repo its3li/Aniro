@@ -8,5 +8,5 @@
     android:initialLayout="@layout/prayer_widget"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
-    android:previewImage="@drawable/ic_prayer"
+    android:previewImage="@drawable/widget_preview_next_prayer"
     android:description="@string/widget_description" />

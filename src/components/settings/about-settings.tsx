@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { GlassCard, GlassCardContent, GlassCardHeader } from '../glass-card';
 import { Button } from '@/components/ui/button';
 import { useSettings } from '../providers/settings-provider';
-import { checkForUpdate, APP_VERSION } from '@/lib/app-update';
+import { checkForUpdate, getUpdateUrl, APP_VERSION } from '@/lib/app-update';
 import { RefreshCw, Download, Check, AlertCircle } from 'lucide-react';
 
 export function AboutSettings() {
@@ -24,7 +24,7 @@ export function AboutSettings() {
       if (update) {
         setUpdateAvailable(true);
       }
-    } catch (e) {
+    } catch {
       setError(true);
     } finally {
       setIsChecking(false);
@@ -32,7 +32,7 @@ export function AboutSettings() {
   };
 
   const handleDownload = () => {
-    window.open('https://aniro.vercel.app/', '_blank');
+    window.open(getUpdateUrl(), '_blank');
   };
 
   return (

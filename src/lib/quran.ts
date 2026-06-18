@@ -14,6 +14,7 @@ export interface Verse {
   };
   text: string;
   translation: string;
+  page?: number;
   tafseer?: string;
   words?: Word[];
 }
@@ -29,6 +30,28 @@ export interface SurahInfo {
 
 export interface Surah extends SurahInfo {
   verses: Verse[];
+}
+
+interface QuranAyahData {
+  number: number;
+  numberInSurah: number;
+  text: string;
+  page?: number;
+}
+
+interface QuranSurahData {
+  number: number;
+  name: string;
+  englishName: string;
+  englishNameTranslation: string;
+  numberOfAyahs: number;
+  revelationType: 'Meccan' | 'Medinan';
+  ayahs: QuranAyahData[];
+}
+
+interface QuranApiResponse<T> {
+  code: number;
+  data?: T;
 }
 
 // ============================================
@@ -52,7 +75,7 @@ function memGet<T>(key: string): T | undefined {
   const v = memCache.get(key);
   if (v) {
     memCache.delete(key);
-    memCache.set(key, v as any);
+    memCache.set(key, v);
   }
   return v as T | undefined;
 }
@@ -69,7 +92,7 @@ function memSet(key: string, value: Surah | SurahInfo[]) {
 // Request deduplication
 // ============================================
 
-const inflightRequests = new Map<string, Promise<any>>();
+const inflightRequests = new Map<string, Promise<Surah | null>>();
 
 // ============================================
 // Retry helper with timeout
@@ -104,7 +127,7 @@ async function fetchWithRetry(
 // Load from bundled static JSON (in public/data/quran/)
 // ============================================
 
-async function loadBundledSurah(surahId: number, edition: string): Promise<any | null> {
+async function loadBundledSurah(surahId: number, edition: string): Promise<QuranSurahData | null> {
   try {
     const res = await fetch(`/data/quran/surah/${edition}/${surahId}.json`);
     if (!res.ok) return null;
@@ -178,10 +201,11 @@ async function fetchSurahInternal(
         englishNameTranslation: bundled.englishNameTranslation,
         numberOfAyahs: bundled.numberOfAyahs,
         revelationType: bundled.revelationType,
-        verses: bundled.ayahs.map((a: any) => ({
+        verses: bundled.ayahs.map((a) => ({
           number: { inQuran: a.number, inSurah: a.numberInSurah },
           text: a.text,
           translation: '',
+          page: a.page,
         })),
       };
       memSet(cacheKey, surah);
@@ -191,7 +215,7 @@ async function fetchSurahInternal(
 
     // Tier 4: Network API fallback
     const response = await fetchWithRetry(`${SURAH_API_BASE}/${surahId}/${edition}`);
-    const json = await response.json();
+    const json = await response.json() as QuranApiResponse<QuranSurahData>;
     if (json.code !== 200 || !json.data) throw new Error('Invalid API response');
 
     const apiData = json.data;
@@ -202,10 +226,11 @@ async function fetchSurahInternal(
       englishNameTranslation: apiData.englishNameTranslation,
       numberOfAyahs: apiData.numberOfAyahs,
       revelationType: apiData.revelationType,
-      verses: apiData.ayahs.map((ayah: any) => ({
+      verses: apiData.ayahs.map((ayah) => ({
         number: { inQuran: ayah.number, inSurah: ayah.numberInSurah },
         text: ayah.text,
         translation: '',
+        page: ayah.page,
       })),
     };
 
@@ -274,10 +299,11 @@ async function fetchSurahWithTranslationInternal(
         englishNameTranslation: bundledArabic.englishNameTranslation,
         numberOfAyahs: bundledArabic.numberOfAyahs,
         revelationType: bundledArabic.revelationType,
-        verses: bundledArabic.ayahs.map((a: any, i: number) => ({
+        verses: bundledArabic.ayahs.map((a, i) => ({
           number: { inQuran: a.number, inSurah: a.numberInSurah },
           text: a.text,
           translation: bundledTranslation.ayahs[i]?.text || '',
+          page: a.page,
         })),
       };
       memSet(cacheKey, surah);
@@ -292,11 +318,11 @@ async function fetchSurahWithTranslationInternal(
     ]);
 
     const [arabicJson, translationJson] = await Promise.all([
-      arabicResponse.json(),
-      translationResponse.json(),
+      arabicResponse.json() as Promise<QuranApiResponse<QuranSurahData>>,
+      translationResponse.json() as Promise<QuranApiResponse<QuranSurahData>>,
     ]);
 
-    if (arabicJson.code !== 200 || translationJson.code !== 200) {
+    if (arabicJson.code !== 200 || translationJson.code !== 200 || !arabicJson.data || !translationJson.data) {
       throw new Error('Invalid API response');
     }
 
@@ -310,10 +336,11 @@ async function fetchSurahWithTranslationInternal(
       englishNameTranslation: arabicData.englishNameTranslation,
       numberOfAyahs: arabicData.numberOfAyahs,
       revelationType: arabicData.revelationType,
-      verses: arabicData.ayahs.map((ayah: any, index: number) => ({
+      verses: arabicData.ayahs.map((ayah, index) => ({
         number: { inQuran: ayah.number, inSurah: ayah.numberInSurah },
         text: ayah.text,
         translation: translationData.ayahs[index]?.text || '',
+        page: ayah.page,
       })),
     };
 

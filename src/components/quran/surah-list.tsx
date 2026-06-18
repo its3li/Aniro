@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { SurahInfo } from '@/lib/quran';
-import { getSurahList } from '@/lib/quran';
+import { getSurahList, getSurahWithTranslation } from '@/lib/quran';
 import { Input } from '@/components/ui/input';
 import { GlassCard } from '../glass-card';
 import { useSettings } from '../providers/settings-provider';
@@ -10,6 +10,7 @@ import { Skeleton } from '../ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Search, X, Loader2, BookOpen, ChevronDown } from 'lucide-react';
 import { useQuranSearch, type QuranSearchResult } from '@/hooks/use-quran-search';
+import { cn } from '@/lib/utils';
 
 // Juz-Surah mapping: which Juz each Surah starts in
 const SURAH_JUZ_START: number[] = [
@@ -36,6 +37,7 @@ function getHizbRangeForSurah(surahNumber: number): { startHizb: number; endHizb
 }
 
 const RESULTS_PER_PAGE = 20;
+const RECENT_SEARCHES_KEY = 'aniro_recent_quran_searches';
 
 interface SurahListProps {
   onSurahSelect: (surah: SurahInfo, initialVerse?: number) => void;
@@ -47,12 +49,45 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
   const [surahs, setSurahs] = useState<SurahInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [displayedCount, setDisplayedCount] = useState(RESULTS_PER_PAGE);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const { settings } = useSettings();
   const isArabic = settings.language === 'ar';
 
   // Use the offline verse search hook
-  const { search, searchResults, clearResults, isIndexing } = useQuranSearch();
+  const { search, preload, searchResults, clearResults, isIndexing } = useQuranSearch();
+  const editionMap: Record<string, string> = {
+    warsh: 'quran-warsh',
+  };
+  const selectedEdition = settings.quranEdition === 'uthmani' && settings.quranTajweedEnabled
+    ? 'quran-tajweed'
+    : editionMap[settings.quranEdition] ?? 'quran-uthmani';
+  const translationEdition = isArabic ? 'ar.jalalayn' : 'en.sahih';
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+      if (stored) setRecentSearches(JSON.parse(stored).slice(0, 5));
+    } catch {
+      setRecentSearches([]);
+    }
+  }, []);
+
+  const rememberSearch = useCallback((query: string) => {
+    const normalized = query.trim();
+    if (normalized.length < 2) return;
+
+    setRecentSearches((previous) => {
+      const next = [normalized, ...previous.filter((item) => item !== normalized)].slice(0, 5);
+      try {
+        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next));
+      } catch {
+        // Best-effort UX cache only.
+      }
+      return next;
+    });
+  }, []);
 
   // Load surah list on mount
   useEffect(() => {
@@ -68,14 +103,29 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
       }
     };
     fetchSurahs();
-    // Search index auto-loads in hook
   }, []);
+
+  useEffect(() => {
+    const run = () => {
+      void preload(selectedEdition);
+    };
+
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(run, { timeout: 1200 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = setTimeout(run, 0);
+    return () => clearTimeout(timeoutId);
+  }, [preload, selectedEdition]);
 
   // Debounced verse search
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchTerm.trim().length >= 2) {
-        search(searchTerm);
+        void search(searchTerm, selectedEdition).then((results) => {
+          if (results.length > 0) rememberSearch(searchTerm);
+        });
         setDisplayedCount(RESULTS_PER_PAGE); // Reset pagination on new search
       } else {
         clearResults();
@@ -83,12 +133,18 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, search, clearResults]);
+  }, [searchTerm, search, selectedEdition, clearResults, rememberSearch]);
 
   // Handle verse result click - navigate to the verse
   const handleVerseClick = useCallback((result: QuranSearchResult) => {
+    void getSurahWithTranslation(result.surahNumber, selectedEdition, translationEdition);
     router.push(`/quran?surah=${result.surahNumber}&ayah=${result.ayahNumber}`);
-  }, [router]);
+  }, [router, selectedEdition, translationEdition]);
+
+  const handleSurahClick = useCallback((surah: SurahInfo) => {
+    void getSurahWithTranslation(surah.number, selectedEdition, translationEdition);
+    onSurahSelect(surah);
+  }, [onSurahSelect, selectedEdition, translationEdition]);
 
   // Load more results
   const handleLoadMore = useCallback(() => {
@@ -121,20 +177,22 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
     <div className="flex flex-col gap-6">
       {/* Verse Search Bar */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
+        <Search className={cn("absolute top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground", isArabic ? "right-3" : "left-3")} />
         <Input
-          type="search"
-          placeholder={isArabic ? "ابحث عن آية..." : "Search for a verse..."}
+          type="text"
+          placeholder={isArabic ? "ابحث عن آية أو كلمة..." : "Search for a verse or word..."}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 pr-10 bg-foreground/5 backdrop-blur-lg border-foreground/10 rounded-xl h-12"
+          onFocus={() => setIsSearchFocused(true)}
+          onBlur={() => window.setTimeout(() => setIsSearchFocused(false), 120)}
+          className={cn("h-12 rounded-lg border-border/80 bg-background/70 px-10", isArabic ? "text-right" : "text-left")}
           dir="auto"
         />
         {searchTerm && (
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+            className={cn("absolute top-1/2 h-8 w-8 -translate-y-1/2", isArabic ? "left-1" : "right-1")}
             onClick={() => {
               setSearchTerm('');
               clearResults();
@@ -145,11 +203,30 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
         )}
       </div>
 
+      {isSearchFocused && !isSearching && recentSearches.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground">
+            {isArabic ? 'آخر بحث' : 'Recent'}
+          </span>
+          {recentSearches.map((term) => (
+            <button
+              key={term}
+              type="button"
+              className="rounded-lg border border-border/70 bg-background/60 px-3 py-1.5 text-xs font-medium text-foreground"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => setSearchTerm(term)}
+            >
+              {term}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Indexing indicator */}
       {isIndexing && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>{isArabic ? 'جارٍ إنشاء الفهرس...' : 'Building search index...'}</span>
+          <span>{isArabic ? 'جاري تجهيز البحث...' : 'Preparing search...'}</span>
         </div>
       )}
 
@@ -166,7 +243,7 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
               <GlassCard
                 key={`${result.id}-${index}`}
                 onClick={() => handleVerseClick(result)}
-                className="p-4 cursor-pointer hover:bg-foreground/10 transition-colors"
+                className="cursor-pointer p-4 transition-colors hover:bg-foreground/10"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary shrink-0">
@@ -210,7 +287,7 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
           <Search className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p>{isArabic ? 'لم يتم العثور على نتائج' : 'No results found'}</p>
           <p className="text-sm mt-1">
-            {isArabic ? 'تأكد من تحميل السور أولاً' : 'Make sure surahs are downloaded first'}
+            {isArabic ? 'جرّب كلمة مختلفة أو رقم آية' : 'Try a different word or ayah number'}
           </p>
         </div>
       )}
@@ -232,8 +309,8 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
             return (
               <GlassCard
                 key={surah.number}
-                onClick={() => onSurahSelect(surah)}
-                className="p-4 flex items-center justify-between cursor-pointer rounded-2xl transition-transform active:scale-95 hover:bg-foreground/10"
+                onClick={() => handleSurahClick(surah)}
+                className="flex cursor-pointer items-center justify-between rounded-lg p-4 transition-transform hover:bg-foreground/10 active:scale-95"
               >
                 <div className="flex items-center gap-4">
                   <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary font-bold">

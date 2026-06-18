@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export interface LastReadState {
     surahName: string;
@@ -17,7 +17,37 @@ const STORAGE_KEY = 'quran_last_read';
 export function useLastRead() {
     const [lastRead, setLastRead] = useState<LastReadState | null>(null);
 
-    const loadFromStorage = useCallback(() => {
+    useEffect(() => {
+        const loadFromStorage = () => {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    setLastRead(JSON.parse(stored));
+                } else {
+                    setLastRead(null);
+                }
+            } catch (error) {
+                console.error('Failed to load last read', error);
+            }
+        };
+
+        loadFromStorage();
+
+        window.addEventListener('focus', loadFromStorage);
+
+        return () => window.removeEventListener('focus', loadFromStorage);
+    }, []);
+
+    const saveLastRead = useCallback((state: LastReadState) => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            setLastRead(state);
+        } catch (error) {
+            console.error('Failed to save last read', error);
+        }
+    }, []);
+
+    const refreshLastRead = useCallback(() => {
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
@@ -30,23 +60,5 @@ export function useLastRead() {
         }
     }, []);
 
-    useEffect(() => {
-        loadFromStorage();
-        
-        const handleFocus = () => loadFromStorage();
-        window.addEventListener('focus', handleFocus);
-        
-        return () => window.removeEventListener('focus', handleFocus);
-    }, [loadFromStorage]);
-
-    const saveLastRead = (state: LastReadState) => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            setLastRead(state);
-        } catch (error) {
-            console.error('Failed to save last read', error);
-        }
-    };
-
-    return { lastRead, saveLastRead, refreshLastRead: loadFromStorage };
+    return { lastRead, saveLastRead, refreshLastRead };
 }

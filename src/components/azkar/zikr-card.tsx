@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { AzkarItem } from "@/lib/azkar";
 import { Button } from '@/components/ui/button';
 import { RotateCcw, AlertTriangle } from 'lucide-react';
@@ -17,17 +17,27 @@ export function ZikrCard({ item, categoryId, index }: ZikrCardProps) {
   const isArabic = settings.language === 'ar';
   const [count, setCount] = useState(item.repetitions || 0);
   const persistenceKey = `azkar_progress_${categoryId}_${index}`;
+  const hasLoadedStorageRef = useRef(false);
 
   // Load / Save logic
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(persistenceKey);
-      if (stored !== null) setCount(parseInt(stored));
-      else setCount(item.repetitions || 0);
-    } catch { setCount(item.repetitions || 0); }
+    hasLoadedStorageRef.current = false;
+    const timeoutId = window.setTimeout(() => {
+      try {
+        const stored = localStorage.getItem(persistenceKey);
+        setCount(stored !== null ? parseInt(stored) : item.repetitions || 0);
+      } catch {
+        setCount(item.repetitions || 0);
+      } finally {
+        hasLoadedStorageRef.current = true;
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [persistenceKey, item.repetitions]);
 
   useEffect(() => {
+    if (!hasLoadedStorageRef.current) return;
     try { localStorage.setItem(persistenceKey, count.toString()); } catch { }
   }, [count, persistenceKey]);
 
@@ -84,7 +94,7 @@ export function ZikrCard({ item, categoryId, index }: ZikrCardProps) {
         {/* Translation (if not Arabic language setting) */}
         {!isArabic && (
           <p className="text-sm text-center text-muted-foreground italic leading-relaxed">
-            "{item.translation}"
+            &ldquo;{item.translation}&rdquo;
           </p>
         )}
 

@@ -4,144 +4,323 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Background Layer (Full Size) -->
     <ImageView
         android:id="@+id/widget_background_fill"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_fill"
-        android:scaleType="fitXY" />
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_bg_fill" />
 
     <ImageView
         android:id="@+id/widget_background_border"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_border"
-        android:scaleType="fitXY" />
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_bg_border" />
 
-    <!-- Content Layer (With Padding) -->
-    <RelativeLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="16dp">
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:paddingStart="14dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="12dp">
 
-        <!-- Top Section: Countdown and Next Prayer -->
-        <RelativeLayout
+        <LinearLayout
             android:id="@+id/top_section"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <Chronometer
-                android:id="@+id/widget_countdown"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:textColor="#D4AF37"
-                android:textSize="32sp"
-                android:textStyle="bold"
-                android:countDown="true" />
+                android:layout_weight="1"
+                android:gravity="start|center_vertical"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/widget_next_prayer_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/widget_countdown"
-                android:layout_alignParentStart="true"
-                android:text="في 5:18 ص"
-                android:textColor="#AAAAAA"
-                android:textSize="14sp" />
+                <Chronometer
+                    android:id="@+id/widget_countdown"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:countDown="true"
+                    android:fontFamily="sans-serif-condensed"
+                    android:includeFontPadding="false"
+                    android:textColor="#D4AF37"
+                    android:textSize="30sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_next_prayer_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="at 5:18 AM"
+                    android:textColor="#AAAAAA"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:orientation="vertical"
-                android:gravity="end">
+                android:gravity="end|center_vertical"
+                android:orientation="vertical">
 
                 <TextView
                     android:id="@+id/widget_prayer_name"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="الفجر"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:text="Fajr"
                     android:textColor="#FFFFFF"
-                    android:textSize="24sp"
+                    android:textSize="23sp"
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/widget_next_after_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="الصلاة التالية بعد"
+                    android:layout_marginTop="1dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Next prayer after"
                     android:textColor="#AAAAAA"
-                    android:textSize="14sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
-        </RelativeLayout>
-
-        <!-- Bottom Section: 5 Prayers List -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/top_section"
-            android:orientation="horizontal"
-            android:weightSum="5">
-
-            <!-- Isha -->
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
-                <TextView android:id="@+id/isha_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Isha" android:textColor="#AAAAAA" android:textSize="12sp" android:layout_marginBottom="8dp"/>
-                <FrameLayout android:layout_width="32dp" android:layout_height="32dp" android:layout_marginBottom="8dp">
-                    <ImageView android:id="@+id/isha_icon_fill" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/circle_fill" />
-                    <ImageView android:id="@+id/isha_icon_border" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/circle_border" />
-                    <ImageView android:id="@+id/isha_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_isha" android:padding="6dp" />
-                </FrameLayout>
-                <TextView android:id="@+id/isha_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00" android:textColor="#AAAAAA" android:textSize="12sp" />
-            </LinearLayout>
-            
-            <!-- Maghrib -->
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
-                <TextView android:id="@+id/maghrib_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Maghrib" android:textColor="#AAAAAA" android:textSize="12sp" android:layout_marginBottom="8dp"/>
-                <FrameLayout android:layout_width="32dp" android:layout_height="32dp" android:layout_marginBottom="8dp">
-                    <ImageView android:id="@+id/maghrib_icon_fill" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/circle_fill" />
-                    <ImageView android:id="@+id/maghrib_icon_border" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/circle_border" />
-                    <ImageView android:id="@+id/maghrib_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_maghrib" android:padding="6dp" />
-                </FrameLayout>
-                <TextView android:id="@+id/maghrib_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00" android:textColor="#AAAAAA" android:textSize="12sp" />
-            </LinearLayout>
-
-            <!-- Asr -->
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
-                <TextView android:id="@+id/asr_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Asr" android:textColor="#AAAAAA" android:textSize="12sp" android:layout_marginBottom="8dp"/>
-                <FrameLayout android:layout_width="32dp" android:layout_height="32dp" android:layout_marginBottom="8dp">
-                    <ImageView android:id="@+id/asr_icon_fill" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/circle_fill" />
-                    <ImageView android:id="@+id/asr_icon_border" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/circle_border" />
-                    <ImageView android:id="@+id/asr_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_asr" android:padding="6dp" />
-                </FrameLayout>
-                <TextView android:id="@+id/asr_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00" android:textColor="#AAAAAA" android:textSize="12sp" />
-            </LinearLayout>
-
-            <!-- Dhuhr -->
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
-                <TextView android:id="@+id/dhuhr_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Dhuhr" android:textColor="#AAAAAA" android:textSize="12sp" android:layout_marginBottom="8dp"/>
-                <FrameLayout android:layout_width="32dp" android:layout_height="32dp" android:layout_marginBottom="8dp">
-                    <ImageView android:id="@+id/dhuhr_icon_fill" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/circle_fill" />
-                    <ImageView android:id="@+id/dhuhr_icon_border" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/circle_border" />
-                    <ImageView android:id="@+id/dhuhr_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_dhuhr" android:padding="6dp" />
-                </FrameLayout>
-                <TextView android:id="@+id/dhuhr_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00" android:textColor="#AAAAAA" android:textSize="12sp" />
-            </LinearLayout>
-
-            <!-- Fajr -->
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
-                <TextView android:id="@+id/fajr_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Fajr" android:textColor="#AAAAAA" android:textSize="12sp" android:layout_marginBottom="8dp"/>
-                <FrameLayout android:layout_width="32dp" android:layout_height="32dp" android:layout_marginBottom="8dp">
-                    <ImageView android:id="@+id/fajr_icon_fill" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/circle_fill" />
-                    <ImageView android:id="@+id/fajr_icon_border" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/circle_border" />
-                    <ImageView android:id="@+id/fajr_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/ic_fajr" android:padding="6dp" />
-                </FrameLayout>
-                <TextView android:id="@+id/fajr_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00" android:textColor="#AAAAAA" android:textSize="12sp" />
-            </LinearLayout>
-
         </LinearLayout>
 
-    </RelativeLayout>
+        <LinearLayout
+            android:id="@+id/prayers_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:baselineAligned="false"
+            android:gravity="center"
+            android:orientation="horizontal">
 
+            <LinearLayout
+                android:id="@+id/fajr_item"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/fajr_name"
+                    style="@style/WidgetPrayerName"
+                    android:text="Fajr" />
+
+                <FrameLayout style="@style/WidgetPrayerIconFrame">
+                    <ImageView
+                        android:id="@+id/fajr_icon_fill"
+                        style="@style/WidgetPrayerIconLayer"
+                        android:src="@drawable/circle_fill" />
+
+                    <ImageView
+                        android:id="@+id/fajr_icon_border"
+                        style="@style/WidgetPrayerIconLayer"
+                        android:src="@drawable/circle_border" />
+
+                    <ImageView
+                        android:id="@+id/fajr_icon"
+                        style="@style/WidgetPrayerIcon"
+                        android:src="@drawable/ic_fajr" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/fajr_time"
+                    style="@style/WidgetPrayerTime"
+                    android:text="00:00" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/ishraq_item"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/ishraq_name"
+                    style="@style/WidgetPrayerName"
+                    android:text="Ishraq" />
+
+                <FrameLayout style="@style/WidgetPrayerIconFrame">
+                    <ImageView
+                        android:id="@+id/ishraq_icon_fill"
+                        style="@style/WidgetPrayerIconLayer"
+                        android:src="@drawable/circle_fill" />
+
+                    <ImageView
+                        android:id="@+id/ishraq_icon_border"
+                        style="@style/WidgetPrayerIconLayer"
+                        android:src="@drawable/circle_border" />
+
+                    <ImageView
+                        android:id="@+id/ishraq_icon"
+                        style="@style/WidgetPrayerIcon"
+                        android:src="@drawable/ic_ishraq" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/ishraq_time"
+                    style="@style/WidgetPrayerTime"
+                    android:text="00:00" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/dhuhr_item"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/dhuhr_name"
+                    style="@style/WidgetPrayerName"
+                    android:text="Dhuhr" />
+
+                <FrameLayout style="@style/WidgetPrayerIconFrame">
+                    <ImageView
+                        android:id="@+id/dhuhr_icon_fill"
+                        style="@style/WidgetPrayerIconLayer"
+                        android:src="@drawable/circle_fill" />
+
+                    <ImageView
+                        android:id="@+id/dhuhr_icon_border"
+                        style="@style/WidgetPrayerIconLayer"
+                        android:src="@drawable/circle_border" />
+
+                    <ImageView
+                        android:id="@+id/dhuhr_icon"
+                        style="@style/WidgetPrayerIcon"
+                        android:src="@drawable/ic_dhuhr" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/dhuhr_time"
+                    style="@style/WidgetPrayerTime"
+                    android:text="00:00" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/asr_item"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/asr_name"
+                    style="@style/WidgetPrayerName"
+                    android:text="Asr" />
+
+                <FrameLayout style="@style/WidgetPrayerIconFrame">
+                    <ImageView
+                        android:id="@+id/asr_icon_fill"
+                        style="@style/WidgetPrayerIconLayer"
+                        android:src="@drawable/circle_fill" />
+
+                    <ImageView
+                        android:id="@+id/asr_icon_border"
+                        style="@style/WidgetPrayerIconLayer"
+                        android:src="@drawable/circle_border" />
+
+                    <ImageView
+                        android:id="@+id/asr_icon"
+                        style="@style/WidgetPrayerIcon"
+                        android:src="@drawable/ic_asr" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/asr_time"
+                    style="@style/WidgetPrayerTime"
+                    android:text="00:00" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/maghrib_item"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/maghrib_name"
+                    style="@style/WidgetPrayerName"
+                    android:text="Maghrib" />
+
+                <FrameLayout style="@style/WidgetPrayerIconFrame">
+                    <ImageView
+                        android:id="@+id/maghrib_icon_fill"
+                        style="@style/WidgetPrayerIconLayer"
+                        android:src="@drawable/circle_fill" />
+
+                    <ImageView
+                        android:id="@+id/maghrib_icon_border"
+                        style="@style/WidgetPrayerIconLayer"
+                        android:src="@drawable/circle_border" />
+
+                    <ImageView
+                        android:id="@+id/maghrib_icon"
+                        style="@style/WidgetPrayerIcon"
+                        android:src="@drawable/ic_maghrib" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/maghrib_time"
+                    style="@style/WidgetPrayerTime"
+                    android:text="00:00" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/isha_item"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/isha_name"
+                    style="@style/WidgetPrayerName"
+                    android:text="Isha" />
+
+                <FrameLayout style="@style/WidgetPrayerIconFrame">
+                    <ImageView
+                        android:id="@+id/isha_icon_fill"
+                        style="@style/WidgetPrayerIconLayer"
+                        android:src="@drawable/circle_fill" />
+
+                    <ImageView
+                        android:id="@+id/isha_icon_border"
+                        style="@style/WidgetPrayerIconLayer"
+                        android:src="@drawable/circle_border" />
+
+                    <ImageView
+                        android:id="@+id/isha_icon"
+                        style="@style/WidgetPrayerIcon"
+                        android:src="@drawable/ic_isha" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/isha_time"
+                    style="@style/WidgetPrayerTime"
+                    android:text="00:00" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
 </FrameLayout>

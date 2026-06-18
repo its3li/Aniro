@@ -11,8 +11,13 @@ export default function SettingsPage() {
   const isArabic = settings.language === 'ar';
 
   return (
-    <div className="px-4 pt-4 flex flex-col gap-4 animate-fade-in">
-      <h1 className="text-xl font-semibold">{isArabic ? 'الإعدادات' : 'Settings'}</h1>
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pt-4 animate-fade-in">
+      <div>
+        <h1 className="text-2xl font-black tracking-normal">{isArabic ? 'الإعدادات' : 'Settings'}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {isArabic ? 'الصلاة والقرآن والتنبيهات والمظهر والتحديثات في مكان واحد.' : 'Prayer, Quran, notifications, appearance, and updates in one place.'}
+        </p>
+      </div>
       <GeneralSettings />
       <QuranSettings />
       <CustomizationSettings />

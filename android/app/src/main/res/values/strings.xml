@@ -1,10 +1,11 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">aniro</string>
-    <string name="title_activity_main">aniro</string>
+    <string name="app_name">Aniro</string>
+    <string name="title_activity_main">Aniro</string>
     <string name="package_name">com.aniro.app</string>
     <string name="custom_url_scheme">com.aniro.app</string>
-    <string name="widget_description">عرض وقت الصلاة القادمة</string>
+    <string name="widget_description">Shows the next prayer countdown</string>
     <string name="widget_name">Prayer Times</string>
+    <string name="daily_widget_name">Daily Prayers</string>
     <string name="daily_widget_description">Displays all prayer times for the day</string>
 </resources>

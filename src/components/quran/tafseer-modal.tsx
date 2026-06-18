@@ -18,6 +18,13 @@ interface TafseerModalProps {
   onClose: () => void;
 }
 
+type TafseerResponse = {
+  ayahs?: Array<{
+    numberInSurah: number;
+    text?: string;
+  }>;
+};
+
 export function TafseerModal({ verse, surahName, surahNumber, isOpen, onClose }: TafseerModalProps) {
   const { settings } = useSettings();
   const isArabic = settings.language === 'ar';
@@ -35,16 +42,16 @@ export function TafseerModal({ verse, surahName, surahNumber, isOpen, onClose }:
           if (!response.ok) {
             throw new Error('Failed to load tafseer');
           }
-          const data = await response.json();
+          const data = await response.json() as TafseerResponse;
           
           // Find the specific ayah
-          const ayah = data.ayahs?.find((a: any) => a.numberInSurah === verse.number.inSurah);
+          const ayah = data.ayahs?.find((a) => a.numberInSurah === verse.number.inSurah);
           if (ayah && ayah.text) {
             setTafseerContent(ayah.text);
           } else {
             setTafseerContent(isArabic ? 'لم يُوجد تفسير لهذه الآية' : 'Tafseer not found for this verse');
           }
-        } catch (error) {
+        } catch {
           setTafseerContent(isArabic ? 'تعذر تحميل التفسير' : 'Could not load tafseer');
         } finally {
           setIsLoading(false);

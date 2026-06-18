@@ -1,31 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useLocation } from '@/hooks/use-location';
 import { useCompass } from '@/hooks/use-compass';
 import { useSettings } from '@/components/providers/settings-provider';
 import { calculateQiblaDirection, calculateDistanceToKaaba } from '@/lib/qibla';
 import { GlassCard, GlassCardContent } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
-import { Compass, Navigation, MapPin, LocateFixed } from 'lucide-react';
+import { CheckCircle2, Compass, Navigation, MapPin, LocateFixed } from 'lucide-react';
 
 export function QiblaCompass() {
-    const { coordinates, city, country, isLoading: locationLoading } = useLocation();
-    const { heading, isSupported, hasPermission, error: compassError, requestPermission } = useCompass();
+    const { coordinates, displayName, isLoading: locationLoading } = useLocation();
+    const { heading, isSupported, hasPermission, requestPermission } = useCompass();
     const { settings } = useSettings();
     const isArabic = settings.language === 'ar';
 
-    const [qiblaBearing, setQiblaBearing] = useState<number | null>(null);
-    const [distance, setDistance] = useState<number | null>(null);
-
-    useEffect(() => {
-        if (coordinates) {
-            const bearing = calculateQiblaDirection(coordinates.latitude, coordinates.longitude);
-            const dist = calculateDistanceToKaaba(coordinates.latitude, coordinates.longitude);
-            setQiblaBearing(bearing);
-            setDistance(dist);
-        }
-    }, [coordinates]);
+    const qiblaBearing = useMemo(
+        () => coordinates ? calculateQiblaDirection(coordinates.latitude, coordinates.longitude) : null,
+        [coordinates]
+    );
+    const distance = useMemo(
+        () => coordinates ? calculateDistanceToKaaba(coordinates.latitude, coordinates.longitude) : null,
+        [coordinates]
+    );
 
     // The rotation of the compass dial (opposite of heading so the compass stays fixed on North)
     const compassRotation = heading !== null ? -heading : 0;
@@ -59,7 +56,7 @@ export function QiblaCompass() {
     return (
         <div className="flex flex-col items-center gap-6">
             {/* Compass Container */}
-            <div className="relative flex items-center justify-center w-[80vw] h-[80vw] max-w-[320px] max-h-[320px]">
+            <div className="premium-panel relative flex items-center justify-center w-[80vw] h-[80vw] max-w-[320px] max-h-[320px] rounded-[2rem]">
                 {/* Glow effect when aligned */}
                 <div
                     className="absolute inset-0 rounded-full transition-all duration-700"
@@ -146,23 +143,20 @@ export function QiblaCompass() {
                                 />
                                 {/* Kaaba icon at tip */}
                                 <rect
-                                    x={141} y={20} width={18} height={18}
+                                    x={139} y={18} width={22} height={22}
                                     rx={3} ry={3}
-                                    fill="hsl(38 92% 50%)"
+                                    fill="hsl(218 54% 18%)"
                                     stroke="hsl(38 92% 60%)"
-                                    strokeWidth={1}
+                                    strokeWidth={1.5}
                                 />
-                                {/* Kaaba symbol inside */}
-                                <text
-                                    x={150} y={33}
-                                    textAnchor="middle"
-                                    dominantBaseline="central"
-                                    fill="hsl(222 47% 11%)"
-                                    fontSize={12}
-                                    fontWeight="bold"
-                                >
-                                    🕋
-                                </text>
+                                <path
+                                    d="M142 26h16v4h-16zM145 33h10v4h-10z"
+                                    fill="hsl(38 92% 56%)"
+                                />
+                                <path
+                                    d="M150 45l-6 -8h12z"
+                                    fill="hsl(38 92% 56%)"
+                                />
                             </g>
                         )}
 
@@ -208,14 +202,14 @@ export function QiblaCompass() {
             </GlassCard>
 
             {/* Location info */}
-            {(city || country) && (
+            {displayName && (
                 <GlassCard className="w-full">
                     <GlassCardContent className="p-4 pt-4">
                         <div className="flex items-center gap-3">
                             <MapPin className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                             <div>
                                 <p className="text-sm text-muted-foreground">{isArabic ? 'موقعك الحالي' : 'Your Location'}</p>
-                                <p className="font-medium">{[city, country].filter(Boolean).join(', ')}</p>
+                                <p className="font-medium">{displayName}</p>
                             </div>
                         </div>
                     </GlassCardContent>
@@ -248,9 +242,10 @@ export function QiblaCompass() {
             )}
 
             {isAligned && (
-                <div className="text-center animate-fade-slide-in">
-                    <p className="text-primary font-semibold text-lg">
-                        {isArabic ? '✓ أنت تواجه القبلة' : '✓ You are facing the Qibla'}
+                <div className="flex items-center justify-center gap-2 text-center text-primary animate-fade-slide-in">
+                    <CheckCircle2 className="h-5 w-5" />
+                    <p className="font-semibold text-lg">
+                        {isArabic ? 'أنت تواجه القبلة' : 'You are facing the Qibla'}
                     </p>
                 </div>
             )}

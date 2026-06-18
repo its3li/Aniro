@@ -1,4 +1,4 @@
-import { Coordinates, CalculationMethod, PrayerTimes, Prayer, SunnahTimes } from 'adhan';
+import { Coordinates, CalculationMethod, PrayerTimes } from 'adhan';
 
 export const prayerNameMapping = {
     fajr: { en: 'Fajr', ar: 'الفجر' },
@@ -24,40 +24,47 @@ export interface NextPrayer {
 }
 
 export const calculationMethods = {
-    muslim_world_league: "Muslim World League",
-    egyptian: "Egyptian General Authority of Survey",
-    karachi: "University of Islamic Sciences, Karachi",
-    umm_al_qura: "Umm al-Qura University, Makkah",
-    dubai: "Dubai",
-    qatar: "Qatar",
-    kuwait: "Kuwait",
-    moonsighting_committee: "Moonsighting Committee",
-    singapore: "Singapore",
-    north_america: "ISNA (North America)",
-    turkey: "Turkey",
-    tehran: "Tehran",
-    other: "Other",
+    muslim_world_league: 'Muslim World League',
+    egyptian: 'Egyptian General Authority of Survey',
+    karachi: 'University of Islamic Sciences, Karachi',
+    umm_al_qura: 'Umm al-Qura University, Makkah',
+    dubai: 'Dubai',
+    qatar: 'Qatar',
+    kuwait: 'Kuwait',
+    moonsighting_committee: 'Moonsighting Committee',
+    singapore: 'Singapore',
+    north_america: 'ISNA (North America)',
+    turkey: 'Turkey',
+    tehran: 'Tehran',
+    other: 'Other',
 };
 
 export const calculationMethodsArabic = {
-    muslim_world_league: "رابطة العالم الإسلامي",
-    egyptian: "الهيئة العامة للمساحة المصرية",
-    karachi: "جامعة العلوم الإسلامية، كراتشي",
-    umm_al_qura: "جامعة أم القرى، مكة المكرمة",
-    dubai: "دبي",
-    qatar: "قطر",
-    kuwait: "الكويت",
-    moonsighting_committee: "لجنة رؤية الهلال",
-    singapore: "سنغافورة",
-    north_america: "ISNA (أمريكا الشمالية)",
-    turkey: "تركيا",
-    tehran: "طهران",
-    other: "أخرى",
+    muslim_world_league: 'رابطة العالم الإسلامي',
+    egyptian: 'الهيئة المصرية العامة للمساحة',
+    karachi: 'جامعة العلوم الإسلامية، كراتشي',
+    umm_al_qura: 'جامعة أم القرى، مكة',
+    dubai: 'دبي',
+    qatar: 'قطر',
+    kuwait: 'الكويت',
+    moonsighting_committee: 'لجنة رؤية الهلال',
+    singapore: 'سنغافورة',
+    north_america: 'أمريكا الشمالية',
+    turkey: 'تركيا',
+    tehran: 'طهران',
+    other: 'أخرى',
 };
 
 export type CalculationMethodName = keyof typeof calculationMethods;
 
-function getCalculationParams(method: CalculationMethodName) {
+export type DSTMode = 'auto' | 'on' | 'off';
+
+const DEFAULT_LAT = 21.4225;
+const DEFAULT_LNG = 39.8262;
+const HOUR_MS = 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+
+export function getCalculationParams(method: CalculationMethodName) {
     switch (method) {
         case 'muslim_world_league': return CalculationMethod.MuslimWorldLeague();
         case 'egyptian': return CalculationMethod.Egyptian();
@@ -76,91 +83,85 @@ function getCalculationParams(method: CalculationMethodName) {
     }
 }
 
-// Default location (Mecca) if no location provided
-const DEFAULT_LAT = 21.4225;
-const DEFAULT_LNG = 39.8262;
+function applyOffset(date: Date, offsetHours: number): Date {
+    return new Date(date.getTime() + offsetHours * HOUR_MS);
+}
 
-export function getPrayerTimes(date: Date, lat: number = DEFAULT_LAT, lng: number = DEFAULT_LNG, offsetHours: number = 0, method: CalculationMethodName = 'muslim_world_league', includeIshraq: boolean = true): PrayerTime[] {
+function formatTime(date: Date): string {
+    return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+}
+
+export function getPrayerTimes(
+    date: Date,
+    lat: number = DEFAULT_LAT,
+    lng: number = DEFAULT_LNG,
+    offsetHours: number = 0,
+    method: CalculationMethodName = 'muslim_world_league',
+    includeIshraq: boolean = true
+): PrayerTime[] {
     const coordinates = new Coordinates(lat, lng);
     const params = getCalculationParams(method);
     const prayerTimes = new PrayerTimes(coordinates, date, params);
-    const sunnahTimes = new SunnahTimes(prayerTimes);
 
-    const formatTime = (d: Date) => {
-        // Apply offset
-        const adjustedDate = new Date(d.getTime() + offsetHours * 60 * 60 * 1000);
-        return adjustedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    };
-
-    const getAdjustedDate = (d: Date) => {
-        return new Date(d.getTime() + offsetHours * 60 * 60 * 1000);
-    }
-
-    const prayers: PrayerTime[] = [
-        { name: 'fajr', time: formatTime(prayerTimes.fajr), date: getAdjustedDate(prayerTimes.fajr) },
+    const entries: Array<{ name: PrayerName; date: Date }> = [
+        { name: 'fajr', date: prayerTimes.fajr },
     ];
 
-    // Add Ishraq (Duha) - ~20 minutes after sunrise (when sun reaches height of a spear)
     if (includeIshraq) {
-        const ishraqTime = new Date(prayerTimes.sunrise.getTime() + 20 * 60 * 1000); // Sunrise + 20 minutes
-        prayers.push({ 
-            name: 'ishraq', 
-            time: formatTime(ishraqTime), 
-            date: getAdjustedDate(ishraqTime) 
+        entries.push({
+            name: 'ishraq',
+            date: new Date(prayerTimes.sunrise.getTime() + 20 * MINUTE_MS),
         });
     }
 
-    prayers.push(
-        { name: 'dhuhr', time: formatTime(prayerTimes.dhuhr), date: getAdjustedDate(prayerTimes.dhuhr) },
-        { name: 'asr', time: formatTime(prayerTimes.asr), date: getAdjustedDate(prayerTimes.asr) },
-        { name: 'maghrib', time: formatTime(prayerTimes.maghrib), date: getAdjustedDate(prayerTimes.maghrib) },
-        { name: 'isha', time: formatTime(prayerTimes.isha), date: getAdjustedDate(prayerTimes.isha) },
+    entries.push(
+        { name: 'dhuhr', date: prayerTimes.dhuhr },
+        { name: 'asr', date: prayerTimes.asr },
+        { name: 'maghrib', date: prayerTimes.maghrib },
+        { name: 'isha', date: prayerTimes.isha },
     );
 
-    return prayers;
+    return entries.map(entry => {
+        const adjusted = applyOffset(entry.date, offsetHours);
+        return {
+            name: entry.name,
+            date: adjusted,
+            time: formatTime(adjusted),
+        };
+    });
 }
 
-export function getNextPrayer(lat: number = DEFAULT_LAT, lng: number = DEFAULT_LNG, offsetHours: number = 0, method: CalculationMethodName = 'muslim_world_league'): NextPrayer | null {
-    const now = new Date();
-    const coordinates = new Coordinates(lat, lng);
-    const params = getCalculationParams(method);
+export function getNextPrayer(
+    lat: number = DEFAULT_LAT,
+    lng: number = DEFAULT_LNG,
+    offsetHours: number = 0,
+    method: CalculationMethodName = 'muslim_world_league',
+    includeIshraq: boolean = true,
+    now: Date = new Date()
+): NextPrayer | null {
+    const todayPrayers = getPrayerTimes(now, lat, lng, offsetHours, method, includeIshraq);
+    const nextPrayer = todayPrayers.find(prayer => prayer.date > now);
 
-    // We need to calculate prayer times for today and tomorrow to find the next prayer
-    // But we must apply the offset to the prayer times BEFORE comparing with 'now'
+    let nextPrayerDate = nextPrayer?.date;
+    let nextPrayerName = nextPrayer?.name;
 
-    // Helper to apply offset
-    const applyOffset = (d: Date) => new Date(d.getTime() + offsetHours * 60 * 60 * 1000);
-
-    let prayerTimes = new PrayerTimes(coordinates, now, params);
-
-    // Get all prayers for today with offset applied
-    const todayPrayers = [
-        { name: Prayer.Fajr, time: applyOffset(prayerTimes.fajr) },
-        { name: Prayer.Dhuhr, time: applyOffset(prayerTimes.dhuhr) },
-        { name: Prayer.Asr, time: applyOffset(prayerTimes.asr) },
-        { name: Prayer.Maghrib, time: applyOffset(prayerTimes.maghrib) },
-        { name: Prayer.Isha, time: applyOffset(prayerTimes.isha) },
-    ];
-
-    // Find the first prayer that is in the future
-    let nextPrayerObj = todayPrayers.find(p => p.time > now);
-    let nextPrayerDate = nextPrayerObj?.time;
-    let nextPrayerName = nextPrayerObj ? prayerFromAdhan(nextPrayerObj.name) : null;
-
-    // If no prayer found for today (after Isha), check tomorrow's Fajr
-    if (!nextPrayerObj) {
+    if (!nextPrayerDate || !nextPrayerName) {
         const tomorrow = new Date(now);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowPrayerTimes = new PrayerTimes(coordinates, tomorrow, params);
-        nextPrayerDate = applyOffset(tomorrowPrayerTimes.fajr);
-        nextPrayerName = 'fajr';
+        const tomorrowPrayers = getPrayerTimes(tomorrow, lat, lng, offsetHours, method, includeIshraq);
+        nextPrayerDate = tomorrowPrayers[0]?.date;
+        nextPrayerName = tomorrowPrayers[0]?.name;
     }
 
     if (!nextPrayerDate || !nextPrayerName) return null;
 
     const diffMs = nextPrayerDate.getTime() - now.getTime();
-    const diffHrs = Math.floor(diffMs / 3600000);
-    const diffMins = Math.floor((diffMs % 3600000) / 60000);
+    const diffHrs = Math.floor(diffMs / HOUR_MS);
+    const diffMins = Math.floor((diffMs % HOUR_MS) / MINUTE_MS);
 
     return {
         name: nextPrayerName,
@@ -169,26 +170,8 @@ export function getNextPrayer(lat: number = DEFAULT_LAT, lng: number = DEFAULT_L
     };
 }
 
-function prayerFromAdhan(p: any): PrayerName | null {
-    switch (p) {
-        case Prayer.Fajr: return 'fajr';
-        case Prayer.Dhuhr: return 'dhuhr';
-        case Prayer.Asr: return 'asr';
-        case Prayer.Maghrib: return 'maghrib';
-        case Prayer.Isha: return 'isha';
-        default: return null;
-    }
-}
-
-export type DSTMode = 'auto' | 'on' | 'off';
-
 export function getTotalOffset(baseOffset: number, dstMode: DSTMode): number {
-    switch (dstMode) {
-        case 'on': return baseOffset + 1;
-        case 'off': return baseOffset;
-        case 'auto': return baseOffset; // In auto mode, we rely on the system time/adhan to be correct, so no extra offset.
-        default: return baseOffset;
-    }
+    return dstMode === 'on' ? baseOffset + 1 : baseOffset;
 }
 
 export function getPrayerTimesForRange(
@@ -197,16 +180,16 @@ export function getPrayerTimesForRange(
     lat: number = DEFAULT_LAT,
     lng: number = DEFAULT_LNG,
     offsetHours: number = 0,
-    method: CalculationMethodName = 'muslim_world_league'
+    method: CalculationMethodName = 'muslim_world_league',
+    includeIshraq: boolean = true
 ): { date: Date; prayers: PrayerTime[] }[] {
-    const results = [];
-    for (let i = 0; i < days; i++) {
+    return Array.from({ length: days }, (_, index) => {
         const date = new Date(startDate);
-        date.setDate(date.getDate() + i);
-        results.push({
-            date: date,
-            prayers: getPrayerTimes(date, lat, lng, offsetHours, method)
-        });
-    }
-    return results;
+        date.setDate(date.getDate() + index);
+
+        return {
+            date,
+            prayers: getPrayerTimes(date, lat, lng, offsetHours, method, includeIshraq),
+        };
+    });
 }

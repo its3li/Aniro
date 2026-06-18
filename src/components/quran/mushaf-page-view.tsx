@@ -5,7 +5,6 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useMemo,
 } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -17,10 +16,11 @@ import {
   type PageAyah,
 } from "@/lib/quran-page";
 import { cn } from "@/lib/utils";
-import { parseTajweed, stripTajweed } from "@/lib/tajweed";
+import { stripTajweed } from "@/lib/tajweed";
 import { useSettings } from "../providers/settings-provider";
 import { Skeleton } from "../ui/skeleton";
 import { TajweedLegend } from "./tajweed-legend";
+import { TajweedText } from "./tajweed-text";
 import { TafseerModal } from "./tafseer-modal";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -32,7 +32,7 @@ import {
   BookmarkPlus,
   BookOpen,
 } from "lucide-react";
-import { useAudioPlayer } from "../providers/audio-player-provider";
+import { useAudioPlayer, type PlayerState } from "../providers/audio-player-provider";
 import { useLastRead } from "@/hooks/use-last-read";
 
 // Strip Bismillah prefix from first verse of surah (except Al-Fatiha and At-Tawbah)
@@ -95,13 +95,11 @@ export function MushafPageView({
 }: MushafPageViewProps) {
   const { settings } = useSettings();
   const isArabic = settings.language === "ar";
-  const isTajweed = settings.quranEdition === "tajweed";
+  const isTajweed = settings.quranEdition === "uthmani" && settings.quranTajweedEnabled;
   const { toast } = useToast();
   const {
     playerState,
-    playVerse,
     playSurah,
-    handlePlayPause,
     handlePlayerClose,
   } = useAudioPlayer();
   const { saveLastRead } = useLastRead();
@@ -126,10 +124,11 @@ export function MushafPageView({
 
   const editionMap: Record<string, string> = {
     uthmani: "quran-uthmani",
-    tajweed: "quran-tajweed",
     warsh: "quran-warsh",
   };
-  const edition = editionMap[settings.quranEdition] || "quran-uthmani";
+  const edition = isTajweed
+    ? "quran-tajweed"
+    : editionMap[settings.quranEdition] || "quran-uthmani";
 
   useEffect(() => {
     let cancelled = false;
@@ -152,6 +151,8 @@ export function MushafPageView({
   }, [currentPage, edition]);
 
   useEffect(() => {
+    let clearHighlightId: number | undefined;
+
     if (initialVerseNumber && pageData) {
       const found = pageData.ayahs.find(
         (a) =>
@@ -159,8 +160,15 @@ export function MushafPageView({
           a.numberInSurah === initialVerseNumber
       );
       if (found) {
-        setHighlightedAyah(found.number);
-        setTimeout(() => setHighlightedAyah(null), 3000);
+        const highlightId = window.setTimeout(() => {
+          setHighlightedAyah(found.number);
+          clearHighlightId = window.setTimeout(() => setHighlightedAyah(null), 3000);
+        }, 0);
+
+        return () => {
+          window.clearTimeout(highlightId);
+          if (clearHighlightId) window.clearTimeout(clearHighlightId);
+        };
       }
     }
   }, [pageData, initialVerseNumber, surahNumber]);
@@ -188,15 +196,19 @@ export function MushafPageView({
       }
     };
     findPage();
-  }, []);
+  }, [edition, initialVerseNumber, surahNumber]);
 
   useEffect(() => {
     if (pageData && targetVerseRef.current) {
       const foundOnPage = pageData.ayahs.find(a => a.number === targetVerseRef.current);
       if (foundOnPage) {
-        setSelectedAyah(foundOnPage.number);
-        setHighlightedAyah(foundOnPage.number);
-        targetVerseRef.current = null;
+        const timeoutId = window.setTimeout(() => {
+          setSelectedAyah(foundOnPage.number);
+          setHighlightedAyah(foundOnPage.number);
+          targetVerseRef.current = null;
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
       }
     }
   }, [pageData]);
@@ -269,7 +281,8 @@ export function MushafPageView({
 
   useEffect(() => {
     if (selectedAyah === null) {
-      setSelectedAyahPos(null);
+      const timeoutId = window.setTimeout(() => setSelectedAyahPos(null), 0);
+      return () => window.clearTimeout(timeoutId);
     }
   }, [selectedAyah]);
 
@@ -586,7 +599,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
   highlightedAyah: number | null;
   onVerseTap: (ayah: PageAyah, e: React.MouseEvent) => void;
   setSelectedAyah: (ayah: number | null) => void;
-  playerState: any;
+  playerState: PlayerState;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const playingRef = useRef<HTMLSpanElement>(null);
@@ -645,27 +658,24 @@ const MushafPageContent = React.memo(function MushafPageContent({
                 ref={isPlaying ? playingRef : undefined}
                 onClick={(e) => { e.stopPropagation(); onVerseTap(ayah, e); }}
                 className={cn(
-                  'cursor-pointer rounded-md transition-all duration-500 ease-in-out px-1 py-0.5',
+                  'mushaf-ayah cursor-pointer rounded-md transition-all duration-500 ease-in-out px-1 py-0.5',
                   isSelected && 'bg-primary/15 text-primary',
                   isPlaying && 'playing-ayah bg-primary/20 text-primary',
                   !isPlaying && isHighlighted && 'bg-primary/10',
                 )}
+                dir="rtl"
+                lang="ar"
               >
                 {isTajweed
-                  ? <span dangerouslySetInnerHTML={{ __html: parseTajweed(displayText, isArabic ? 'ar' : 'en') }} />
+                  ? <TajweedText text={displayText} lang={isArabic ? 'ar' : 'en'} />
                   : displayText
                 }
                 {/* رقم الآية في دائرة */}
-                <span className="inline-flex items-center justify-center mr-1 ml-0.5" style={{ fontSize: '0.6em', lineHeight: 1 }}>
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    width: '1.9em', height: '1.9em',
-                    border: '1px solid hsl(var(--primary))',
-                    color: 'hsl(var(--primary))',
-                    borderRadius: '50%',
-                    fontFamily: 'serif',
-                    lineHeight: 1,
-                  }}>
+                <span
+                  className="mushaf-ayah-number"
+                  aria-label={isArabic ? `الآية ${ayah.numberInSurah}` : `Ayah ${ayah.numberInSurah}`}
+                >
+                  <span className="mushaf-ayah-number-text">
                     {toArabicNumerals(ayah.numberInSurah)}
                   </span>
                 </span>

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SurahList } from '@/components/quran/surah-list';
 import { QuranReader } from '@/components/quran/quran-reader';
@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/components/providers/settings-provider';
 
-export default function QuranPage() {
+function QuranPageContent() {
   const searchParams = useSearchParams();
   const [selectedSurahInfo, setSelectedSurahInfo] = useState<SurahInfo | null>(null);
   const [fullSurah, setFullSurah] = useState<Surah | null>(null);
@@ -52,13 +52,12 @@ export default function QuranPage() {
     const fetchSurah = async () => {
       setIsLoading(true);
       try {
-        const quranEditionMap: Record<string, string> = {
-          uthmani: 'quran-uthmani',
-          tajweed: 'quran-tajweed',
+        const editionMap: Record<string, string> = {
           warsh: 'quran-warsh',
-          shubah: 'quran-shouba',
         };
-        const selectedEdition = quranEditionMap[settings.quranEdition] || 'quran-uthmani';
+        const selectedEdition = settings.quranEdition === 'uthmani' && settings.quranTajweedEnabled
+          ? 'quran-tajweed'
+          : editionMap[settings.quranEdition] ?? 'quran-uthmani';
         const translationEdition = isArabic ? 'ar.jalalayn' : 'en.sahih';
 
         const surah = await getSurahWithTranslation(
@@ -86,7 +85,7 @@ export default function QuranPage() {
     };
 
     fetchSurah();
-  }, [selectedSurahInfo, toast, isArabic, settings.quranEdition]);
+  }, [selectedSurahInfo, toast, isArabic, settings.quranEdition, settings.quranTajweedEnabled]);
 
   const handleBack = () => {
     setSelectedSurahInfo(null);
@@ -132,5 +131,13 @@ export default function QuranPage() {
     <div>
       {renderContent()}
     </div>
+  );
+}
+
+export default function QuranPage() {
+  return (
+    <Suspense fallback={<div className="px-4 pt-4" />}>
+      <QuranPageContent />
+    </Suspense>
   );
 }

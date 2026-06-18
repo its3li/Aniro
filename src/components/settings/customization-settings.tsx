@@ -17,7 +17,11 @@ import {
   calculationMethods,
   calculationMethodsArabic,
   CalculationMethodName,
+  DSTMode,
 } from "@/lib/prayer";
+import type { TimeFormat } from "../providers/settings-provider";
+
+type WidgetTheme = "default" | "system" | "custom";
 
 export function CustomizationSettings() {
   const {
@@ -103,7 +107,7 @@ export function CustomizationSettings() {
             </Label>
             <Select
               value={settings.timeFormat}
-              onValueChange={(val) => setTimeFormat(val as any)}
+              onValueChange={(val) => setTimeFormat(val as TimeFormat)}
               dir={isArabic ? "rtl" : "ltr"}
             >
               <SelectTrigger
@@ -130,7 +134,7 @@ export function CustomizationSettings() {
             </Label>
             <Select
               value={settings.dstMode}
-              onValueChange={(val) => setDstMode(val as any)}
+              onValueChange={(val) => setDstMode(val as DSTMode)}
               dir={isArabic ? "rtl" : "ltr"}
             >
               <SelectTrigger
@@ -220,7 +224,7 @@ export function CustomizationSettings() {
             </Label>
             <Select
               value={settings.widgetTheme}
-              onValueChange={(val) => setWidgetTheme(val as any)}
+              onValueChange={(val) => setWidgetTheme(val as WidgetTheme)}
               dir={isArabic ? "rtl" : "ltr"}
             >
               <SelectTrigger

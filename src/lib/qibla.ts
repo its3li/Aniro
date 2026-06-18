@@ -21,7 +21,7 @@ export function calculateQiblaDirection(lat: number, lng: number): number {
     const x = Math.sin(Δλ);
     const y = Math.cos(φ1) * Math.tan(φ2) - Math.sin(φ1) * Math.cos(Δλ);
 
-    let bearing = toDeg(Math.atan2(x, y));
+    const bearing = toDeg(Math.atan2(x, y));
 
     // Normalize to 0-360
     return ((bearing % 360) + 360) % 360;

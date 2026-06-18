@@ -1,260 +1,244 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CloudSun, MapPin, MoonStar, RefreshCw, Sun, SunMedium, Sunrise, Sunset } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent, GlassCardHeader } from "../glass-card";
 import {
-  getPrayerTimes,
-  NextPrayer,
-  PrayerTime,
   getNextPrayer,
-  prayerNameMapping,
+  getPrayerTimes,
   getTotalOffset,
+  prayerNameMapping,
+  type NextPrayer,
 } from "@/lib/prayer";
-import { Sun, Sunrise, Sunset, Moon } from "lucide-react";
-import * as Tone from "tone";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import { useSettings } from "../providers/settings-provider";
 import { useLocation } from "@/hooks/use-location";
+import { cn } from "@/lib/utils";
 
-const prayerIcons: { [key: string]: React.ElementType } = {
+const prayerIcons: Record<string, React.ElementType> = {
   fajr: Sunrise,
-  ishraq: Sun,
+  ishraq: CloudSun,
   dhuhr: Sun,
-  asr: Sun,
+  asr: SunMedium,
   maghrib: Sunset,
-  isha: Moon,
+  isha: MoonStar,
 };
+
+const arDigits = "٠١٢٣٤٥٦٧٨٩";
+
+type DisplayPrayer = Pick<NextPrayer, "name" | "date">;
 
 export function NextPrayerCard() {
   const { settings } = useSettings();
-  const { coordinates } = useLocation();
+  const { coordinates, displayName, isLoading, refreshLocation } = useLocation();
   const isArabic = settings.language === "ar";
-  const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
-  const [nextPrayer, setNextPrayer] = useState<NextPrayer | null>(null);
-  const [timeToNextPrayer, setTimeToNextPrayer] = useState("");
-  const [nextPrayerAzanTime, setNextPrayerAzanTime] = useState("");
-  const { toast } = useToast();
+  const [isClientReady, setIsClientReady] = useState(false);
+  const [minuteTick, setMinuteTick] = useState(0);
+  const [nowTime, setNowTime] = useState(0);
+  const [selectedPrayer, setSelectedPrayer] = useState<{ name: string; expiresAt: number } | null>(null);
 
-  const localizeDigits = (value: string) =>
-    isArabic ? value.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]) : value;
+  const localizeDigits = useCallback(
+    (value: string) => isArabic ? value.replace(/\d/g, (digit) => arDigits[Number(digit)]) : value,
+    [isArabic]
+  );
 
   useEffect(() => {
-    const lat = coordinates?.latitude;
-    const lng = coordinates?.longitude;
+    const timeoutId = window.setTimeout(() => setIsClientReady(true), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setMinuteTick((tick) => tick + 1), 60000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    const initialTickId = window.setTimeout(() => setNowTime(Date.now()), 0);
+    const intervalId = window.setInterval(() => setNowTime(Date.now()), 1000);
+    return () => {
+      window.clearTimeout(initialTickId);
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const prayerTimes = useMemo(() => {
     const totalOffset = getTotalOffset(settings.prayerOffset, settings.dstMode);
-    const times = getPrayerTimes(
+    return getPrayerTimes(
       new Date(),
-      lat,
-      lng,
+      coordinates?.latitude,
+      coordinates?.longitude,
       totalOffset,
       settings.calculationMethod,
       settings.includeIshraq
     );
-    setPrayerTimes(times);
-
-    const updateNextPrayer = () => {
-      const totalOffset = getTotalOffset(
-        settings.prayerOffset,
-        settings.dstMode
-      );
-      const next = getNextPrayer(
-        lat,
-        lng,
-        totalOffset,
-        settings.calculationMethod
-      );
-      setNextPrayer(next);
-    };
-
-    updateNextPrayer();
-    const intervalId = setInterval(updateNextPrayer, 60000);
-
-    return () => clearInterval(intervalId);
   }, [
+    coordinates,
     settings.prayerOffset,
     settings.dstMode,
-    coordinates,
     settings.calculationMethod,
+    settings.includeIshraq,
   ]);
 
-  useEffect(() => {
-    if (!nextPrayer) {
-      setNextPrayerAzanTime("");
-      return;
-    }
-
-    const hours = nextPrayer.date.getHours();
-    const minutes = nextPrayer.date.getMinutes();
-
-    let formattedTime = "";
-    if (settings.timeFormat === "12h") {
-      const ampm =
-        hours >= 12 ? (isArabic ? "م" : "PM") : isArabic ? "ص" : "AM";
-      let h = hours % 12;
-      if (h === 0) h = 12;
-      const displayMinutes = localizeDigits(String(minutes).padStart(2, "0"));
-      const displayHours = localizeDigits(String(h));
-
-      formattedTime = `${displayHours}:${displayMinutes} ${ampm}`;
-    } else {
-      const displayHours = localizeDigits(String(hours).padStart(2, "0"));
-      const displayMinutes = localizeDigits(String(minutes).padStart(2, "0"));
-
-      formattedTime = `${displayHours}:${displayMinutes}`;
-    }
-
-    setNextPrayerAzanTime(formattedTime);
-
-    const updateCountdown = () => {
-      const now = new Date();
-      const diff = nextPrayer.date.getTime() - now.getTime();
-
-      if (diff <= 0) {
-        setTimeToNextPrayer(isArabic ? "الآن" : "Now");
-        return;
-      }
-
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-      const displayHours = localizeDigits(String(hours).padStart(2, "0"));
-      const displayMinutes = localizeDigits(String(minutes).padStart(2, "0"));
-      const displaySeconds = localizeDigits(String(seconds).padStart(2, "0"));
-
-      setTimeToNextPrayer(
-        `${displayHours}:${displayMinutes}:${displaySeconds}`
-      );
-    };
-
-    updateCountdown();
-    const timer = setInterval(updateCountdown, 1000);
-
-    const playAzanTone = (prayerName: string) => {
-      // Avoid initializing Tone if not strictly necessary in mobile rendering, 
-      // but keeping your logic intact:
-      const synth = new Tone.Synth().toDestination();
-      const now = Tone.now();
-      const prayerDisplayName = isArabic
-        ? prayerNameMapping[nextPrayer.name].ar
-        : prayerNameMapping[nextPrayer.name].en;
-
-      toast({
-        title: isArabic
-          ? `حان الآن وقت صلاة ${prayerDisplayName}`
-          : `It's time for ${prayerDisplayName} prayer`,
-        description: isArabic
-          ? "تقبل الله طاعتكم."
-          : "May your prayers be accepted.",
-      });
-    };
-
-    const timeToPrayerMs = nextPrayer.date.getTime() - new Date().getTime();
-    let azanTimeoutId: NodeJS.Timeout | undefined;
-    if (timeToPrayerMs > 0) {
-      azanTimeoutId = setTimeout(
-        () => playAzanTone(nextPrayer.name),
-        timeToPrayerMs
-      );
-    }
-
-    return () => {
-      clearInterval(timer);
-      if (azanTimeoutId) {
-        clearTimeout(azanTimeoutId);
-      }
-    };
-  }, [nextPrayer, toast, isArabic, settings.timeFormat]);
-
-  if (!nextPrayer || prayerTimes.length === 0) {
-    return (
-      <div className="bg-card border border-border rounded-2xl p-4 h-40 w-full animate-pulse" />
+  const nextPrayer = useMemo<NextPrayer | null>(() => {
+    void minuteTick;
+    const totalOffset = getTotalOffset(settings.prayerOffset, settings.dstMode);
+    return getNextPrayer(
+      coordinates?.latitude,
+      coordinates?.longitude,
+      totalOffset,
+      settings.calculationMethod,
+      settings.includeIshraq
     );
+  }, [
+    coordinates,
+    settings.prayerOffset,
+    settings.dstMode,
+    settings.calculationMethod,
+    settings.includeIshraq,
+    minuteTick,
+  ]);
+
+  const formatPrayerTime = useCallback((date: Date) => {
+    const locale = isArabic ? "ar-EG" : "en-US";
+    return date.toLocaleTimeString(locale, {
+      hour: settings.timeFormat === "12h" ? "numeric" : "2-digit",
+      minute: "2-digit",
+      hour12: settings.timeFormat === "12h",
+    });
+  }, [isArabic, settings.timeFormat]);
+
+  useEffect(() => {
+    if (!selectedPrayer) return;
+
+    const delay = Math.max(selectedPrayer.expiresAt - Date.now(), 0);
+    const timeoutId = window.setTimeout(() => setSelectedPrayer(null), delay);
+    return () => window.clearTimeout(timeoutId);
+  }, [selectedPrayer]);
+
+  const displayPrayer = useMemo<DisplayPrayer | null>(() => {
+    if (selectedPrayer && nowTime > 0 && selectedPrayer.expiresAt > nowTime) {
+      const selected = prayerTimes.find((prayer) => prayer.name === selectedPrayer.name);
+      if (selected) {
+        const selectedDate = new Date(selected.date);
+        if (selectedDate.getTime() <= nowTime) {
+          selectedDate.setDate(selectedDate.getDate() + 1);
+        }
+        return { name: selected.name, date: selectedDate };
+      }
+    }
+
+    return nextPrayer;
+  }, [nextPrayer, nowTime, prayerTimes, selectedPrayer]);
+
+  const countdown = useMemo(() => {
+    if (!isClientReady || !displayPrayer) return "";
+    if (!nowTime) return "";
+
+    const diff = displayPrayer.date.getTime() - nowTime;
+    if (diff <= 0) return isArabic ? "الآن" : "Now";
+
+    const hours = Math.floor(diff / 3_600_000);
+    const minutes = Math.floor((diff % 3_600_000) / 60_000);
+    const seconds = Math.floor((diff % 60_000) / 1000);
+
+    return localizeDigits(
+      `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+    );
+  }, [displayPrayer, isClientReady, isArabic, localizeDigits, nowTime]);
+
+  if (!isClientReady || !nextPrayer || !displayPrayer || prayerTimes.length === 0) {
+    return <div className="premium-panel h-48 w-full animate-pulse rounded-lg" />;
   }
 
-  const Icon = prayerIcons[nextPrayer.name] || Sun;
+  const Icon = prayerIcons[displayPrayer.name] || Sun;
   const nextPrayerName = isArabic
-    ? prayerNameMapping[nextPrayer.name].ar
-    : prayerNameMapping[nextPrayer.name].en;
+    ? prayerNameMapping[displayPrayer.name].ar
+    : prayerNameMapping[displayPrayer.name].en;
+  const locationLabel = displayName || (isArabic ? "الموقع محفوظ" : "Saved location");
+
+  const isShowingSelectedPrayer = selectedPrayer?.name === displayPrayer.name && selectedPrayer.expiresAt > nowTime;
+  const prayerStatusLabel = isShowingSelectedPrayer
+    ? (isArabic ? "الصلاة المختارة" : "Selected Prayer")
+    : (isArabic ? "الصلاة التالية" : "Next Prayer");
 
   return (
-    <GlassCard className="py-2 overflow-hidden w-full">
-      <GlassCardHeader className="pb-3">
-        {/* التعديل هنا: منعنا التفاف العناصر واستخدمنا أحجام مرنة */}
-        <div className="flex justify-between items-center gap-2">
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Icon className="w-6 h-6 md:w-7 md:h-7 text-primary" />
+    <GlassCard className="overflow-hidden">
+      <GlassCardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+              <Icon className="h-6 w-6" />
             </div>
-            <div className="flex flex-col">
-              <h2 className="text-lg md:text-xl font-bold whitespace-nowrap">{nextPrayerName}</h2>
-              <p className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">
-                {isArabic ? "الصلاة التالية" : "Next Prayer"}
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                {prayerStatusLabel}
+              </p>
+              <h2 className="truncate text-2xl font-bold leading-tight" title={prayerStatusLabel}>{nextPrayerName}</h2>
+              <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                <MapPin className="h-3 w-3 shrink-0" />
+                <span className="truncate">{locationLabel}</span>
               </p>
             </div>
           </div>
-          <div className="text-end shrink-0">
-            {/* تم تصغير الخط قليلاً في الشاشات الصغيرة ليناسب المساحة */}
-            <p className="text-2xl md:text-3xl font-bold text-primary font-mono tabular-nums whitespace-nowrap">
-              {timeToNextPrayer}
-            </p>
-            {nextPrayerAzanTime && (
-              <p className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">
-                {nextPrayerAzanTime}
-              </p>
-            )}
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 rounded-lg"
+            onClick={() => refreshLocation()}
+            disabled={isLoading}
+            aria-label={isArabic ? "تحديث الموقع" : "Refresh location"}
+          >
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+          </Button>
         </div>
       </GlassCardHeader>
-      
-      <GlassCardContent className="pt-3">
-        {/* التعديل هنا: مسافات متناسبة وإضافة إمكانية السحب (scroll) لو الشاشة ضيقة جداً */}
-        <div className="flex justify-between items-center pt-4 border-t border-border gap-1 overflow-x-auto no-scrollbar pb-1">
-          {prayerTimes.map((prayer, index) => {
-            const IsNext = prayer.name === nextPrayer.name;
-            const PrayerIcon = prayerIcons[prayer.name];
+
+      <GlassCardContent className="space-y-3">
+        <div className="rounded-lg bg-accent/10 px-4 py-3">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">
+                {isArabic ? "متبقي على الأذان" : "Time remaining"}
+              </p>
+              <p className="mt-1 font-mono text-4xl font-black leading-none tabular-nums text-accent dark:text-primary">
+                {countdown}
+              </p>
+            </div>
+            <div className="text-end">
+              <p className="text-xs text-muted-foreground">{isArabic ? "وقت الأذان" : "Azan time"}</p>
+              <p className="text-lg font-bold">{formatPrayerTime(displayPrayer.date)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {prayerTimes.map((prayer) => {
+            const isNext = prayer.name === nextPrayer.name;
+            const isSelected = isShowingSelectedPrayer && prayer.name === displayPrayer.name;
+            const PrayerIcon = prayerIcons[prayer.name] || Sun;
             const prayerDisplayName = isArabic
               ? prayerNameMapping[prayer.name].ar
               : prayerNameMapping[prayer.name].en;
+
             return (
-              <div
-                key={index}
-                className="flex flex-col items-center gap-1.5 text-center min-w-[45px]"
+              <button
+                type="button"
+                key={prayer.name}
+                onClick={() => setSelectedPrayer({ name: prayer.name, expiresAt: Date.now() + 5000 })}
+                className={cn(
+                  "rounded-lg px-2 py-2 text-center transition-colors active:scale-[0.98]",
+                  isSelected
+                    ? "bg-accent/10 text-accent ring-1 ring-accent/20 dark:text-primary dark:ring-primary/20"
+                    : isNext
+                    ? "bg-primary/10 text-primary"
+                    : "bg-background/35 text-muted-foreground"
+                )}
+                aria-pressed={isSelected}
               >
-                <PrayerIcon
-                  className={cn(
-                    "w-4 h-4 md:w-5 md:h-5",
-                    IsNext ? "text-primary" : "text-muted-foreground"
-                  )}
-                />
-                <p
-                  className={cn(
-                    "text-[10px] md:text-xs font-medium whitespace-nowrap",
-                    IsNext ? "text-primary" : "text-muted-foreground"
-                  )}
-                >
-                  {prayerDisplayName}
-                </p>
-                <p
-                  className={cn(
-                    "text-[10px] md:text-xs font-mono tabular-nums whitespace-nowrap",
-                    IsNext
-                      ? "text-primary font-semibold"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  {settings.timeFormat === "12h"
-                    ? prayer.date.toLocaleTimeString(
-                        isArabic ? "ar-SA" : "en-US",
-                        { hour: "numeric", minute: "2-digit", hour12: true }
-                      )
-                    : prayer.date.toLocaleTimeString(
-                        isArabic ? "ar-SA" : "en-US",
-                        { hour: "2-digit", minute: "2-digit", hour12: false }
-                      )}
-                </p>
-              </div>
+                <PrayerIcon className="mx-auto mb-1 h-4 w-4" />
+                <p className="truncate text-[11px] font-semibold">{prayerDisplayName}</p>
+                <p className="mt-0.5 font-mono text-[11px] tabular-nums">{formatPrayerTime(prayer.date)}</p>
+              </button>
             );
           })}
         </div>

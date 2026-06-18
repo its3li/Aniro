@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
-import MiniSearch, { SearchResult } from 'minisearch';
+import { useState, useCallback } from 'react';
+import MiniSearch from 'minisearch';
 import { get, set } from 'idb-keyval';
+import { normalizeArabic, stripTajweedTags } from '@/lib/arabic';
 
-// Types for search results
 export interface QuranSearchResult {
     id: string;
     surahNumber: number;
@@ -26,163 +26,177 @@ interface CompactAyah {
     ed: string;
 }
 
-// Arabic Tashkeel (diacritics) regex
-const TASHKEEL_REGEX = /[\u064B-\u065F\u0670\u06D6-\u06ED]/g;
-
-// Arabic letter normalization
-const ARABIC_NORMALIZATION_MAP: Record<string, string> = {
-    'آ': 'ا', 'أ': 'ا', 'إ': 'ا', 'ٱ': 'ا',
-    'ؤ': 'و', 'ئ': 'ي', 'ة': 'ه', 'ى': 'ي',
+type SearchDocument = QuranSearchResult & {
+    normalizedText: string;
 };
 
-export function normalizeArabic(text: string): string {
-    if (!text) return '';
-    let normalized = text.replace(TASHKEEL_REGEX, '');
-    for (const [from, to] of Object.entries(ARABIC_NORMALIZATION_MAP)) {
-        normalized = normalized.replace(new RegExp(from, 'g'), to);
+const INDEX_CACHE_KEY = 'quran_search_index_v8';
+const RESULT_CACHE_MAX = 40;
+const SEARCH_RESULT_LIMIT = 80;
+
+const miniSearchOptions = {
+    fields: ['normalizedText', 'ayahText', 'surahName'],
+    storeFields: ['surahNumber', 'surahName', 'surahEnglishName', 'ayahNumber', 'ayahText', 'edition'],
+    searchOptions: {
+        boost: { normalizedText: 3, ayahText: 1, surahName: 2 },
+        fuzzy: 0.15,
+        prefix: true,
+        combineWith: 'AND' as const,
+    },
+    processTerm: (term: string) => normalizeArabic(term).toLowerCase(),
+};
+
+const sharedMiniSearchByEdition = new Map<string, MiniSearch<SearchDocument>>();
+const sharedInitPromiseByEdition = new Map<string, Promise<MiniSearch<SearchDocument> | null>>();
+const resultCache = new Map<string, QuranSearchResult[]>();
+
+function getEditionKey(edition?: string): string {
+    return edition || 'all';
+}
+
+function yieldToBrowser() {
+    return new Promise(resolve => setTimeout(resolve, 0));
+}
+
+function rememberResults(key: string, results: QuranSearchResult[]) {
+    if (resultCache.has(key)) {
+        resultCache.delete(key);
     }
-    return normalized.trim();
-}
 
-function processTerm(term: string): string {
-    return normalizeArabic(term).toLowerCase();
-}
+    resultCache.set(key, results);
 
-// Aggressively strip all tajweed bracket tags securely without deleting Arabic text
-function stripAllBrackets(text: string): string {
-    // Tajweed tags format: [ruleCode[ArabicText]] or [ruleCode:number[ArabicText]]
-    // This regex removes the opening tag part e.g. `[h[`, `[h:8630[`
-    let clean = text.replace(/\[[a-zA-Z0-9:]+\[/g, '');
-    // Remove the closing bracket part e.g. `]`
-    clean = clean.replace(/\]/g, '');
-    // Remove remaining stray English letters, colons, and brackets
-    clean = clean.replace(/[a-zA-Z\[\]:]/g, '');
-    // Clean up extra spaces
-    return clean.replace(/\s+/g, ' ').trim();
-}
-
-// Build index from bundled documents - LAZY loading
-async function buildIndexFromDocuments(): Promise<MiniSearch<any> | null> {
-    try {
-        const response = await fetch('/data/quran/search/all-ayat.json');
-        if (!response.ok) {
-            return null;
+    if (resultCache.size > RESULT_CACHE_MAX) {
+        const oldestKey = resultCache.keys().next().value;
+        if (typeof oldestKey === 'string') {
+            resultCache.delete(oldestKey);
         }
-        const compactDocs: CompactAyah[] = await response.json();
+    }
+}
 
-        const miniSearch = new MiniSearch({
-            fields: ['normalizedText', 'ayahText', 'surahName'],
-            storeFields: ['surahNumber', 'surahName', 'surahEnglishName', 'ayahNumber', 'ayahText', 'edition'],
-            searchOptions: {
-                boost: { normalizedText: 3, ayahText: 1, surahName: 2 },
-                fuzzy: 0.15,
-                prefix: true,
-                combineWith: 'AND',
-            },
-            processTerm,
+async function buildIndexFromDocuments(): Promise<MiniSearch<SearchDocument>> {
+    const response = await fetch('/data/quran/search/all-ayat.json');
+    if (!response.ok) {
+        throw new Error(`Search data unavailable (${response.status})`);
+    }
+
+    const compactDocs: CompactAyah[] = await response.json();
+    const miniSearch = new MiniSearch<SearchDocument>(miniSearchOptions);
+
+    const CHUNK_SIZE = 750;
+    for (let index = 0; index < compactDocs.length; index += CHUNK_SIZE) {
+        const documents = compactDocs.slice(index, index + CHUNK_SIZE).map(doc => {
+            const ayahText = stripTajweedTags(doc.t);
+            return {
+                id: doc.id,
+                surahNumber: doc.s,
+                surahName: doc.n,
+                surahEnglishName: doc.e,
+                ayahNumber: doc.a,
+                ayahText,
+                edition: doc.ed,
+                normalizedText: normalizeArabic(ayahText),
+                score: 0,
+            };
         });
 
-        const documents = compactDocs.map(d => ({
-            id: d.id,
-            surahNumber: d.s,
-            surahName: d.n,
-            surahEnglishName: d.e,
-            ayahNumber: d.a,
-            ayahText: stripAllBrackets(d.t),
-            edition: d.ed,
-            normalizedText: normalizeArabic(stripAllBrackets(d.t)),
-        }));
-
-        // Add in chunks to avoid blocking
-        const CHUNK_SIZE = 500;
-        for (let i = 0; i < documents.length; i += CHUNK_SIZE) {
-            const chunk = documents.slice(i, i + CHUNK_SIZE);
-            miniSearch.addAll(chunk);
-            // Yield to main thread
-            await new Promise(resolve => setTimeout(resolve, 0));
-        }
-
-        return miniSearch;
-    } catch (err) {
-        console.error('[QuranSearch] Failed to build:', err);
-        return null;
+        miniSearch.addAll(documents);
+        await yieldToBrowser();
     }
+
+    return miniSearch;
 }
 
-const INDEX_CACHE_KEY = 'quran_search_index_v7';
+async function ensureIndex(edition?: string): Promise<MiniSearch<SearchDocument> | null> {
+    const editionKey = getEditionKey(edition);
+    const existingIndex = sharedMiniSearchByEdition.get(editionKey);
+    if (existingIndex) {
+        return existingIndex;
+    }
+
+    const existingPromise = sharedInitPromiseByEdition.get(editionKey);
+    if (existingPromise) {
+        return existingPromise;
+    }
+
+    const initPromise = (async () => {
+        try {
+            const cacheKey = `${INDEX_CACHE_KEY}_${editionKey}`;
+            const cached = await get(cacheKey);
+            if (typeof cached === 'string' && cached.length > 0) {
+                const loaded = MiniSearch.loadJSON<SearchDocument>(cached, miniSearchOptions);
+                sharedMiniSearchByEdition.set(editionKey, loaded);
+                return loaded;
+            }
+
+            const index = await buildIndexFromDocuments();
+
+            sharedMiniSearchByEdition.set(editionKey, index);
+            void set(cacheKey, JSON.stringify(index)).catch(() => undefined);
+            return index;
+        } catch (error) {
+            console.error('[QuranSearch] Init failed:', error);
+            return null;
+        } finally {
+            sharedInitPromiseByEdition.delete(editionKey);
+        }
+    })();
+
+    sharedInitPromiseByEdition.set(editionKey, initPromise);
+    return initPromise;
+}
 
 export function useQuranSearch() {
     const [isIndexing, setIsIndexing] = useState(false);
-    const [isIndexed, setIsIndexed] = useState(false);
+    const [isIndexed, setIsIndexed] = useState(() => sharedMiniSearchByEdition.size > 0);
+    const [searchError, setSearchError] = useState<string | null>(null);
     const [searchResults, setSearchResults] = useState<QuranSearchResult[]>([]);
 
-    const miniSearchRef = useRef<MiniSearch<any> | null>(null);
-    const initPromiseRef = useRef<Promise<void> | null>(null);
+    const initIndex = useCallback(async (edition?: string): Promise<void> => {
+        const editionKey = getEditionKey(edition);
+        if (sharedMiniSearchByEdition.has(editionKey)) {
+            setIsIndexed(true);
+            setSearchError(null);
+            return;
+        }
 
-    // Initialize search index - LAZY: only when needed
-    const initIndex = useCallback(async (): Promise<void> => {
-        if (initPromiseRef.current) return initPromiseRef.current;
-        if (isIndexed && miniSearchRef.current) return Promise.resolve();
+        setIsIndexing(true);
+        const index = await ensureIndex(edition);
+        setIsIndexing(false);
+        setIsIndexed(Boolean(index));
+        setSearchError(index ? null : 'Search index could not be loaded.');
+    }, []);
 
-        const initPromise = (async () => {
-            setIsIndexing(true);
-            try {
-                // Try IndexedDB cache first (fast)
-                const cached = await get(INDEX_CACHE_KEY);
-                if (cached) {
-                    // Use setTimeout to avoid blocking UI during load
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                    miniSearchRef.current = MiniSearch.loadJSON(cached, {
-                        fields: ['normalizedText', 'ayahText', 'surahName'],
-                        storeFields: ['surahNumber', 'surahName', 'surahEnglishName', 'ayahNumber', 'ayahText', 'edition'],
-                        processTerm,
-                    });
-                    setIsIndexed(true);
-                    return;
-                }
-
-                // Build fresh index
-                const miniSearch = await buildIndexFromDocuments();
-
-                if (miniSearch) {
-                    miniSearchRef.current = miniSearch;
-                    setIsIndexed(true);
-                    // Cache for next time (async, don't wait)
-                    set(INDEX_CACHE_KEY, JSON.stringify(miniSearch)).catch(() => { });
-                }
-            } catch (err) {
-                console.error('[QuranSearch] Init failed:', err);
-            } finally {
-                setIsIndexing(false);
-            }
-        })();
-
-        initPromiseRef.current = initPromise;
-        return initPromise;
-    }, [isIndexed]);
-
-    // Search function - filters by edition + deduplicates
     const search = useCallback(async (query: string, edition?: string): Promise<QuranSearchResult[]> => {
-        if (!query.trim()) {
+        const trimmedQuery = query.trim();
+        if (!trimmedQuery) {
             setSearchResults([]);
             return [];
         }
 
-        await initIndex();
+        const cacheKey = `${edition ?? 'all'}:${normalizeArabic(trimmedQuery).toLowerCase()}`;
+        const cached = resultCache.get(cacheKey);
+        if (cached) {
+            setSearchResults(cached);
+            return cached;
+        }
 
-        if (!miniSearchRef.current) {
+        const editionKey = getEditionKey(edition);
+        setIsIndexing(!sharedMiniSearchByEdition.has(editionKey));
+        const index = await ensureIndex(edition);
+        setIsIndexing(false);
+
+        if (!index) {
+            setSearchError('Search index could not be loaded.');
+            setSearchResults([]);
             return [];
         }
 
-        const rawResults = miniSearchRef.current.search(query);
-
-        // Deduplicate by (surahNumber, ayahNumber) — keep first match per verse
+        const rawResults = index.search(trimmedQuery).slice(0, SEARCH_RESULT_LIMIT);
         const seen = new Set<string>();
         const mappedResults: QuranSearchResult[] = [];
 
         for (const result of rawResults) {
             const resultEdition = result.edition as string | undefined;
-            // Filter by edition if provided (allow results with no edition as fallback)
             if (edition && resultEdition && resultEdition !== edition) continue;
 
             const key = `${result.surahNumber as number}:${result.ayahNumber as number}`;
@@ -201,17 +215,22 @@ export function useQuranSearch() {
             });
         }
 
+        setSearchError(null);
+        rememberResults(cacheKey, mappedResults);
         setSearchResults(mappedResults);
         return mappedResults;
-    }, [initIndex]);
+    }, []);
 
     const clearResults = useCallback(() => {
         setSearchResults([]);
+        setSearchError(null);
     }, []);
 
     return {
         search,
+        preload: initIndex,
         searchResults,
+        searchError,
         clearResults,
         isIndexing,
         isIndexed,

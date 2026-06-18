@@ -247,3 +247,9 @@ export function getRandomWisdom(): Wisdom {
     const randomIndex = Math.floor(Math.random() * wisdomData.length);
     return wisdomData[randomIndex];
 }
+
+export function getDailyWisdom(date: Date = new Date()): Wisdom {
+    const dayKey = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    const dayNumber = Math.floor(dayKey / 86_400_000);
+    return wisdomData[Math.abs(dayNumber) % wisdomData.length];
+}

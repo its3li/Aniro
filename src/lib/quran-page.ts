@@ -75,6 +75,31 @@ export interface MushafPage {
     surahs: Record<string, { number: number; name: string; englishName: string }>;
 }
 
+interface QuranPageApiAyah {
+    number: number;
+    numberInSurah: number;
+    text: string;
+    juz: number;
+    hizbQuarter: number;
+    page: number;
+    surah: {
+        number: number;
+        name: string;
+        englishName: string;
+    };
+}
+
+interface QuranPageApiData {
+    number: number;
+    ayahs: QuranPageApiAyah[];
+    surahs: Record<string, { number: number; name: string; englishName: string }>;
+}
+
+interface QuranPageApiResponse {
+    code: number;
+    data?: QuranPageApiData;
+}
+
 // ============================================================
 // In-flight request deduplication
 // ============================================================
@@ -193,14 +218,14 @@ async function fetchFromNetwork(
 
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-            const json = await response.json();
+            const json = await response.json() as QuranPageApiResponse;
             if (json.code !== 200 || !json.data) throw new Error('Invalid API response');
 
             const apiData = json.data;
 
             return {
                 pageNumber: apiData.number,
-                ayahs: apiData.ayahs.map((a: any) => ({
+                ayahs: apiData.ayahs.map((a) => ({
                     number: a.number,
                     numberInSurah: a.numberInSurah,
                     text: a.text,

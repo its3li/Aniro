@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 interface LoadingContextType {
     isColdStart: boolean;
@@ -10,16 +10,7 @@ interface LoadingContextType {
 const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 
 export function LoadingProvider({ children }: { children: React.ReactNode }) {
-    const [isColdStart, setIsColdStart] = useState(true);
-
-    useEffect(() => {
-        // Simulate initial loading or wait for resources
-        const timer = setTimeout(() => {
-            setIsColdStart(false);
-        }, 2000); // Adjust time as needed or tie to actual resource loading
-
-        return () => clearTimeout(timer);
-    }, []);
+    const [isColdStart, setIsColdStart] = useState(false);
 
     return (
         <LoadingContext.Provider value={{ isColdStart, setIsColdStart }}>
