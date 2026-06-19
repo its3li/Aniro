@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Download, ExternalLink, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
-import { checkForUpdate, getUpdateUrl, type UpdateInfo } from '@/lib/app-update';
+import { UPDATE_DIALOG_EVENT, checkForUpdate, getUpdateUrl, type UpdateInfo } from '@/lib/app-update';
 import {
   canUseNativeApkUpdater,
   NativeApkUpdate,
@@ -22,6 +22,7 @@ import {
 import { useSettings } from './providers/settings-provider';
 
 type UpdateStatus = 'idle' | 'permission' | 'downloading' | 'installing' | 'error';
+type UpdateError = 'generic' | 'packageConflict' | null;
 
 const en = {
   title: 'New update available',
@@ -31,11 +32,12 @@ const en = {
   installing: 'Opening installer...',
   downloading: 'Downloading update',
   permissionTitle: 'Allow in-app updates',
-  permissionBody: 'Android needs permission to let Aniro open the downloaded update installer.',
+  permissionBody: 'Enable install permission for Aniro. When you return, the update will continue automatically.',
   permissionButton: 'Open permission',
   readyBody: 'Aniro will download the update here, verify it, then Android will ask you to confirm installation.',
   fallbackBody: 'This build can still open the download page for the latest APK.',
   error: 'Update failed. Please try again.',
+  packageConflict: 'Android rejected this update because the installed app does not match the update signature. Install the official release build once, then future updates will work in-app.',
   verified: 'APK verification enabled',
   unverified: 'APK checksum is missing',
 };
@@ -43,17 +45,18 @@ const en = {
 const ar = {
   title: 'تحديث جديد متاح',
   updateNow: 'تحديث الآن',
-  later: 'لاحقاً',
+  later: 'لاحقا',
   openDownload: 'فتح التحميل',
-  installing: 'جار فتح شاشة التثبيت...',
-  downloading: 'جار تحميل التحديث',
+  installing: 'جاري فتح شاشة التثبيت...',
+  downloading: 'جاري تحميل التحديث',
   permissionTitle: 'السماح بالتحديث من داخل التطبيق',
-  permissionBody: 'يحتاج أندرويد إلى إذن حتى يفتح Aniro شاشة تثبيت التحديث بعد التحميل.',
+  permissionBody: 'فعّل إذن تثبيت التطبيقات من Aniro، وبعد الرجوع للتطبيق سيكمل التحديث تلقائيا.',
   permissionButton: 'فتح الإذن',
-  readyBody: 'سيتم تحميل التحديث داخل Aniro والتحقق منه، ثم سيطلب أندرويد تأكيد التثبيت.',
-  fallbackBody: 'هذا الإصدار يمكنه فتح صفحة تحميل آخر APK.',
+  readyBody: 'سيتم تحميل التحديث داخل التطبيق، ثم يطلب أندرويد تأكيد التثبيت.',
+  fallbackBody: 'يمكن فتح صفحة تحميل آخر إصدار.',
   error: 'فشل التحديث. حاول مرة أخرى.',
-  verified: 'التحقق من ملف APK مفعّل',
+  packageConflict: 'أندرويد رفض التحديث لأن النسخة المثبتة لا تطابق توقيع ملف التحديث. ثبّت نسخة الإصدار الرسمية مرة واحدة، وبعدها ستعمل التحديثات من داخل التطبيق.',
+  verified: 'تم تفعيل التحقق من ملف APK',
   unverified: 'بصمة APK غير موجودة',
 };
 
@@ -68,6 +71,7 @@ export function UpdateDialog() {
   const [status, setStatus] = useState<UpdateStatus>('idle');
   const [progress, setProgress] = useState<ApkDownloadProgress | null>(null);
   const [downloadedFileName, setDownloadedFileName] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<UpdateError>(null);
   const { settings } = useSettings();
   const isArabic = settings.language === 'ar';
   const copy = isArabic ? ar : en;
@@ -75,14 +79,27 @@ export function UpdateDialog() {
   const canDownloadInApp = nativeUpdaterAvailable && Boolean(updateInfo?.apkUrl);
   const isBusy = status === 'downloading' || status === 'installing';
 
+  const openUpdate = useCallback((update: UpdateInfo) => {
+    setUpdateInfo(update);
+    setStatus('idle');
+    setProgress(null);
+    setDownloadedFileName(null);
+    setUpdateError(null);
+  }, []);
+
+  const runCheck = useCallback(async () => {
+    try {
+      const update = await checkForUpdate();
+      if (update) openUpdate(update);
+    } catch (error) {
+      console.error('Update check failed:', error);
+    }
+  }, [openUpdate]);
+
   useEffect(() => {
-    const runCheck = async () => {
-      try {
-        const update = await checkForUpdate();
-        if (update) setUpdateInfo(update);
-      } catch (error) {
-        console.error('Update check failed:', error);
-      }
+    const handleRequestedUpdate = (event: Event) => {
+      const update = (event as CustomEvent<UpdateInfo>).detail;
+      if (update) openUpdate(update);
     };
 
     const handleVisible = () => {
@@ -95,14 +112,16 @@ export function UpdateDialog() {
       void runCheck();
     }, 0);
     window.addEventListener('online', runCheck);
+    window.addEventListener(UPDATE_DIALOG_EVENT, handleRequestedUpdate);
     document.addEventListener('visibilitychange', handleVisible);
 
     return () => {
       window.clearTimeout(timeoutId);
       window.removeEventListener('online', runCheck);
+      window.removeEventListener(UPDATE_DIALOG_EVENT, handleRequestedUpdate);
       document.removeEventListener('visibilitychange', handleVisible);
     };
-  }, []);
+  }, [openUpdate, runCheck]);
 
   useEffect(() => {
     if (!nativeUpdaterAvailable) return;
@@ -131,38 +150,44 @@ export function UpdateDialog() {
     return total ? `${downloaded} / ${total}` : downloaded;
   }, [progress]);
 
-  const handleLater = () => {
+  const handleLater = useCallback(() => {
     if (isBusy || updateInfo?.forceUpdate) return;
     setUpdateInfo(null);
     setStatus('idle');
     setProgress(null);
     setDownloadedFileName(null);
-  };
+    setUpdateError(null);
+  }, [isBusy, updateInfo?.forceUpdate]);
 
-  const handleFallbackDownload = () => {
+  const handleFallbackDownload = useCallback(() => {
     window.open(getUpdateUrl(), '_blank');
     handleLater();
-  };
+  }, [handleLater]);
 
   const handleOpenPermission = async () => {
     try {
       await NativeApkUpdate.openInstallPermissionSettings();
     } catch (error) {
       console.error('Failed to open install permission settings:', error);
+      setUpdateError('generic');
       setStatus('error');
     }
   };
 
-  const handleInstall = async (fileName: string) => {
+  const handleInstall = useCallback(async (fileName: string) => {
     setStatus('installing');
     const result = await NativeApkUpdate.installDownloadedUpdate({ fileName });
     if (!result.canInstall) {
-      setStatus('permission');
-      return;
+      if (result.installBlockedReason === 'packageNameMismatch' || result.installBlockedReason === 'signatureMismatch') {
+        setUpdateError('packageConflict');
+        setStatus('error');
+      } else {
+        setStatus('permission');
+      }
     }
-  };
+  }, []);
 
-  const handleUpdate = async () => {
+  const handleUpdate = useCallback(async () => {
     if (!updateInfo) return;
 
     if (!canDownloadInApp || !updateInfo.apkUrl) {
@@ -171,6 +196,7 @@ export function UpdateDialog() {
     }
 
     try {
+      setUpdateError(null);
       const permission = await NativeApkUpdate.canInstallPackages();
       if (!permission.canInstall) {
         setStatus('permission');
@@ -193,9 +219,35 @@ export function UpdateDialog() {
       await handleInstall(result.fileName);
     } catch (error) {
       console.error('Update failed:', error);
+      setUpdateError('generic');
       setStatus('error');
     }
-  };
+  }, [canDownloadInApp, handleFallbackDownload, handleInstall, updateInfo]);
+
+  useEffect(() => {
+    if (!nativeUpdaterAvailable || status !== 'permission') return;
+
+    const continueAfterPermission = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const permission = await NativeApkUpdate.canInstallPackages();
+      if (!permission.canInstall) return;
+
+      if (downloadedFileName) {
+        await handleInstall(downloadedFileName);
+      } else {
+        setStatus('idle');
+        await handleUpdate();
+      }
+    };
+
+    document.addEventListener('visibilitychange', continueAfterPermission);
+    window.addEventListener('focus', continueAfterPermission);
+
+    return () => {
+      document.removeEventListener('visibilitychange', continueAfterPermission);
+      window.removeEventListener('focus', continueAfterPermission);
+    };
+  }, [downloadedFileName, handleInstall, handleUpdate, nativeUpdaterAvailable, status]);
 
   if (!updateInfo) return null;
 
@@ -249,7 +301,9 @@ export function UpdateDialog() {
               </div>
             )}
             {status === 'error' && (
-              <p className="mt-3 text-center text-sm text-destructive">{copy.error}</p>
+              <p className="mt-3 text-center text-sm text-destructive">
+                {updateError === 'packageConflict' ? copy.packageConflict : copy.error}
+              </p>
             )}
           </div>
         )}

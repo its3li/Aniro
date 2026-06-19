@@ -1,9 +1,9 @@
 {
-  "versionCode": 14,
-  "versionName": "6.8",
-  "apkUrl": "https://github.com/its3li/Aniro/releases/download/v6.8/aniro-v6.8.apk",
-  "sha256": "1cdee9382ec0c50b147e3692b3e25e09543e517ba9fb64e7cc182073ed023735",
-  "releaseNotes": "Quran reader and tajweed fixes, current-time azkar card, reciter player improvements, removed unstable ayah image sharing, and removed the annoying Do Not Disturb prompt.",
+  "versionCode": 15,
+  "versionName": "6.9",
+  "apkUrl": "https://github.com/its3li/Aniro/releases/download/v6.9/aniro-v6.9.apk",
+  "sha256": "8fd89b794bc98888c06c1597e65ab0f0722272b43380bd55746af19a75af0ed5",
+  "releaseNotes": "تحسين نظام التحديث من داخل التطبيق، إصلاح زر التحديث في الإعدادات، متابعة التثبيت تلقائيا بعد تفعيل الإذن، وتحسين فحص ملف التحديث قبل فتح شاشة التثبيت.",
   "forceUpdate": false,
   "rollout": 100
 }

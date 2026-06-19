@@ -1,7 +1,7 @@
 // App version - must match android/app/build.gradle versionCode and versionName
 export const APP_VERSION = {
-  versionCode: 14,
-  versionName: '6.8',
+  versionCode: 15,
+  versionName: '6.9',
 };
 
 // URL to check for updates - version.json is in the same repo as the code
@@ -19,6 +19,13 @@ export interface UpdateInfo {
   forceUpdate?: boolean;
   minSupportedVersionCode?: number;
   rollout?: number;
+}
+
+export const UPDATE_DIALOG_EVENT = 'aniro:show-update-dialog';
+
+export function showUpdateDialog(updateInfo: UpdateInfo) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent<UpdateInfo>(UPDATE_DIALOG_EVENT, { detail: updateInfo }));
 }
 
 /**

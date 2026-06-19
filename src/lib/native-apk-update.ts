@@ -22,6 +22,9 @@ export interface ApkDownloadResult {
 
 export interface ApkInstallResult {
     canInstall: boolean;
+    installBlockedReason?: 'packageNameMismatch' | 'signatureMismatch';
+    installedPackageName?: string;
+    apkPackageName?: string;
 }
 
 export interface ApkUpdatePlugin {

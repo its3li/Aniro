@@ -3,7 +3,9 @@ package com.aniro.app;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
@@ -88,6 +90,33 @@ public class ApkUpdatePlugin extends Plugin {
         if (!canInstallPackages()) {
             JSObject result = new JSObject();
             result.put("canInstall", false);
+            call.resolve(result);
+            return;
+        }
+
+        PackageInfo apkInfo = getArchivePackageInfo(apkFile);
+        if (apkInfo == null || apkInfo.packageName == null) {
+            call.reject("Downloaded APK package could not be read");
+            return;
+        }
+
+        String installedPackageName = getContext().getPackageName();
+        if (!installedPackageName.equals(apkInfo.packageName)) {
+            JSObject result = new JSObject();
+            result.put("canInstall", false);
+            result.put("installBlockedReason", "packageNameMismatch");
+            result.put("installedPackageName", installedPackageName);
+            result.put("apkPackageName", apkInfo.packageName);
+            call.resolve(result);
+            return;
+        }
+
+        if (!hasMatchingSignature(apkInfo)) {
+            JSObject result = new JSObject();
+            result.put("canInstall", false);
+            result.put("installBlockedReason", "signatureMismatch");
+            result.put("installedPackageName", installedPackageName);
+            result.put("apkPackageName", apkInfo.packageName);
             call.resolve(result);
             return;
         }
@@ -215,6 +244,66 @@ public class ApkUpdatePlugin extends Plugin {
         Context context = getContext();
         return context.getPackageManager().canRequestPackageInstalls()
                 || context.checkSelfPermission(Manifest.permission.REQUEST_INSTALL_PACKAGES) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private PackageInfo getArchivePackageInfo(File apkFile) {
+        PackageManager packageManager = getContext().getPackageManager();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return packageManager.getPackageArchiveInfo(
+                    apkFile.getAbsolutePath(),
+                    PackageManager.GET_SIGNING_CERTIFICATES
+            );
+        }
+        return packageManager.getPackageArchiveInfo(apkFile.getAbsolutePath(), PackageManager.GET_SIGNATURES);
+    }
+
+    private boolean hasMatchingSignature(PackageInfo apkInfo) {
+        try {
+            PackageManager packageManager = getContext().getPackageManager();
+            PackageInfo installedInfo;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                installedInfo = packageManager.getPackageInfo(
+                        getContext().getPackageName(),
+                        PackageManager.GET_SIGNING_CERTIFICATES
+                );
+            } else {
+                installedInfo = packageManager.getPackageInfo(
+                        getContext().getPackageName(),
+                        PackageManager.GET_SIGNATURES
+                );
+            }
+
+            Signature[] installedSignatures = getSignatures(installedInfo);
+            Signature[] apkSignatures = getSignatures(apkInfo);
+            if (installedSignatures == null || apkSignatures == null
+                    || installedSignatures.length == 0 || apkSignatures.length == 0) {
+                return false;
+            }
+
+            for (Signature installedSignature : installedSignatures) {
+                for (Signature apkSignature : apkSignatures) {
+                    if (installedSignature.equals(apkSignature)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        } catch (Exception exception) {
+            return false;
+        }
+    }
+
+    private Signature[] getSignatures(PackageInfo packageInfo) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            if (packageInfo.signingInfo == null) {
+                return null;
+            }
+            if (packageInfo.signingInfo.hasMultipleSigners()) {
+                return packageInfo.signingInfo.getApkContentsSigners();
+            }
+            return packageInfo.signingInfo.getSigningCertificateHistory();
+        }
+        return packageInfo.signatures;
     }
 
     private File getUpdatesDir() {
