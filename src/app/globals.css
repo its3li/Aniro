@@ -410,6 +410,13 @@
   box-shadow: 0 0 12px hsl(var(--primary) / 0.15);
 }
 
+.playing-ayah-tajweed {
+  background: hsl(var(--primary) / 0.055) !important;
+  border-radius: 6px;
+  animation: ayahPulseSoft 1.8s ease-in-out infinite;
+  box-shadow: 0 0 8px hsl(var(--primary) / 0.06);
+}
+
 @keyframes ayahPulse {
 
   0%,
@@ -421,5 +428,19 @@
   50% {
     background: hsl(var(--primary) / 0.25);
     box-shadow: 0 0 16px hsl(var(--primary) / 0.2);
+  }
+}
+
+@keyframes ayahPulseSoft {
+
+  0%,
+  100% {
+    background: hsl(var(--primary) / 0.045);
+    box-shadow: 0 0 5px hsl(var(--primary) / 0.05);
+  }
+
+  50% {
+    background: hsl(var(--primary) / 0.075);
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.08);
   }
 }

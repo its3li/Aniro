@@ -7,7 +7,6 @@ import { useToast } from '@/hooks/use-toast';
 import { NativeAzan } from '@/lib/native-azan';
 const EXACT_ALARM_PROMPT_SESSION_KEY = 'aniro_azan_exact_alarm_prompted';
 const BATTERY_PROMPT_SESSION_KEY = 'aniro_azan_battery_prompted';
-const DND_PROMPT_SESSION_KEY = 'aniro_azan_dnd_prompted';
 
 async function checkNotificationPermission(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) {
@@ -128,17 +127,6 @@ export function useAzanScheduler() {
                     description: isArabic
                         ? '\u0623\u0648\u0642\u0641 \u062a\u062d\u0633\u064a\u0646 \u0627\u0644\u0628\u0637\u0627\u0631\u064a\u0629 \u0644\u0644\u062a\u0637\u0628\u064a\u0642 \u0644\u062a\u0642\u0644\u064a\u0644 \u062a\u0623\u062e\u0631 \u0627\u0644\u0623\u0630\u0627\u0646 \u0639\u0644\u0649 \u0628\u0639\u0636 \u0627\u0644\u0623\u062c\u0647\u0632\u0629.'
                         : 'Disable battery optimization for this app to reduce missed or delayed azan playback.',
-                });
-            }
-
-            if (!status.notificationPolicyAccess && shouldPromptOnce(DND_PROMPT_SESSION_KEY)) {
-                toast({
-                    title: isArabic
-                        ? '\u0625\u0630\u0646 \u0639\u062f\u0645 \u0627\u0644\u0625\u0632\u0639\u0627\u062c \u0627\u062e\u062a\u064a\u0627\u0631\u064a'
-                        : 'Do Not Disturb access is optional',
-                    description: isArabic
-                        ? '\u0628\u062f\u0648\u0646\u0647 \u0642\u062f \u064a\u0645\u0646\u0639 \u0648\u0636\u0639 \u0639\u062f\u0645 \u0627\u0644\u0625\u0632\u0639\u0627\u062c \u0635\u0648\u062a \u0627\u0644\u0623\u0630\u0627\u0646.'
-                        : 'Without it, Android Do Not Disturb may silence azan audio.',
                 });
             }
 

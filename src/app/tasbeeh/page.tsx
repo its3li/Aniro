@@ -1,13 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { useSettings } from '@/components/providers/settings-provider';
 
-const STORAGE_KEY = 'tasbeeh_custom_adhkar';
 const COUNTS_KEY = 'tasbeeh_counts';
 
 const defaultAdhkar = [
@@ -21,43 +18,33 @@ const defaultAdhkar = [
 
 function loadStoredTasbeeh() {
   if (typeof window === 'undefined') {
-    return { adhkar: defaultAdhkar, counts: {} as Record<string, number> };
+    return { counts: {} as Record<string, number> };
   }
 
   try {
-    const storedAdhkar = window.localStorage.getItem(STORAGE_KEY);
-    const parsedAdhkar = storedAdhkar ? JSON.parse(storedAdhkar) : [];
-    const customAdhkar = Array.isArray(parsedAdhkar) && parsedAdhkar.every(item => typeof item === 'string')
-      ? parsedAdhkar
-      : [];
-
     const storedCounts = window.localStorage.getItem(COUNTS_KEY);
     const parsedCounts = storedCounts ? JSON.parse(storedCounts) : {};
     const counts = parsedCounts && typeof parsedCounts === 'object' && !Array.isArray(parsedCounts)
       ? parsedCounts as Record<string, number>
       : {};
 
-    return { adhkar: [...defaultAdhkar, ...customAdhkar], counts };
+    return { counts };
   } catch {
-    return { adhkar: defaultAdhkar, counts: {} as Record<string, number> };
+    return { counts: {} as Record<string, number> };
   }
 }
 
 export default function TasbeehPage() {
   const { settings } = useSettings();
   const isArabic = settings.language === 'ar';
-  const [adhkar, setAdhkar] = useState<string[]>(defaultAdhkar);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [counts, setCounts] = useState<Record<string, number>>({});
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [newDhikr, setNewDhikr] = useState('');
   const [isPressed, setIsPressed] = useState(false);
   const hasLoadedStorageRef = useRef(false);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const stored = loadStoredTasbeeh();
-      setAdhkar(stored.adhkar);
       setCounts(stored.counts);
       hasLoadedStorageRef.current = true;
     }, 0);
@@ -68,23 +55,15 @@ export default function TasbeehPage() {
   useEffect(() => {
     if (!hasLoadedStorageRef.current) return;
     try {
-      const customAdhkar = adhkar.filter(dhikr => !defaultAdhkar.includes(dhikr));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(customAdhkar));
-    } catch {}
-  }, [adhkar]);
-
-  useEffect(() => {
-    if (!hasLoadedStorageRef.current) return;
-    try {
       localStorage.setItem(COUNTS_KEY, JSON.stringify(counts));
     } catch {}
   }, [counts]);
 
-  const currentDhikr = adhkar[currentIndex] || defaultAdhkar[0];
+  const currentDhikr = defaultAdhkar[currentIndex] || defaultAdhkar[0];
   const currentCount = counts[currentDhikr] || 0;
 
-  const goNext = () => setCurrentIndex(prev => (prev + 1) % adhkar.length);
-  const goPrev = () => setCurrentIndex(prev => (prev - 1 + adhkar.length) % adhkar.length);
+  const goNext = () => setCurrentIndex(prev => (prev + 1) % defaultAdhkar.length);
+  const goPrev = () => setCurrentIndex(prev => (prev - 1 + defaultAdhkar.length) % defaultAdhkar.length);
 
   const incrementCount = () => {
     setCounts(prev => ({ ...prev, [currentDhikr]: (prev[currentDhikr] || 0) + 1 }));
@@ -97,20 +76,6 @@ export default function TasbeehPage() {
     setCounts(prev => ({ ...prev, [currentDhikr]: 0 }));
   };
 
-  const handleAddDhikr = () => {
-    const value = newDhikr.trim();
-    if (!value) return;
-    if (adhkar.includes(value)) {
-      setNewDhikr('');
-      setIsAddOpen(false);
-      return;
-    }
-    setAdhkar(prev => [...prev, value]);
-    setCurrentIndex(adhkar.length);
-    setNewDhikr('');
-    setIsAddOpen(false);
-  };
-
   return (
     <div className="min-h-screen px-4 pt-4 pb-24 animate-fade-in">
       <div className="mx-auto flex min-h-[calc(100vh-7rem)] max-w-md flex-col items-center gap-5">
@@ -121,14 +86,6 @@ export default function TasbeehPage() {
               <h1 className="text-2xl font-bold tracking-tight">{isArabic ? 'السبحة الإلكترونية' : 'Electronic Tasbeeh'}</h1>
               <p className="text-sm text-muted-foreground">{isArabic ? 'اضغط على الزرار لزيادة العداد' : 'Press the button to increment the counter'}</p>
             </div>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-11 w-11 shrink-0 rounded-2xl"
-              onClick={() => setIsAddOpen(true)}
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
           </div>
 
           <div className="flex items-center justify-between gap-2">
@@ -181,34 +138,6 @@ export default function TasbeehPage() {
           </div>
         </section>
       </div>
-
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{isArabic ? 'إضافة ذكر جديد' : 'Add new dhikr'}</DialogTitle>
-            <DialogDescription>
-              {isArabic ? 'اكتب الذكر الذي تريد إضافته وسيظهر ضمن الأسهم.' : 'Add a custom dhikr and it will appear in the navigation list.'}
-            </DialogDescription>
-          </DialogHeader>
-          <Input
-            value={newDhikr}
-            onChange={(e) => setNewDhikr(e.target.value)}
-            placeholder={isArabic ? 'مثال: سبحان الله وبحمده' : 'Example: Subhan Allah wa bihamdih'}
-            className="text-right font-quran"
-            dir="auto"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddDhikr();
-              }
-            }}
-          />
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setIsAddOpen(false)}>{isArabic ? 'إلغاء' : 'Cancel'}</Button>
-            <Button onClick={handleAddDhikr}>{isArabic ? 'إضافة' : 'Add'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

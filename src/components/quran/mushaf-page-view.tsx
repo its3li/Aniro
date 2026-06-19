@@ -31,9 +31,14 @@ import {
   PauseCircle,
   BookmarkPlus,
   BookOpen,
+  Settings2,
 } from "lucide-react";
 import { useAudioPlayer, type PlayerState } from "../providers/audio-player-provider";
 import { useLastRead } from "@/hooks/use-last-read";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 
 // Strip Bismillah prefix from first verse of surah (except Al-Fatiha and At-Tawbah)
 function stripBismillah(text: string, surahNumber: number, verseNumberInSurah: number): string {
@@ -93,8 +98,9 @@ export function MushafPageView({
   initialVerseNumber,
   onBack,
 }: MushafPageViewProps) {
-  const { settings } = useSettings();
+  const { settings, setFontSize, setQuranTajweedEnabled } = useSettings();
   const isArabic = settings.language === "ar";
+  const canUseTajweed = settings.quranEdition === "uthmani";
   const isTajweed = settings.quranEdition === "uthmani" && settings.quranTajweedEnabled;
   const { toast } = useToast();
   const {
@@ -268,8 +274,9 @@ export function MushafPageView({
         return null;
       } else {
         if (e) {
+          const popupWidth = 180;
           const y = e.clientY - 60;
-          const x = Math.max(8, Math.min(e.clientX - 90, window.innerWidth - 188));
+          const x = Math.max(8, Math.min(e.clientX - popupWidth / 2, window.innerWidth - popupWidth - 8));
           setTimeout(() => setSelectedAyahPos({ x, y }), 0);
         } else {
           setTimeout(() => setSelectedAyahPos(null), 0);
@@ -467,6 +474,59 @@ export function MushafPageView({
             <PlayCircle className="w-[18px] h-[18px] text-muted-foreground" />
           )}
         </button>
+
+        <Sheet>
+          <SheetTrigger asChild>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-foreground/10 transition-colors shrink-0"
+              aria-label={isArabic ? "إعدادات القراءة" : "Reader settings"}
+            >
+              <Settings2 className="w-[18px] h-[18px] text-muted-foreground" />
+            </button>
+          </SheetTrigger>
+          <SheetContent
+            side="bottom"
+            className="rounded-t-lg border-border bg-background pb-[calc(1.5rem+var(--safe-area-bottom,0px))]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <SheetHeader className="text-start">
+              <SheetTitle>{isArabic ? "إعدادات المصحف" : "Mushaf Settings"}</SheetTitle>
+            </SheetHeader>
+            <div className="mt-5 space-y-5">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">{isArabic ? "حجم الخط" : "Font Size"}</Label>
+                  <span className="font-mono text-xs text-muted-foreground">{settings.fontSize}px</span>
+                </div>
+                <Slider
+                  min={14}
+                  max={24}
+                  step={1}
+                  value={[settings.fontSize]}
+                  onValueChange={(value) => setFontSize(value[0])}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-border/70 p-3">
+                <div>
+                  <Label htmlFor="mushaf-tajweed" className="text-sm font-semibold">
+                    {isArabic ? "ألوان التجويد" : "Tajweed Colors"}
+                  </Label>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {isArabic ? "متاحة لمصحف حفص فقط" : "Available for Hafs only"}
+                  </p>
+                </div>
+                <Switch
+                  id="mushaf-tajweed"
+                  checked={isTajweed}
+                  onCheckedChange={setQuranTajweedEnabled}
+                  disabled={!canUseTajweed}
+                  dir="ltr"
+                />
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {isTajweed && (
@@ -496,6 +556,7 @@ export function MushafPageView({
               onVerseTap={handleVerseTap}
               setSelectedAyah={setSelectedAyah}
               playerState={playerState}
+              fontSize={settings.fontSize}
             />
           ) : (
             <div className="text-muted-foreground text-center py-8">
@@ -591,6 +652,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
   onVerseTap,
   setSelectedAyah,
   playerState,
+  fontSize,
 }: {
   page: MushafPage;
   isArabic: boolean;
@@ -600,6 +662,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
   onVerseTap: (ayah: PageAyah, e: React.MouseEvent) => void;
   setSelectedAyah: (ayah: number | null) => void;
   playerState: PlayerState;
+  fontSize: number;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const playingRef = useRef<HTMLSpanElement>(null);
@@ -627,7 +690,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
       <div
         ref={contentRef}
         className="w-full quran-text"
-        style={{ fontSize: '1.25rem' }}
+        style={{ fontSize: `${fontSize}px` }}
       >
         {page.ayahs.map((ayah) => {
           const isSelected = selectedAyah === ayah.number;
@@ -659,9 +722,9 @@ const MushafPageContent = React.memo(function MushafPageContent({
                 onClick={(e) => { e.stopPropagation(); onVerseTap(ayah, e); }}
                 className={cn(
                   'mushaf-ayah cursor-pointer rounded-md transition-all duration-500 ease-in-out px-1 py-0.5',
-                  isSelected && 'bg-primary/15 text-primary',
-                  isPlaying && 'playing-ayah bg-primary/20 text-primary',
-                  !isPlaying && isHighlighted && 'bg-primary/10',
+                  isSelected && (isTajweed ? 'bg-primary/5' : 'bg-primary/15 text-primary'),
+                  isPlaying && (isTajweed ? 'playing-ayah-tajweed bg-primary/5' : 'playing-ayah bg-primary/20 text-primary'),
+                  !isPlaying && isHighlighted && (isTajweed ? 'bg-primary/5' : 'bg-primary/10'),
                 )}
                 dir="rtl"
                 lang="ar"

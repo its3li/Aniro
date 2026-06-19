@@ -106,7 +106,7 @@ export const tajweedRulesMap = {
 // Memoization cache for parsed tajweed — avoids re-running regex on same text
 const tajweedCache = new Map<string, string>();
 const TAJWEED_CACHE_MAX = 500;
-const TAJWEED_RENDER_CACHE_VERSION = "tajweed-render-v3";
+const TAJWEED_RENDER_CACHE_VERSION = "tajweed-render-v4";
 const ARABIC_MARKS_REGEX = /[\u064B-\u065F\u0670\u06D6-\u06ED]/;
 const ARABIC_BASE_REGEX = /[\u0621-\u064A\u066E-\u06D3\u06FA-\u06FF]/;
 const TARGET_SIDE_RULE_KEYS = new Set<keyof typeof tajweedRulesMap>(["a", "b", "d", "u", "w"]);
@@ -284,16 +284,6 @@ function getRuleColorSlice(ruleKey: keyof typeof tajweedRulesMap, value: string)
   return { start: 0, end: value.length };
 }
 
-function extendThroughAttachedMarks(text: string, end: number) {
-  let nextEnd = end;
-
-  while (nextEnd < text.length && ARABIC_MARKS_REGEX.test(text[nextEnd])) {
-    nextEnd++;
-  }
-
-  return nextEnd;
-}
-
 export function parseTajweedMarkup(
   text: string,
   lang: "ar" | "en" = "en"
@@ -301,14 +291,10 @@ export function parseTajweedMarkup(
   if (!text) return { text: "", ranges: [] };
 
   const parsed = parseTajweedChunk(text, lang, 0, false);
-  const ranges = parsed.ranges.map((range) => ({
-    ...range,
-    end: extendThroughAttachedMarks(parsed.text, range.end),
-  }));
 
   return {
     text: parsed.text,
-    ranges: ranges.sort((a, b) => a.start - b.start || b.end - a.end),
+    ranges: parsed.ranges.sort((a, b) => a.start - b.start || b.end - a.end),
   };
 }
 

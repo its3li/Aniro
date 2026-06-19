@@ -8,6 +8,17 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useSettings } from '@/components/providers/settings-provider';
 
+function findCategoryPath(root: AzkarCategory, categoryId: string): AzkarCategory[] | null {
+  if (root.id === categoryId) return [root];
+
+  for (const child of root.subCategories ?? []) {
+    const childPath = findCategoryPath(child, categoryId);
+    if (childPath) return [root, ...childPath];
+  }
+
+  return null;
+}
+
 export default function AzkarPage() {
   const [navigationStack, setNavigationStack] = useState<AzkarCategory[]>([azkarData]);
   const { settings } = useSettings();
@@ -19,6 +30,18 @@ export default function AzkarPage() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [navigationStack]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const categoryId = params.get('category');
+    if (!categoryId) return;
+
+    const categoryPath = findCategoryPath(azkarData, categoryId);
+    if (categoryPath) {
+      const timeoutId = window.setTimeout(() => setNavigationStack(categoryPath), 0);
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, []);
 
   const handleSelect = (item: AzkarCategory | AzkarItem) => {
     if ('subCategories' in item || 'items' in item) {

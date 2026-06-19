@@ -53,6 +53,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const playerStateRef = useRef(playerState);
   const pendingActionRef = useRef<(() => void) | null>(null);
   const isPlayingAudioRef = useRef(false);
+  const hasMountedReciterRef = useRef(false);
 
   // Ref to track latest reciter value (avoids stale closures)
   const reciterRef = useRef(quranReciter);
@@ -241,6 +242,20 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     await fillAudioQueue(surah, verseIndex);
     playNextInQueue();
   }, [cleanupAudio, fillAudioQueue, playNextInQueue]);
+
+  useEffect(() => {
+    reciterRef.current = quranReciter;
+
+    if (!hasMountedReciterRef.current) {
+      hasMountedReciterRef.current = true;
+      return;
+    }
+
+    const { showPlayer, activeVerseKey, surah, isContinuous } = playerStateRef.current;
+    if (showPlayer && activeVerseKey && surah) {
+      void startPlayback(surah, activeVerseKey, isContinuous);
+    }
+  }, [quranReciter, startPlayback]);
 
   const ensureReciterIsSet = useCallback((callback: () => void) => {
     const hasSetReciter = localStorage.getItem('hasSetReciter') === 'true';

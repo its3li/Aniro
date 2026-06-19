@@ -87,7 +87,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
   const [selectedVerseForTafseer, setSelectedVerseForTafseer] = useState<Verse | null>(null);
   const [isTafseerOpen, setTafseerOpen] = useState(false);
   const [selectedVerseForPopup, setSelectedVerseForPopup] = useState<Verse | null>(null);
-  const [showTranslation, setShowTranslation] = useState(false);
+  const [showTafseer, setShowTafseer] = useState(false);
 
   const verseRefs = useRef<Map<string, HTMLElement | null>>(new Map());
 
@@ -110,14 +110,14 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
         const element = verseRefs.current.get(verseKey);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          element.classList.add('bg-primary/20');
+          element.classList.add(isTajweed ? 'bg-primary/5' : 'bg-primary/20');
           setTimeout(() => {
-            element.classList.remove('bg-primary/20');
+            element.classList.remove('bg-primary/5', 'bg-primary/20');
           }, 2000);
         }
       }, 500);
     }
-  }, [surah, initialVerseNumber, activeViewMode]);
+  }, [surah, initialVerseNumber, activeViewMode, isTajweed]);
 
 
   const handleVersePlayClick = (verse: Verse) => {
@@ -270,14 +270,14 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                     </div>
                     <div className="flex items-center justify-between gap-4 rounded-lg border border-border/70 p-3">
                       <div>
-                        <Label htmlFor="reader-translation" className="text-sm font-semibold">
-                          {isArabic ? 'عرض الترجمة' : 'Show Translation'}
+                        <Label htmlFor="reader-tafseer" className="text-sm font-semibold">
+                          {isArabic ? 'عرض التفسير' : 'Show Tafseer'}
                         </Label>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          {isArabic ? 'تظهر أسفل كل آية في وضع القائمة' : 'Shown under each verse in list mode'}
+                          {isArabic ? 'ليس ترجمة حرفية، بل تفسير مختصر أسفل كل آية' : 'Shown as tafseer under each verse in list mode'}
                         </p>
                       </div>
-                      <Switch id="reader-translation" checked={showTranslation} onCheckedChange={setShowTranslation} dir="ltr" />
+                      <Switch id="reader-tafseer" checked={showTafseer} onCheckedChange={setShowTafseer} dir="ltr" />
                     </div>
                     <div className="flex items-center justify-between gap-4 rounded-lg border border-border/70 p-3">
                       <div>
@@ -333,7 +333,11 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                     key={verse.number.inQuran}
                     ref={el => { verseRefs.current.set(verseKey, el); }}
                     onClick={() => handleVerseClick(verse)}
-                    className={cn("relative bg-card border border-border p-4 rounded-xl text-center cursor-pointer overflow-hidden select-none touch-manipulation", isVerseActive && 'bg-primary/10', isSelected && 'bg-primary/10 ring-2 ring-primary/30')}
+                    className={cn(
+                      "relative bg-card border border-border p-4 rounded-xl text-center cursor-pointer overflow-hidden select-none touch-manipulation",
+                      isVerseActive && (isTajweed ? 'bg-primary/5' : 'bg-primary/10'),
+                      isSelected && (isTajweed ? 'bg-primary/5 ring-1 ring-primary/15' : 'bg-primary/10 ring-2 ring-primary/30')
+                    )}
                   >
                     <p className="tajweed-text text-right font-quran text-xl leading-loose" dir="rtl" lang="ar">
                       {isTajweed ? (
@@ -345,7 +349,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                         ({verse.number.inSurah})
                       </span>
                     </p>
-                    {showTranslation && verse.translation && (
+                    {showTafseer && verse.translation && (
                       <p className="mt-3 border-t border-border/60 pt-3 text-sm leading-relaxed text-muted-foreground" dir={isArabic ? 'rtl' : 'ltr'}>
                         {verse.translation}
                       </p>

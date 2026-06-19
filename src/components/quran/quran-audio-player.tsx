@@ -3,7 +3,7 @@
 
 import { GlassCard } from '../glass-card';
 import { Button } from '../ui/button';
-import { Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
+import { BookOpenText, Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
 import { Slider } from '../ui/slider';
 import { useSettings } from '../providers/settings-provider';
 import { useAudioPlayer } from '../providers/audio-player-provider';
@@ -16,6 +16,7 @@ export function QuranAudioPlayer() {
     handlePrev,
     handleSeek,
     handlePlayerClose,
+    setReciterModalOpen,
     getVerseByKey
   } = useAudioPlayer();
 
@@ -49,9 +50,20 @@ export function QuranAudioPlayer() {
             {isArabic ? 'الآية' : 'Verse'} {activeVerse?.number.inSurah || 0}
           </p>
         </div>
-        <Button variant="ghost" size="icon" onClick={handlePlayerClose} className="rounded-full">
-          <X className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setReciterModalOpen(true)}
+            className="rounded-full"
+            aria-label={isArabic ? 'تغيير القارئ' : 'Change reciter'}
+          >
+            <BookOpenText className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handlePlayerClose} className="rounded-full">
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 mt-2">
