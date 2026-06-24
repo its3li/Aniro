@@ -5,6 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Bell, Check, Languages, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { scheduleFridayKahfReminder } from '@/lib/friday-kahf-reminder';
 import {
   Dialog,
   DialogContent,
@@ -169,6 +170,7 @@ export function OnboardingGate() {
               localStorage.setItem(NOTIFICATION_PROMPT_KEY, '1');
               try {
                 await LocalNotifications.requestPermissions();
+                await scheduleFridayKahfReminder(settings);
               } catch {
                 // The app can still run; users can enable notifications from settings later.
               }

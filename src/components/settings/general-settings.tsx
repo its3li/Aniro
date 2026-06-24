@@ -1,5 +1,9 @@
 'use client';
 
+import { useCallback, useEffect, useState } from 'react';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { GlassCard, GlassCardContent, GlassCardHeader } from '../glass-card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -7,6 +11,9 @@ import { Button } from '@/components/ui/button';
 import { useLocation } from '@/hooks/use-location';
 import { useTheme } from '../providers/theme-provider';
 import { useSettings } from '../providers/settings-provider';
+import { checkAzanPermissionStatus } from '@/hooks/use-azan-scheduler';
+import { scheduleFridayKahfReminder } from '@/lib/friday-kahf-reminder';
+import { NativeAzan, type AzanStatus } from '@/lib/native-azan';
 import { cn } from '@/lib/utils';
 
 const ar = {
@@ -25,6 +32,15 @@ const ar = {
   duhaDescription: '\u0625\u0638\u0647\u0627\u0631 \u0648\u0642\u062a \u0635\u0644\u0627\u0629 \u0627\u0644\u0636\u062d\u0649 (20 \u062f\u0642\u064a\u0642\u0629 \u0628\u0639\u062f \u0627\u0644\u0634\u0631\u0648\u0642)',
   wakeChallenge: '\u062a\u062d\u062f\u064a \u0627\u0644\u0627\u0633\u062a\u064a\u0642\u0627\u0638',
   wakeDescription: '\u0623\u0643\u0645\u0644 \u0627\u0644\u0622\u064a\u0629 \u0644\u0625\u064a\u0642\u0627\u0641 \u0623\u0630\u0627\u0646 \u0627\u0644\u0641\u062c\u0631',
+  azanPermissions: 'صلاحيات الأذان',
+  azanPermissionsReady: 'كل الصلاحيات الأساسية مفعلة',
+  azanPermissionsDescription: 'فعّل المطلوب فقط عند الحاجة',
+  notifications: 'التنبيهات',
+  exactAlarm: 'منبهات دقيقة',
+  battery: 'الخلفية والبطارية',
+  enable: 'تفعيل',
+  open: 'فتح',
+  checking: 'جاري الفحص...',
 };
 
 export function GeneralSettings() {
@@ -32,6 +48,61 @@ export function GeneralSettings() {
   const { settings, setLanguage, setAzanMode, setIncludeIshraq, setFajrQuizEnabled } = useSettings();
   const { displayName, refreshLocation, isLoading } = useLocation();
   const isArabic = settings.language === 'ar';
+  const [azanStatus, setAzanStatus] = useState<AzanStatus | null>(null);
+  const [isCheckingAzanStatus, setIsCheckingAzanStatus] = useState(false);
+
+  const refreshAzanStatus = useCallback(async () => {
+    if (!Capacitor.isNativePlatform()) return;
+    setIsCheckingAzanStatus(true);
+    try {
+      setAzanStatus(await checkAzanPermissionStatus());
+    } finally {
+      setIsCheckingAzanStatus(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshAzanStatus();
+
+    let didUnmount = false;
+    let removeListener: (() => void) | undefined;
+    void App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        void refreshAzanStatus();
+      }
+    }).then(listener => {
+      if (didUnmount) {
+        void listener.remove();
+        return;
+      }
+      removeListener = () => {
+        void listener.remove();
+      };
+    });
+
+    return () => {
+      didUnmount = true;
+      removeListener?.();
+    };
+  }, [refreshAzanStatus]);
+
+  const requestNotifications = async () => {
+    await LocalNotifications.requestPermissions();
+    await scheduleFridayKahfReminder(settings);
+    await refreshAzanStatus();
+  };
+
+  const requestExactAlarm = async () => {
+    await NativeAzan.requestExactAlarmPermission();
+  };
+
+  const openBatterySettings = async () => {
+    await NativeAzan.openBatteryOptimizationSettings();
+  };
+
+  const needsAzanPermissions = Boolean(
+    azanStatus && (!azanStatus.notifications || !azanStatus.exactAlarm || !azanStatus.ignoringBatteryOptimizations)
+  );
 
   return (
     <GlassCard>
@@ -102,6 +173,64 @@ export function GeneralSettings() {
               dir="ltr"
             />
           </div>
+
+          {Capacitor.isNativePlatform() && (
+            <div className="flex items-start justify-between gap-3 py-3">
+              <div className="flex flex-col gap-1">
+                <Label className="text-sm">{isArabic ? ar.azanPermissions : 'Azan Permissions'}</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  {isCheckingAzanStatus
+                    ? (isArabic ? ar.checking : 'Checking...')
+                    : needsAzanPermissions
+                      ? (isArabic ? ar.azanPermissionsDescription : 'Enable only what is needed')
+                      : (isArabic ? ar.azanPermissionsReady : 'All core permissions are enabled')}
+                </p>
+                {needsAzanPermissions && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {!azanStatus?.notifications && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-lg text-xs"
+                        onClick={() => void requestNotifications()}
+                      >
+                        {isArabic ? ar.enable : 'Enable'} {isArabic ? ar.notifications : 'Notifications'}
+                      </Button>
+                    )}
+                    {!azanStatus?.exactAlarm && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-lg text-xs"
+                        onClick={() => void requestExactAlarm()}
+                      >
+                        {isArabic ? ar.open : 'Open'} {isArabic ? ar.exactAlarm : 'Exact alarms'}
+                      </Button>
+                    )}
+                    {!azanStatus?.ignoringBatteryOptimizations && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-lg text-xs"
+                        onClick={() => void openBatterySettings()}
+                      >
+                        {isArabic ? ar.open : 'Open'} {isArabic ? ar.battery : 'Battery'}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 shrink-0 rounded-lg text-xs"
+                onClick={() => void refreshAzanStatus()}
+                disabled={isCheckingAzanStatus}
+              >
+                {isArabic ? ar.refresh : 'Refresh'}
+              </Button>
+            </div>
+          )}
 
           <div className="flex items-center justify-between py-3">
             <div className="flex flex-col gap-0.5">

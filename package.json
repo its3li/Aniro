@@ -1,6 +1,6 @@
 {
   "name": "aniro",
-  "version": "6.9.0",
+  "version": "6.10.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 3000",

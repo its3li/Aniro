@@ -1,9 +1,9 @@
 {
-  "versionCode": 15,
-  "versionName": "6.9",
-  "apkUrl": "https://github.com/its3li/Aniro/releases/download/v6.9/aniro-v6.9.apk",
-  "sha256": "8fd89b794bc98888c06c1597e65ab0f0722272b43380bd55746af19a75af0ed5",
-  "releaseNotes": "تحسين نظام التحديث من داخل التطبيق، إصلاح زر التحديث في الإعدادات، متابعة التثبيت تلقائيا بعد تفعيل الإذن، وتحسين فحص ملف التحديث قبل فتح شاشة التثبيت.",
+  "versionCode": 16,
+  "versionName": "6.10",
+  "apkUrl": "https://github.com/its3li/Aniro/releases/download/v6.10/aniro-v6.10.apk",
+  "sha256": "ab07d5feaeb832184e3d71ff365721f7a7cbfd0e49ef2b8754a2004eb7298849",
+  "releaseNotes": "إضافة تذكير سورة الكهف يوم الجمعة حول وقت الظهر، حفظ صوت السورة للتشغيل بدون إنترنت، تحسين صلاحيات الأذان لتظهر عند الطلب فقط، وإرجاع التاريخ الهجري في الصفحة الرئيسية.",
   "forceUpdate": false,
   "rollout": 100
 }
