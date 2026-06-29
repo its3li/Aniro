@@ -3,12 +3,19 @@
 import { useMemo } from 'react';
 import { useSettings } from '../providers/settings-provider';
 
+const hijriLocales = {
+  ar: 'ar-SA-u-ca-islamic-umalqura',
+  en: 'en-US-u-ca-islamic-umalqura',
+  ur: 'ur-PK-u-ca-islamic-umalqura',
+  fa: 'fa-IR-u-ca-islamic-umalqura',
+};
+
 export function WelcomeHeader() {
   const { settings } = useSettings();
   const isArabic = settings.language === 'ar';
   const hijriDate = useMemo(() => {
     try {
-      return new Intl.DateTimeFormat(isArabic ? 'ar-SA-u-ca-islamic-umalqura' : 'en-US-u-ca-islamic-umalqura', {
+      return new Intl.DateTimeFormat(hijriLocales[settings.language], {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -16,7 +23,7 @@ export function WelcomeHeader() {
     } catch {
       return '';
     }
-  }, [isArabic]);
+  }, [settings.language]);
 
   return (
     <header className="py-1.5 text-center">

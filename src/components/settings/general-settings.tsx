@@ -8,30 +8,29 @@ import { GlassCard, GlassCardContent, GlassCardHeader } from '../glass-card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocation } from '@/hooks/use-location';
 import { useTheme } from '../providers/theme-provider';
-import { useSettings } from '../providers/settings-provider';
+import { supportedLanguages, useSettings, type Language } from '../providers/settings-provider';
 import { checkAzanPermissionStatus } from '@/hooks/use-azan-scheduler';
 import { scheduleFridayKahfReminder } from '@/lib/friday-kahf-reminder';
 import { NativeAzan, type AzanStatus } from '@/lib/native-azan';
-import { cn } from '@/lib/utils';
 
 const ar = {
-  general: '\u0639\u0627\u0645',
-  language: '\u0627\u0644\u0644\u063a\u0629',
-  arabic: '\u0639\u0631\u0628\u064a',
-  darkMode: '\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062f\u0627\u0643\u0646',
-  currentLocation: '\u0627\u0644\u0645\u0648\u0642\u0639 \u0627\u0644\u062d\u0627\u0644\u064a',
-  detectingLocation: '\u062c\u0627\u0631 \u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0645\u0648\u0642\u0639...',
-  updating: '\u062c\u0627\u0631\u064a...',
-  refresh: '\u062a\u062d\u062f\u064a\u062b',
-  azanSound: '\u0635\u0648\u062a \u0627\u0644\u0623\u0630\u0627\u0646',
-  fullAzan: '\u0635\u0648\u062a \u0627\u0644\u0623\u0630\u0627\u0646 \u0627\u0644\u0643\u0627\u0645\u0644',
-  silentOnly: '\u0625\u0634\u0639\u0627\u0631 \u0635\u0627\u0645\u062a \u0641\u0642\u0637',
-  duhaPrayer: '\u0635\u0644\u0627\u0629 \u0627\u0644\u0636\u062d\u0649',
-  duhaDescription: '\u0625\u0638\u0647\u0627\u0631 \u0648\u0642\u062a \u0635\u0644\u0627\u0629 \u0627\u0644\u0636\u062d\u0649 (20 \u062f\u0642\u064a\u0642\u0629 \u0628\u0639\u062f \u0627\u0644\u0634\u0631\u0648\u0642)',
-  wakeChallenge: '\u062a\u062d\u062f\u064a \u0627\u0644\u0627\u0633\u062a\u064a\u0642\u0627\u0638',
-  wakeDescription: '\u0623\u0643\u0645\u0644 \u0627\u0644\u0622\u064a\u0629 \u0644\u0625\u064a\u0642\u0627\u0641 \u0623\u0630\u0627\u0646 \u0627\u0644\u0641\u062c\u0631',
+  general: 'عام',
+  language: 'اللغة',
+  darkMode: 'الوضع الداكن',
+  currentLocation: 'الموقع الحالي',
+  detectingLocation: 'جار تحديد الموقع...',
+  updating: 'جاري...',
+  refresh: 'تحديث',
+  azanSound: 'صوت الأذان',
+  fullAzan: 'صوت الأذان الكامل',
+  silentOnly: 'إشعار صامت فقط',
+  duhaPrayer: 'صلاة الضحى',
+  duhaDescription: 'إظهار وقت صلاة الضحى (20 دقيقة بعد الشروق)',
+  wakeChallenge: 'تحدي الاستيقاظ',
+  wakeDescription: 'أكمل الآية لإيقاف أذان الفجر',
   azanPermissions: 'صلاحيات الأذان',
   azanPermissionsReady: 'كل الصلاحيات الأساسية مفعلة',
   azanPermissionsDescription: 'فعّل المطلوب فقط عند الحاجة',
@@ -112,21 +111,19 @@ export function GeneralSettings() {
       <GlassCardContent>
         <div className="divide-y divide-border">
           <div className="flex items-center justify-between py-3 first:pt-0">
-            <Label htmlFor="language-switch" className="text-sm">{isArabic ? ar.language : 'Language'}</Label>
-            <div className="flex items-center gap-2">
-              <span className={cn('text-xs', settings.language === 'en' ? 'text-primary font-medium' : 'text-muted-foreground')}>
-                EN
-              </span>
-              <Switch
-                id="language-switch"
-                checked={settings.language === 'ar'}
-                onCheckedChange={(checked) => setLanguage(checked ? 'ar' : 'en')}
-                dir="ltr"
-              />
-              <span className={cn('text-xs', settings.language === 'ar' ? 'text-primary font-medium' : 'text-muted-foreground')}>
-                {ar.arabic}
-              </span>
-            </div>
+            <Label htmlFor="language-select" className="text-sm">{isArabic ? ar.language : 'Language'}</Label>
+            <Select value={settings.language} onValueChange={(value) => setLanguage(value as Language)}>
+              <SelectTrigger id="language-select" className="h-9 w-40 rounded-lg" dir="ltr">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {supportedLanguages.map(language => (
+                  <SelectItem key={language.code} value={language.code}>
+                    {language.nativeName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center justify-between py-3">

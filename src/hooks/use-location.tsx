@@ -2,9 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
 import { useSettings } from '@/components/providers/settings-provider';
+import type { Language } from '@/components/providers/settings-provider';
 import type { CalculationMethodName } from '@/lib/prayer';
-
-type Language = 'en' | 'ar';
 
 type Coordinates = {
     latitude: number;
@@ -407,7 +406,7 @@ export function useLocation() {
 
             setState(toState(merged, language));
 
-            const otherLanguage = language === 'ar' ? 'en' : 'ar';
+            const otherLanguage: Language = language === 'en' ? 'ar' : 'en';
             if (!hasNamesForLanguage(merged, otherLanguage)) {
                 void refreshLocalizedNames(merged, otherLanguage);
             }

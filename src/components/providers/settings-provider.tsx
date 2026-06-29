@@ -5,7 +5,7 @@ import type { Reciter } from '@/lib/reciters';
 import { reciters as availableReciters } from '@/lib/reciters';
 
 
-type Language = 'en' | 'ar';
+export type Language = 'en' | 'ar' | 'ur' | 'fa';
 type QuranViewMode = 'list' | 'page';
 export type QuranEdition = 'uthmani' | 'warsh';
 
@@ -14,6 +14,21 @@ import { CalculationMethodName, DSTMode } from '@/lib/prayer';
 export type TimeFormat = '12h' | '24h';
 
 type AzanMode = 'full' | 'silent';
+
+export const supportedLanguages: Array<{ code: Language; name: string; nativeName: string; dir: 'ltr' | 'rtl' }> = [
+  { code: 'ar', name: 'Arabic', nativeName: 'عربي', dir: 'rtl' },
+  { code: 'en', name: 'English', nativeName: 'English', dir: 'ltr' },
+  { code: 'ur', name: 'Urdu', nativeName: 'اردو', dir: 'rtl' },
+  { code: 'fa', name: 'Persian', nativeName: 'فارسی', dir: 'rtl' },
+];
+
+export function isSupportedLanguage(value: unknown): value is Language {
+  return supportedLanguages.some(language => language.code === value);
+}
+
+export function getLanguageDirection(language: Language) {
+  return supportedLanguages.find(item => item.code === language)?.dir ?? 'ltr';
+}
 
 type Settings = {
   fontSize: number;
@@ -116,9 +131,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         const storedEdition = knownEditions.includes(parsedSettings.quranEdition)
           ? parsedSettings.quranEdition
           : 'uthmani';
+        const storedLanguage = isSupportedLanguage(parsedSettings.language)
+          ? parsedSettings.language
+          : defaultSettings.language;
         setSettings({
           ...defaultSettings,
           ...parsedSettings,
+          language: storedLanguage,
           quranEdition: wasLegacyTajweed ? 'uthmani' : storedEdition,
           quranTajweedEnabled: Boolean(parsedSettings.quranTajweedEnabled || wasLegacyTajweed),
         });
@@ -136,7 +155,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem('app-settings', JSON.stringify(settings));
       document.documentElement.style.fontSize = `${settings.fontSize}px`;
-      document.documentElement.dir = settings.language === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.dir = getLanguageDirection(settings.language);
       document.documentElement.lang = settings.language;
     } catch (error) {
       console.error("Could not save settings", error);

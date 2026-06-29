@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useSettings } from '@/components/providers/settings-provider';
+import { supportedLanguages, useSettings } from '@/components/providers/settings-provider';
 import { useLocation } from '@/hooks/use-location';
 
 type OnboardingStep = 'language' | 'location' | 'notifications';
@@ -140,12 +140,15 @@ export function OnboardingGate() {
 
         {activeStep === 'language' && (
           <div className="grid grid-cols-2 gap-2">
-            <Button variant={settings.language === 'ar' ? 'default' : 'outline'} onClick={() => setLanguage('ar')}>
-              عربي
-            </Button>
-            <Button variant={settings.language === 'en' ? 'default' : 'outline'} onClick={() => setLanguage('en')}>
-              English
-            </Button>
+            {supportedLanguages.map(language => (
+              <Button
+                key={language.code}
+                variant={settings.language === language.code ? 'default' : 'outline'}
+                onClick={() => setLanguage(language.code)}
+              >
+                {language.nativeName}
+              </Button>
+            ))}
           </div>
         )}
 

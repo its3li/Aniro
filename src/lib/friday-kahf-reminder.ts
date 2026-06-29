@@ -1,9 +1,10 @@
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import type { Language } from '@/components/providers/settings-provider';
 import { getPrayerTimes, getTotalOffset, type CalculationMethodName, type DSTMode } from './prayer';
 
 type KahfReminderSettings = {
-  language: 'ar' | 'en';
+  language: Language;
   prayerOffset: number;
   dstMode: DSTMode;
   calculationMethod: CalculationMethodName;
@@ -59,7 +60,7 @@ function getUpcomingFridayDates(count: number, now = new Date()) {
   return dates;
 }
 
-function reminderCopy(language: 'ar' | 'en', offsetMinutes: number) {
+function reminderCopy(language: Language, offsetMinutes: number) {
   if (language === 'ar') {
     if (offsetMinutes < 0) {
       return {
