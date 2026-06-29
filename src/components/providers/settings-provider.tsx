@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Reciter } from '@/lib/reciters';
@@ -16,7 +16,7 @@ export type TimeFormat = '12h' | '24h';
 type AzanMode = 'full' | 'silent';
 
 export const supportedLanguages: Array<{ code: Language; name: string; nativeName: string; dir: 'ltr' | 'rtl' }> = [
-  { code: 'ar', name: 'Arabic', nativeName: 'عربي', dir: 'rtl' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية', dir: 'rtl' },
   { code: 'en', name: 'English', nativeName: 'English', dir: 'ltr' },
   { code: 'ur', name: 'Urdu', nativeName: 'اردو', dir: 'rtl' },
   { code: 'fa', name: 'Persian', nativeName: 'فارسی', dir: 'rtl' },
@@ -290,3 +290,4 @@ export const useSettings = () => {
   }
   return context;
 };
+

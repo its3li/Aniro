@@ -1,9 +1,9 @@
 {
-  "versionCode": 17,
-  "versionName": "6.11",
-  "apkUrl": "https://github.com/its3li/Aniro/releases/download/v6.11/aniro-v6.11.apk",
-  "sha256": "566455d7031bca5c37f0df42d363708dd0f1b023bfbe373119f7852a03514c50",
-  "releaseNotes": "إضافة لغتي الأردية والفارسية إلى اختيار اللغة، دعم اتجاه الكتابة من اليمين لليسار لهما، وتحسين اختيار اللغة في الإعدادات وشاشة البداية.",
+  "versionCode": 18,
+  "versionName": "6.12",
+  "apkUrl": "https://github.com/its3li/Aniro/releases/download/v6.12/aniro-v6.12.apk",
+  "sha256": "34bc67e53d0af4ef7f1d307b73db4182603d2e29907c7ee341bebd230697b8e2",
+  "releaseNotes": "تحسين دعم الأردية والفارسية في الواجهة، إصلاح عرض التاريخ الهجري، وتنظيف نصوص اللغة في الإعدادات وشاشة البداية.",
   "forceUpdate": false,
   "rollout": 100
 }

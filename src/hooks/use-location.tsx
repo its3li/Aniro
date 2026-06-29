@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
 import { useSettings } from '@/components/providers/settings-provider';
 import type { Language } from '@/components/providers/settings-provider';
 import type { CalculationMethodName } from '@/lib/prayer';
+import { pickLanguage } from '@/lib/i18n';
 
 type Coordinates = {
     latitude: number;
@@ -56,6 +57,8 @@ const DEFAULT_LOCATION: CachedLocation = {
     names: {
         en: { city: 'Mecca', country: 'Saudi Arabia' },
         ar: { city: 'مكة', country: 'السعودية' },
+        ur: { city: 'مکہ', country: 'سعودی عرب' },
+        fa: { city: 'مکه', country: 'عربستان سعودی' },
     },
     source: 'default',
     updatedAt: 0,
@@ -406,17 +409,14 @@ export function useLocation() {
 
             setState(toState(merged, language));
 
-            const otherLanguage: Language = language === 'en' ? 'ar' : 'en';
-            if (!hasNamesForLanguage(merged, otherLanguage)) {
-                void refreshLocalizedNames(merged, otherLanguage);
-            }
+            (['ar', 'en', 'ur', 'fa'] as Language[])
+                .filter(item => item !== language && !hasNamesForLanguage(merged, item))
+                .forEach(item => void refreshLocalizedNames(merged, item));
         } catch {
             const fallback = cached ?? DEFAULT_LOCATION;
             const error = cached
                 ? null
-                : language === 'ar'
-                    ? 'تعذر تحديد الموقع. يتم استخدام مكة مؤقتا.'
-                    : 'Could not determine location. Using Mecca for now.';
+                : pickLanguage(language, { ar: 'تعذر تحديد الموقع. يتم استخدام مكة مؤقتًا.', en: 'Could not determine location. Using Mecca for now.', ur: 'مقام معلوم نہیں ہو سکا۔ عارضی طور پر مکہ استعمال کیا جا رہا ہے۔', fa: 'مکان مشخص نشد. فعلاً مکه استفاده می شود.' });
 
             if (!cached) {
                 saveCachedLocation(DEFAULT_LOCATION);
@@ -436,3 +436,4 @@ export function useLocation() {
 
     return { ...state, refreshLocation };
 }
+

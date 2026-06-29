@@ -1,6 +1,7 @@
-import { Capacitor } from '@capacitor/core';
+﻿import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import type { Language } from '@/components/providers/settings-provider';
+import { pickLanguage } from '@/lib/i18n';
 import { getPrayerTimes, getTotalOffset, type CalculationMethodName, type DSTMode } from './prayer';
 
 type KahfReminderSettings = {
@@ -61,45 +62,66 @@ function getUpcomingFridayDates(count: number, now = new Date()) {
 }
 
 function reminderCopy(language: Language, offsetMinutes: number) {
-  if (language === 'ar') {
-    if (offsetMinutes < 0) {
-      return {
+  if (offsetMinutes < 0) {
+    return pickLanguage(language, {
+      ar: {
         title: 'اقترب وقت سورة الكهف',
         body: 'باقي حوالي 20 دقيقة على الظهر، وقت مناسب لقراءة سورة الكهف.',
-      };
-    }
-
-    if (offsetMinutes > 0) {
-      return {
-        title: 'تذكير سورة الكهف',
-        body: 'مر حوالي 20 دقيقة بعد الظهر، لا تنس قراءة سورة الكهف اليوم.',
-      };
-    }
-
-    return {
-      title: 'وقت سورة الكهف',
-      body: 'حان وقت الظهر، لا تنس قراءة سورة الكهف اليوم.',
-    };
-  }
-
-  if (offsetMinutes < 0) {
-    return {
-      title: 'Surah Al-Kahf soon',
-      body: 'Dhuhr is in about 20 minutes. This is a good time to read Surah Al-Kahf.',
-    };
+      },
+      en: {
+        title: 'Surah Al-Kahf soon',
+        body: 'Dhuhr is in about 20 minutes. This is a good time to read Surah Al-Kahf.',
+      },
+      ur: {
+        title: 'سورۃ الکہف کا وقت قریب ہے',
+        body: 'ظہر میں تقریباً 20 منٹ باقی ہیں، سورۃ الکہف پڑھنے کا اچھا وقت ہے۔',
+      },
+      fa: {
+        title: 'زمان سوره کهف نزدیک است',
+        body: 'حدود 20 دقیقه تا ظهر مانده است؛ زمان خوبی برای خواندن سوره کهف است.',
+      },
+    });
   }
 
   if (offsetMinutes > 0) {
-    return {
-      title: 'Surah Al-Kahf reminder',
-      body: 'It is about 20 minutes after Dhuhr. Remember to read Surah Al-Kahf today.',
-    };
+    return pickLanguage(language, {
+      ar: {
+        title: 'تذكير سورة الكهف',
+        body: 'مر حوالي 20 دقيقة بعد الظهر، لا تنس قراءة سورة الكهف اليوم.',
+      },
+      en: {
+        title: 'Surah Al-Kahf reminder',
+        body: 'It is about 20 minutes after Dhuhr. Remember to read Surah Al-Kahf today.',
+      },
+      ur: {
+        title: 'سورۃ الکہف کی یاد دہانی',
+        body: 'ظہر کے تقریباً 20 منٹ بعد کا وقت ہے، آج سورۃ الکہف پڑھنا نہ بھولیں۔',
+      },
+      fa: {
+        title: 'یادآوری سوره کهف',
+        body: 'حدود 20 دقیقه از ظهر گذشته است؛ خواندن سوره کهف امروز را فراموش نکنید.',
+      },
+    });
   }
 
-  return {
-    title: 'Surah Al-Kahf time',
-    body: 'It is Dhuhr time. Remember to read Surah Al-Kahf today.',
-  };
+  return pickLanguage(language, {
+    ar: {
+      title: 'وقت سورة الكهف',
+      body: 'حان وقت الظهر، لا تنس قراءة سورة الكهف اليوم.',
+    },
+    en: {
+      title: 'Surah Al-Kahf time',
+      body: 'It is Dhuhr time. Remember to read Surah Al-Kahf today.',
+    },
+    ur: {
+      title: 'سورۃ الکہف کا وقت',
+      body: 'ظہر کا وقت ہو گیا ہے، آج سورۃ الکہف پڑھنا نہ بھولیں۔',
+    },
+    fa: {
+      title: 'زمان سوره کهف',
+      body: 'وقت ظهر است؛ خواندن سوره کهف امروز را فراموش نکنید.',
+    },
+  });
 }
 
 export async function scheduleFridayKahfReminder(settings: KahfReminderSettings) {
@@ -156,3 +178,4 @@ export async function scheduleFridayKahfReminder(settings: KahfReminderSettings)
 
   await LocalNotifications.schedule({ notifications });
 }
+
