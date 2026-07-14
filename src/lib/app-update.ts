@@ -1,7 +1,7 @@
 // App version - must match android/app/build.gradle versionCode and versionName
 export const APP_VERSION = {
-  versionCode: 18,
-  versionName: '6.12',
+  versionCode: 19,
+  versionName: '6.13',
 };
 
 // URL to check for updates - version.json is in the same repo as the code

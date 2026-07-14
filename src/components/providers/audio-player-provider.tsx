@@ -209,6 +209,14 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     verseNumber: number,
     reciter: string
   ): Promise<string | null> => {
+    // Prefer the CDN URL while online. Creating a blob URL from Cache Storage
+    // before every play is slower and is not reliable in every Android WebView.
+    // The full-surah download below still fills the offline cache in parallel.
+    if (typeof navigator === 'undefined' || navigator.onLine) {
+      const remoteAudioUrl = await getRemoteAudioUrl(surahNumber, verseNumber, reciter);
+      if (remoteAudioUrl) return remoteAudioUrl;
+    }
+
     const cachedObjectUrl = await createObjectUrlFromCachedAudio(surahNumber, verseNumber, reciter);
     if (cachedObjectUrl) return cachedObjectUrl;
 
@@ -364,14 +372,21 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
       console.error(`Error playing audio for ${verseKey}`);
       isPlayingAudioRef.current = false;
       if (playerStateRef.current.isContinuous) void playNextInQueueRef.current(); // Silently skip to next
-      else handlePlayerClose();
+      else {
+        // A temporary network/media error must not make the player disappear.
+        // Keep the selected verse visible so the user can retry with Play.
+        setPlayerState(s => ({ ...s, isPlaying: false, progress: 0, duration: 0 }));
+      }
     };
 
     try {
       await currentAudio.play();
-    } catch {
-      // This can happen if another play request interrupts.
-      // The error handler will take care of moving on.
+    } catch (error) {
+      // play() rejection does not always dispatch an `error` event (notably
+      // autoplay-policy failures), so restore an honest, retryable UI state.
+      console.error(`Unable to start audio for ${verseKey}`, error);
+      isPlayingAudioRef.current = false;
+      setPlayerState(s => ({ ...s, isPlaying: false }));
     }
   }, [handlePlayerClose, fillAudioQueue]);
 

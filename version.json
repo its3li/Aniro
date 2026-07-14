@@ -1,9 +1,9 @@
 {
-  "versionCode": 18,
-  "versionName": "6.12",
-  "apkUrl": "https://github.com/its3li/Aniro/releases/download/v6.12/aniro-v6.12.apk",
-  "sha256": "34bc67e53d0af4ef7f1d307b73db4182603d2e29907c7ee341bebd230697b8e2",
-  "releaseNotes": "تحسين دعم الأردية والفارسية في الواجهة، إصلاح عرض التاريخ الهجري، وتنظيف نصوص اللغة في الإعدادات وشاشة البداية.",
+  "versionCode": 19,
+  "versionName": "6.13",
+  "apkUrl": "https://github.com/its3li/Aniro/releases/download/v6.13/aniro-v6.13.apk",
+  "sha256": "6ada8b1b4ba65c392ab1bfbd432775fd4c25fe3b0da494b4beeaf56665a3af21",
+  "releaseNotes": "إصلاح مشكلة اختفاء مشغل القرآن عند تشغيل الآيات، وتحسين موثوقية تشغيل الصوت على أندرويد مع استمرار دعم الاستماع دون إنترنت.",
   "forceUpdate": false,
   "rollout": 100
 }
