@@ -2,7 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import type { AzkarItem } from "@/lib/azkar";
 import { Button } from '@/components/ui/button';
-import { RotateCcw, AlertTriangle } from 'lucide-react';
+import { ArrowCounterClockwiseIcon as RotateCcw } from '@/components/icons/interface-icons';
+import { WarningIcon as AlertTriangle } from '@/components/icons/interface-icons';
 import { cn } from '@/lib/utils';
 import { useSettings } from '../providers/settings-provider';
 
@@ -61,7 +62,7 @@ export function ZikrCard({ item, categoryId, index }: ZikrCardProps) {
     <div
       onClick={!isCompleted ? handleTap : undefined}
       className={cn(
-        "relative overflow-hidden rounded-2xl border bg-card transition-all duration-150 mb-3",
+        "zikr-reading-card relative overflow-hidden rounded-2xl border bg-card transition-all duration-150 mb-3",
         !isCompleted ? "active:scale-[0.99] cursor-pointer shadow-sm" : "border-primary/20",
         isCompleted && "opacity-80 grayscale-[0.5]"
       )}
@@ -69,8 +70,8 @@ export function ZikrCard({ item, categoryId, index }: ZikrCardProps) {
       {/* ProgressBar - Bottom Line */}
       <div className="absolute bottom-0 left-0 h-1 bg-primary/10 w-full">
         <div
-          className="h-full bg-primary transition-all duration-300"
-          style={{ width: `${progress}%` }}
+          className="h-full w-full origin-left bg-primary transition-transform duration-300"
+          style={{ transform: 'scaleX(' + (progress / 100) + ')' }}
         />
       </div>
 

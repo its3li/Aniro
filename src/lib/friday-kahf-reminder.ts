@@ -1,4 +1,4 @@
-﻿import { Capacitor } from '@capacitor/core';
+import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import type { Language } from '@/components/providers/settings-provider';
 import { pickLanguage } from '@/lib/i18n';
@@ -47,10 +47,6 @@ function getUpcomingFridayDates(count: number, now = new Date()) {
   const daysUntilFriday = (5 - firstFriday.getDay() + 7) % 7;
   firstFriday.setDate(firstFriday.getDate() + daysUntilFriday);
   firstFriday.setHours(12, 0, 0, 0);
-
-  if (firstFriday.getDay() === now.getDay() && now.getTime() > firstFriday.getTime() + 20 * 60_000) {
-    firstFriday.setDate(firstFriday.getDate() + 7);
-  }
 
   for (let index = 0; index < count; index += 1) {
     const date = new Date(firstFriday);

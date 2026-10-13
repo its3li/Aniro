@@ -66,6 +66,8 @@ export function GeneralSettings() {
     setIsCheckingAzanStatus(true);
     try {
       setAzanStatus(await checkAzanPermissionStatus());
+    } catch {
+      setAzanStatus(null);
     } finally {
       setIsCheckingAzanStatus(false);
     }
@@ -187,7 +189,7 @@ export function GeneralSettings() {
                     ? t('checking')
                     : needsAzanPermissions
                       ? t('azanPermissionsDescription')
-                      : t('azanPermissionsReady')}
+                      : azanStatus ? t('azanPermissionsReady') : t('azanPermissionsDescription')}
                 </p>
                 {needsAzanPermissions && (
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -230,6 +232,13 @@ export function GeneralSettings() {
             </div>
             <Switch id="fajr-quiz-switch" checked={settings.fajrQuizEnabled} onCheckedChange={setFajrQuizEnabled} dir="ltr" />
           </div>
+          {Capacitor.isNativePlatform() && settings.fajrQuizEnabled && (
+            <div className="py-3">
+              <Button variant="outline" className="w-full" onClick={() => void NativeAzan.requestChallengeOverlay()}>
+                {settings.language === 'ar' ? 'السماح بالتحدي فوق التطبيقات' : 'Allow challenge over other apps'}
+              </Button>
+            </div>
+          )}
         </div>
       </GlassCardContent>
     </GlassCard>

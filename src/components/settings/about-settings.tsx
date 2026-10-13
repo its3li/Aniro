@@ -5,7 +5,10 @@ import { GlassCard, GlassCardContent, GlassCardHeader } from '../glass-card';
 import { Button } from '@/components/ui/button';
 import { useSettings } from '../providers/settings-provider';
 import { APP_VERSION, checkForUpdate, showUpdateDialog } from '@/lib/app-update';
-import { AlertCircle, Check, Download, RefreshCw } from 'lucide-react';
+import { WarningCircleIcon as AlertCircle } from '@/components/icons/interface-icons';
+import { CheckIcon as Check } from '@/components/icons/interface-icons';
+import { DownloadSimpleIcon as Download } from '@/components/icons/interface-icons';
+import { ArrowsClockwiseIcon as RefreshCw } from '@/components/icons/interface-icons';
 
 export function AboutSettings() {
   const { settings } = useSettings();

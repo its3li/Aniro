@@ -5,23 +5,22 @@ import { GeneralSettings } from "@/components/settings/general-settings";
 import { QuranSettings } from "@/components/settings/quran-settings";
 import { AboutSettings } from "@/components/settings/about-settings";
 import { useSettings } from "@/components/providers/settings-provider";
+import { PageHeading } from '@/components/page-heading';
 
 export default function SettingsPage() {
   const { settings } = useSettings();
   const isArabic = settings.language === 'ar';
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pt-4 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-black tracking-normal">{isArabic ? 'الإعدادات' : 'Settings'}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {isArabic ? 'الصلاة والقرآن والتنبيهات والمظهر والتحديثات في مكان واحد.' : 'Prayer, Quran, notifications, appearance, and updates in one place.'}
-        </p>
-      </div>
-      <GeneralSettings />
-      <QuranSettings />
-      <CustomizationSettings />
-      <AboutSettings />
+    <div className="app-page settings-page animate-fade-in">
+      <PageHeading title="Make it yours" titleAr="على طريقتك" description="Set your prayer, reading, and listening preferences." descriptionAr="اضبط الصلاة والقراءة والاستماع بما يناسبك." />
+      <nav className="settings-index" aria-label={isArabic ? 'أقسام الإعدادات' : 'Settings sections'}>
+        <a href="#general">{isArabic ? 'عام وتنبيهات' : 'General & alerts'}</a><a href="#reading">{isArabic ? 'القراءة' : 'Reading'}</a><a href="#preferences">{isArabic ? 'التفضيلات' : 'Preferences'}</a><a href="#about">{isArabic ? 'حول أنيرو' : 'About Aniro'}</a>
+      </nav>
+      <section id="general"><GeneralSettings /></section>
+      <section id="reading"><QuranSettings /></section>
+      <section id="preferences"><CustomizationSettings /></section>
+      <section id="about"><AboutSettings /></section>
     </div>
   );
 }

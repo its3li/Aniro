@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Loader2, Search, X } from 'lucide-react';
+import { BookOpenIcon as BookOpen } from '@/components/icons/interface-icons';
+import { SpinnerGapIcon as Loader2 } from '@/components/icons/interface-icons';
+import { MagnifyingGlassIcon as Search } from '@/components/icons/interface-icons';
+import { XIcon as X } from '@/components/icons/interface-icons';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -52,7 +55,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         if (!isOpen) return;
 
         const run = () => {
-            void preload(activeEdition);
+            void preload();
         };
 
         if ('requestIdleCallback' in window) {
@@ -62,7 +65,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
         const timeoutId = globalThis.setTimeout(run, 0);
         return () => globalThis.clearTimeout(timeoutId);
-    }, [isOpen, preload, activeEdition]);
+    }, [isOpen, preload]);
 
     useEffect(() => {
         const timeoutId = window.setTimeout(() => {

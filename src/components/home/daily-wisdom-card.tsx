@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowsClockwiseIcon as RefreshCw } from '@/components/icons/interface-icons';
+import { SparkleIcon as Sparkles } from '@/components/icons/interface-icons';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { GlassCard, GlassCardContent, GlassCardHeader } from '../glass-card';
 import { getDailyWisdom, getRandomWisdom, type Wisdom } from '@/lib/wisdom';
 import { useSettings } from '../providers/settings-provider';
+import { localizeWisdomReference } from '@/lib/wisdom';
 
 const arabicReferenceMap: Record<string, string> = {
   'Sahih al-Bukhari': 'صحيح البخاري',
@@ -31,11 +33,11 @@ export function DailyWisdomCard() {
 
   const wisdomType = isArabic ? (wisdom.type === 'Quran' ? 'قرآن' : 'حديث') : wisdom.type;
   const wisdomReference = isArabic
-    ? arabicReferenceMap[wisdom.reference] ?? wisdom.reference
+    ? arabicReferenceMap[wisdom.reference] ?? localizeWisdomReference(wisdom.reference)
     : wisdom.reference;
 
   return (
-    <GlassCard>
+    <GlassCard className="daily-wisdom">
       <GlassCardHeader className="flex flex-row items-center justify-between pb-3">
         <div className="flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">

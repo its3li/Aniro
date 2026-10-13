@@ -40,10 +40,12 @@ function readCachedCoordinates(): WidgetCoordinates | null {
         if (!raw) return null;
 
         const parsed = JSON.parse(raw) as Partial<WidgetCoordinates>;
-        const latitude = Number(parsed.latitude);
-        const longitude = Number(parsed.longitude);
+        const latitude = parsed.latitude;
+        const longitude = parsed.longitude;
 
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+        if (typeof latitude !== 'number' || typeof longitude !== 'number'
+            || !Number.isFinite(latitude) || !Number.isFinite(longitude)
+            || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
         return { latitude, longitude };
     } catch {
         return null;
@@ -52,7 +54,7 @@ function readCachedCoordinates(): WidgetCoordinates | null {
 
 export function useWidgetSync() {
     const { coordinates } = useLocation();
-    const { settings } = useSettings();
+    const { settings, hasLoadedSettings } = useSettings();
     const {
         calculationMethod,
         prayerOffset,
@@ -67,11 +69,11 @@ export function useWidgetSync() {
     } = settings;
 
     useEffect(() => {
-        if (!Capacitor.isNativePlatform() || !Capacitor.isPluginAvailable('WidgetData')) {
+        if (!hasLoadedSettings || !Capacitor.isNativePlatform() || !Capacitor.isPluginAvailable('WidgetData')) {
             return;
         }
 
-        const widgetCoordinates = coordinates ?? readCachedCoordinates() ?? DEFAULT_COORDINATES;
+        const widgetCoordinates = readCachedCoordinates() ?? coordinates ?? DEFAULT_COORDINATES;
 
         WidgetData.updateData({
             latitude: widgetCoordinates.latitude,
@@ -87,5 +89,5 @@ export function useWidgetSync() {
             fajrQuizEnabled,
             timeFormat,
         }).catch(err => console.error('Failed to sync widget data:', err));
-    }, [coordinates, calculationMethod, prayerOffset, dstMode, widgetTheme, widgetBackgroundColor, language, azanMode, includeIshraq, fajrQuizEnabled, timeFormat]);
+    }, [hasLoadedSettings, coordinates, calculationMethod, prayerOffset, dstMode, widgetTheme, widgetBackgroundColor, language, azanMode, includeIshraq, fajrQuizEnabled, timeFormat]);
 }

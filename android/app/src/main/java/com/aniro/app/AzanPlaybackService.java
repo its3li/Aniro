@@ -16,7 +16,19 @@ import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.provider.Settings;
+import android.view.WindowManager;
+import android.view.Gravity;
+import android.graphics.PixelFormat;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Button;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.Typeface;
+import android.view.View;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -31,6 +43,137 @@ public class AzanPlaybackService extends Service {
     private MediaPlayer mediaPlayer;
     private AudioManager audioManager;
     private AudioFocusRequest audioFocusRequest;
+    private LinearLayout challengeOverlay;
+
+    private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
+
+    private GradientDrawable surface(int fill, int border, int radius) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(fill);
+        drawable.setCornerRadius(dp(radius));
+        drawable.setStroke(dp(1), border);
+        return drawable;
+    }
+
+    private TextView challengeText(String text, int size, int color) {
+        TextView view = new TextView(this);
+        view.setText(text);
+        view.setTextSize(size);
+        view.setTextColor(color);
+        view.setGravity(Gravity.CENTER);
+        view.setFontFeatureSettings("kern");
+        return view;
+    }
+
+    private void showChallengeOverlay() {
+        if (!Settings.canDrawOverlays(this) || challengeOverlay != null) return;
+        challengeOverlay = new LinearLayout(this);
+        challengeOverlay.setOrientation(LinearLayout.VERTICAL);
+        challengeOverlay.setGravity(Gravity.CENTER);
+        challengeOverlay.setPadding(dp(24), dp(32), dp(24), dp(32));
+        challengeOverlay.setBackgroundColor(0xff000000);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setGravity(Gravity.CENTER);
+        int width = Math.min(getResources().getDisplayMetrics().widthPixels - dp(48), dp(400));
+        challengeOverlay.addView(content, new LinearLayout.LayoutParams(width, -2));
+        TextView moon = challengeText("☾", 28, 0xfffcd34d);
+        moon.setBackground(surface(0x1afbbf24, 0x66fcd34d, 28));
+        LinearLayout.LayoutParams moonParams = new LinearLayout.LayoutParams(dp(56), dp(56));
+        moonParams.bottomMargin = dp(16);
+        content.addView(moon, moonParams);
+        TextView title = challengeText("أكمل الآية لإيقاف أذان الفجر", 20, 0xfffcd34d);
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        content.addView(title);
+        TextView subtitle = challengeText("اختر الكلمة الناقصة", 14, 0x8cffffff);
+        LinearLayout.LayoutParams subtitleParams = new LinearLayout.LayoutParams(-1, -2);
+        subtitleParams.topMargin = dp(12);
+        subtitleParams.bottomMargin = dp(32);
+        content.addView(subtitle, subtitleParams);
+        LinearLayout verseCard = new LinearLayout(this);
+        verseCard.setOrientation(LinearLayout.VERTICAL);
+        verseCard.setPadding(dp(24), dp(24), dp(24), dp(24));
+        verseCard.setBackground(surface(0x0dffffff, 0x1affffff, 16));
+        TextView question = challengeText("قُلْ هُوَ اللَّهُ  ؟؟؟", 28, 0xffffffff);
+        question.setTextDirection(View.TEXT_DIRECTION_RTL);
+        question.setLineSpacing(dp(12), 1.2f);
+        verseCard.addView(question);
+        TextView reference = challengeText("سورة الإخلاص - الآية ١", 12, 0x59ffffff);
+        LinearLayout.LayoutParams referenceParams = new LinearLayout.LayoutParams(-1, -2);
+        referenceParams.topMargin = dp(16);
+        verseCard.addView(reference, referenceParams);
+        LinearLayout.LayoutParams verseParams = new LinearLayout.LayoutParams(-1, -2);
+        verseParams.bottomMargin = dp(32);
+        content.addView(verseCard, verseParams);
+        java.util.List<String> choices = new java.util.ArrayList<>(java.util.Arrays.asList("أَحَدٌ", "الصَّمَدُ", "الْفَلَقِ", "النَّاسِ"));
+        java.util.Collections.shuffle(choices);
+        java.util.List<TextView> buttons = new java.util.ArrayList<>();
+        TextView feedback = challengeText("", 16, 0xfffde68a);
+        for (int rowIndex = 0; rowIndex < 2; rowIndex++) {
+            LinearLayout row = new LinearLayout(this);
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
+            rowParams.bottomMargin = dp(12);
+            content.addView(row, rowParams);
+            for (int column = 0; column < 2; column++) {
+            String choice = choices.get(rowIndex * 2 + column);
+            TextView button = challengeText(choice, 22, 0xffffffff);
+            button.setPadding(dp(16), dp(16), dp(16), dp(16));
+            button.setBackground(surface(0x0dffffff, 0x1affffff, 12));
+            button.setClickable(true);
+            buttons.add(button);
+            button.setOnClickListener(view -> {
+                for (TextView item : buttons) item.setEnabled(false);
+                if ("أَحَدٌ".equals(choice)) {
+                    button.setBackground(surface(0x26fbbf24, 0xfffcd34d, 12));
+                    button.setTextColor(0xfffde68a);
+                    question.setText("قُلْ هُوَ اللَّهُ أَحَدٌ");
+                    verseCard.setBackground(surface(0x1afbbf24, 0x99fbbf24, 16));
+                    feedback.setText("أحسنت! إجابة صحيحة\nجاري إيقاف الأذان...");
+                    handler.postDelayed(() -> {
+                        AzanSchedulerHelper.clearPendingFajrChallenge(this);
+                        removeChallengeOverlay();
+                        stopPlayback();
+                        stopSelf();
+                    }, 900);
+                } else {
+                    button.setBackground(surface(0x33ef4444, 0xffef4444, 12));
+                    button.animate().translationX(dp(8)).setDuration(80).withEndAction(() ->
+                        button.animate().translationX(0).setDuration(100).start()).start();
+                    handler.postDelayed(() -> {
+                        button.setBackground(surface(0x0dffffff, 0x1affffff, 12));
+                        for (TextView item : buttons) item.setEnabled(true);
+                    }, 650);
+                }
+            });
+            LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(0, -2, 1);
+            if (column == 0) buttonParams.rightMargin = dp(12);
+            row.addView(button, buttonParams);
+            }
+        }
+        content.addView(feedback);
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(-1, -1,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT);
+        try {
+            ((WindowManager) getSystemService(WINDOW_SERVICE)).addView(challengeOverlay, params);
+        } catch (RuntimeException exception) {
+            challengeOverlay = null;
+            Log.w(TAG, "Unable to show challenge overlay", exception);
+        }
+    }
+
+    private void removeChallengeOverlay() {
+        if (challengeOverlay == null) return;
+        try { ((WindowManager) getSystemService(WINDOW_SERVICE)).removeView(challengeOverlay); }
+        catch (RuntimeException ignored) { }
+        challengeOverlay = null;
+    }
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable playbackTimeout = () -> {
+        stopPlayback();
+        // Keep the notification and overlay until the pending question is solved.
+    };
     private int previousInterruptionFilter = NotificationManager.INTERRUPTION_FILTER_UNKNOWN;
 
     @Override
@@ -57,6 +200,13 @@ public class AzanPlaybackService extends Service {
         }
 
         startPlayback(requireChallenge);
+        if (requireChallenge && mediaPlayer != null && mediaPlayer.isPlaying()) {
+            long prayerTime = intent.getLongExtra(AzanSchedulerHelper.EXTRA_PRAYER_TIME, System.currentTimeMillis());
+            AzanSchedulerHelper.markPendingFajrChallenge(this, prayerName, prayerTime);
+            // Bound audio duration while retaining the unanswered question.
+            handler.postDelayed(playbackTimeout, 10L * 60L * 1000L);
+            showChallengeOverlay();
+        }
         return START_NOT_STICKY;
     }
 
@@ -68,6 +218,7 @@ public class AzanPlaybackService extends Service {
 
     @Override
     public void onDestroy() {
+        removeChallengeOverlay();
         stopPlayback();
         super.onDestroy();
     }
@@ -130,6 +281,7 @@ public class AzanPlaybackService extends Service {
     }
 
     private void stopPlayback() {
+        handler.removeCallbacks(playbackTimeout);
         if (mediaPlayer != null) {
             try {
                 if (mediaPlayer.isPlaying()) {
@@ -256,7 +408,12 @@ public class AzanPlaybackService extends Service {
         }
 
         previousInterruptionFilter = notificationManager.getCurrentInterruptionFilter();
-        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL);
+        try {
+            notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL);
+        } catch (SecurityException exception) {
+            previousInterruptionFilter = NotificationManager.INTERRUPTION_FILTER_UNKNOWN;
+            Log.w(TAG, "DND access was revoked", exception);
+        }
     }
 
     private void restoreInterruptionFilter() {
@@ -270,7 +427,11 @@ public class AzanPlaybackService extends Service {
 
         NotificationManager notificationManager = getSystemService(NotificationManager.class);
         if (notificationManager != null && notificationManager.isNotificationPolicyAccessGranted()) {
-            notificationManager.setInterruptionFilter(previousInterruptionFilter);
+            try {
+                notificationManager.setInterruptionFilter(previousInterruptionFilter);
+            } catch (SecurityException exception) {
+                Log.w(TAG, "Unable to restore DND after access was revoked", exception);
+            }
         }
         previousInterruptionFilter = NotificationManager.INTERRUPTION_FILTER_UNKNOWN;
     }

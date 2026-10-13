@@ -5,8 +5,9 @@ import { CategoryGrid } from '@/components/azkar/category-grid';
 import { azkarData, type AzkarCategory, type AzkarItem } from '@/lib/azkar';
 import { ZikrCard } from '@/components/azkar/zikr-card'; // Changed export name to match file
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon as ArrowLeft } from '@/components/icons/interface-icons';
 import { useSettings } from '@/components/providers/settings-provider';
+import { PageHeading } from '@/components/page-heading';
 
 function findCategoryPath(root: AzkarCategory, categoryId: string): AzkarCategory[] | null {
   if (root.id === categoryId) return [root];
@@ -62,15 +63,16 @@ export default function AzkarPage() {
   const parentName = parentLevel ? (isArabic ? parentLevel.nameAr : parentLevel.name) : '';
 
   return (
-    <div className="px-4 pt-4 pb-20 animate-fade-in min-h-screen">
+    <div className="app-page azkar-page animate-fade-in">
+      {navigationStack.length === 1 && <PageHeading title="Remember, every day" titleAr="ذكرٌ يرافق يومك" description="For the morning, the evening, and the moments between." descriptionAr="للصباح والمساء، ولحظاتك بينهما." />}
       <div className="flex items-center gap-3 mb-6">
         {navigationStack.length > 1 && (
-          <Button variant="ghost" size="icon" onClick={handleBack} className="bg-card border border-border h-10 w-10 rounded-xl shrink-0">
-            <ArrowLeft className="w-5 h-5" />
+          <Button variant="ghost" size="icon" onClick={handleBack} aria-label={isArabic ? 'رجوع' : 'Back'} className="bg-card border border-border h-11 w-11 rounded-xl shrink-0">
+            <ArrowLeft className={isArabic ? 'w-5 h-5 rotate-180' : 'w-5 h-5'} />
           </Button>
         )}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{currentName}</h1>
+          <h2 className="text-base font-semibold tracking-tight">{currentName}</h2>
           {parentLevel && <p className="text-sm text-muted-foreground">{parentName}</p>}
         </div>
       </div>

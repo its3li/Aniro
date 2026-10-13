@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CloudSun, MapPin, MoonStar, RefreshCw, Sun, SunMedium, Sunrise, Sunset } from "lucide-react";
+import { CloudSunIcon as CloudSun } from '@/components/icons/interface-icons';
+import { MapPinAreaIcon as MapPin } from '@/components/icons/interface-icons';
+import { MoonStarsIcon as MoonStar } from '@/components/icons/interface-icons';
+import { ArrowsClockwiseIcon as RefreshCw } from '@/components/icons/interface-icons';
+import { SunIcon as Sun } from '@/components/icons/interface-icons';
+import { SunHorizonIcon as SunMedium } from '@/components/icons/interface-icons';
+import { SunHorizonIcon as Sunrise } from '@/components/icons/interface-icons';
+import { SunHorizonIcon as Sunset } from '@/components/icons/interface-icons';
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassCardContent, GlassCardHeader } from "../glass-card";
 import {
@@ -28,6 +35,22 @@ const arDigits = "٠١٢٣٤٥٦٧٨٩";
 
 type DisplayPrayer = Pick<NextPrayer, "name" | "date">;
 
+function PrayerCountdown({ date, isArabic }: { date: Date; isArabic: boolean }) {
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const tick = () => { if (!document.hidden) setNow(Date.now()); };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', tick);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', tick); };
+  }, []);
+  const diff = Math.max(0, date.getTime() - now);
+  const digits = [Math.floor(diff / 3_600_000), Math.floor((diff % 3_600_000) / 60_000), Math.floor((diff % 60_000) / 1000)]
+    .map(part => String(part).padStart(2, '0')).join(':');
+  const value = !now ? '' : diff === 0 ? (isArabic ? 'الآن' : 'Now') : isArabic ? digits.replace(/\d/g, digit => arDigits[Number(digit)]) : digits;
+  return <p dir="ltr" className="countdown-digits">{value}</p>;
+}
+
 export function NextPrayerCard() {
   const { settings } = useSettings();
   const { coordinates, displayName, isLoading, refreshLocation } = useLocation();
@@ -36,11 +59,6 @@ export function NextPrayerCard() {
   const [minuteTick, setMinuteTick] = useState(0);
   const [nowTime, setNowTime] = useState(0);
   const [selectedPrayer, setSelectedPrayer] = useState<{ name: string; expiresAt: number } | null>(null);
-
-  const localizeDigits = useCallback(
-    (value: string) => isArabic ? value.replace(/\d/g, (digit) => arDigits[Number(digit)]) : value,
-    [isArabic]
-  );
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setIsClientReady(true), 0);
@@ -54,7 +72,7 @@ export function NextPrayerCard() {
 
   useEffect(() => {
     const initialTickId = window.setTimeout(() => setNowTime(Date.now()), 0);
-    const intervalId = window.setInterval(() => setNowTime(Date.now()), 1000);
+    const intervalId = window.setInterval(() => setNowTime(Date.now()), 60000);
     return () => {
       window.clearTimeout(initialTickId);
       window.clearInterval(intervalId);
@@ -62,6 +80,7 @@ export function NextPrayerCard() {
   }, []);
 
   const prayerTimes = useMemo(() => {
+    void minuteTick;
     const totalOffset = getTotalOffset(settings.prayerOffset, settings.dstMode);
     return getPrayerTimes(
       new Date(),
@@ -77,6 +96,7 @@ export function NextPrayerCard() {
     settings.dstMode,
     settings.calculationMethod,
     settings.includeIshraq,
+    minuteTick,
   ]);
 
   const nextPrayer = useMemo<NextPrayer | null>(() => {
@@ -130,22 +150,6 @@ export function NextPrayerCard() {
     return nextPrayer;
   }, [nextPrayer, nowTime, prayerTimes, selectedPrayer]);
 
-  const countdown = useMemo(() => {
-    if (!isClientReady || !displayPrayer) return "";
-    if (!nowTime) return "";
-
-    const diff = displayPrayer.date.getTime() - nowTime;
-    if (diff <= 0) return isArabic ? "الآن" : "Now";
-
-    const hours = Math.floor(diff / 3_600_000);
-    const minutes = Math.floor((diff % 3_600_000) / 60_000);
-    const seconds = Math.floor((diff % 60_000) / 1000);
-
-    return localizeDigits(
-      `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
-    );
-  }, [displayPrayer, isClientReady, isArabic, localizeDigits, nowTime]);
-
   if (!isClientReady || !nextPrayer || !displayPrayer || prayerTimes.length === 0) {
     return <div className="premium-panel h-48 w-full animate-pulse rounded-lg" />;
   }
@@ -162,7 +166,7 @@ export function NextPrayerCard() {
     : (isArabic ? "الصلاة التالية" : "Next Prayer");
 
   return (
-    <GlassCard className="overflow-hidden">
+    <GlassCard className="prayer-panel overflow-hidden">
       <GlassCardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -173,7 +177,7 @@ export function NextPrayerCard() {
               <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
                 {prayerStatusLabel}
               </p>
-              <h2 className="truncate text-2xl font-bold leading-tight" title={prayerStatusLabel}>{nextPrayerName}</h2>
+              <h2 className="text-2xl font-bold leading-relaxed" title={prayerStatusLabel}>{nextPrayerName}</h2>
               <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
                 <MapPin className="h-3 w-3 shrink-0" />
                 <span className="truncate">{locationLabel}</span>
@@ -194,24 +198,22 @@ export function NextPrayerCard() {
       </GlassCardHeader>
 
       <GlassCardContent className="space-y-3">
-        <div className="rounded-lg bg-accent/10 px-4 py-3">
+        <div className="prayer-countdown">
           <div className="flex items-end justify-between gap-3">
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 {isArabic ? "متبقي على الأذان" : "Time remaining"}
               </p>
-              <p className="mt-1 font-mono text-4xl font-black leading-none tabular-nums text-accent dark:text-primary">
-                {countdown}
-              </p>
+              <PrayerCountdown date={displayPrayer.date} isArabic={isArabic} />
             </div>
-            <div className="text-end">
+            <div className="prayer-azan-time text-end">
               <p className="text-xs text-muted-foreground">{isArabic ? "وقت الأذان" : "Azan time"}</p>
               <p className="text-lg font-bold">{formatPrayerTime(displayPrayer.date)}</p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+        <div className="prayer-timeline" style={{ gridTemplateColumns: 'repeat(' + prayerTimes.length + ', minmax(0, 1fr))' }}>
           {prayerTimes.map((prayer) => {
             const isNext = prayer.name === nextPrayer.name;
             const isSelected = isShowingSelectedPrayer && prayer.name === displayPrayer.name;

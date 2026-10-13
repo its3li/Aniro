@@ -1,6 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { App } from '@capacitor/app';
+import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
+import { useLocation } from './use-location';
+
+const NativeCompass = registerPlugin<{
+    start(options: { latitude: number; longitude: number }): Promise<void>;
+    stop(): Promise<void>;
+    addListener(event: 'heading', listener: (value: { heading: number }) => void): Promise<PluginListenerHandle>;
+}>('Compass');
 
 interface CompassState {
     /** Device heading in degrees (0-360, 0 = North). null if unavailable. */
@@ -46,6 +55,9 @@ function removeOrientationListener(
  * Handles iOS permission requests and Android auto-fire.
  */
 export function useCompass() {
+    const { coordinates } = useLocation();
+    const latitude = coordinates?.latitude ?? 0;
+    const longitude = coordinates?.longitude ?? 0;
     const [state, setState] = useState<CompassState>({
         heading: null,
         isSupported: false,
@@ -67,7 +79,7 @@ export function useCompass() {
             heading = webkitEvent.webkitCompassHeading;
         } else if (isAbsoluteEvent && event.alpha !== null) {
             heading = 360 - event.alpha;
-        } else if (!isAbsoluteRef.current && event.alpha !== null) {
+        } else if (!isAbsoluteRef.current && event.absolute && event.alpha !== null) {
             heading = 360 - event.alpha;
         }
 
@@ -114,6 +126,36 @@ export function useCompass() {
     }, [handleOrientation]);
 
     useEffect(() => {
+        if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Compass')) {
+            let cancelled = false;
+            let sensorListener: PluginListenerHandle | undefined;
+            let appListener: PluginListenerHandle | undefined;
+            const start = async () => {
+                try {
+                    await NativeCompass.start({ latitude, longitude });
+                } catch {
+                    if (!cancelled) setState(prev => ({ ...prev, heading: null, isSupported: false, error: 'Compass sensor unavailable' }));
+                }
+            };
+            void (async () => {
+                sensorListener = await NativeCompass.addListener('heading', ({ heading }) => {
+                    if (!cancelled) setState({ heading, isSupported: true, hasPermission: true, error: null });
+                });
+                if (cancelled) { await sensorListener.remove(); return; }
+                await start();
+                appListener = await App.addListener('appStateChange', ({ isActive }) => {
+                    if (isActive) void start();
+                    else void NativeCompass.stop();
+                });
+                if (cancelled) { await appListener.remove(); await NativeCompass.stop(); }
+            })();
+            return () => {
+                cancelled = true;
+                void sensorListener?.remove();
+                void appListener?.remove();
+                void NativeCompass.stop();
+            };
+        }
         if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) {
             const timeoutId = globalThis.setTimeout(() => {
                 setState(prev => ({
@@ -137,7 +179,7 @@ export function useCompass() {
 
         let received = false;
         const testHandler = (event: DeviceOrientationEvent) => {
-            if (event.alpha !== null) {
+            if (event.type === 'deviceorientationabsolute' || event.absolute || (event as WebKitDeviceOrientationEvent).webkitCompassHeading !== undefined) {
                 received = true;
                 setState(prev => ({ ...prev, isSupported: true, hasPermission: true }));
                 handleOrientation(event);
@@ -148,9 +190,6 @@ export function useCompass() {
         addOrientationListener('deviceorientation', testHandler);
 
         const timeoutId = window.setTimeout(() => {
-            removeOrientationListener('deviceorientationabsolute', testHandler);
-            removeOrientationListener('deviceorientation', testHandler);
-
             if (!received) {
                 setState(prev => ({
                     ...prev,
@@ -160,8 +199,7 @@ export function useCompass() {
                 return;
             }
 
-            addOrientationListener('deviceorientationabsolute', handleOrientation);
-            addOrientationListener('deviceorientation', handleOrientation);
+            // Keep listening: some Android sensors initialize after the timeout.
         }, 1000);
 
         return () => {
@@ -171,7 +209,7 @@ export function useCompass() {
             removeOrientationListener('deviceorientation', handleOrientation);
             removeOrientationListener('deviceorientationabsolute', handleOrientation);
         };
-    }, [handleOrientation]);
+    }, [handleOrientation, latitude, longitude]);
 
     return { ...state, requestPermission };
 }

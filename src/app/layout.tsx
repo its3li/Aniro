@@ -10,7 +10,6 @@ import { AudioPlayerProvider } from '@/components/providers/audio-player-provide
 import { GlobalPlayer } from '@/components/global-player';
 import { LoadingProvider } from '@/components/providers/loading-provider';
 import { AppContent } from '@/components/providers/app-content';
-import { SilentDownloadProvider } from '@/components/providers/silent-download-provider';
 import { OnboardingGate } from '@/components/onboarding-gate';
 
 export const metadata: Metadata = {
@@ -26,6 +25,8 @@ const quranFont = localFont({
   variable: '--font-quran-local',
   display: 'swap',
 });
+const uiFont = localFont({ src: '../../public/fonts/manrope.ttf', variable: '--font-ui', display: 'swap' });
+const arabicUiFont = localFont({ src: '../../public/fonts/ui-arabic.ttf', variable: '--font-ui-arabic', display: 'swap' });
 
 export default function RootLayout({
   children,
@@ -35,7 +36,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         {/* Blocking script: apply dark mode BEFORE React hydration to prevent white flash */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {
@@ -57,7 +58,7 @@ export default function RootLayout({
           })();
         `}} />
       </head>
-      <body className={cn(quranFont.variable, 'font-body antialiased bg-background min-h-screen')}>
+      <body className={cn(quranFont.variable, uiFont.variable, arabicUiFont.variable, 'font-body antialiased bg-background min-h-screen')}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -67,10 +68,10 @@ export default function RootLayout({
           <SettingsProvider>
             <LoadingProvider>
               <AudioPlayerProvider>
-                <SilentDownloadProvider>
                   <AppContent>
                     <div className="app-shell fixed inset-0 -z-10" aria-hidden="true" />
-                    <main className="pb-[4.5rem] safe-area-top" style={{ paddingBottom: 'calc(4.5rem + var(--safe-area-bottom, 0px))' }}>
+                    <a href="#app-main" className="skip-link">Skip to content</a>
+                    <main id="app-main" className="app-main safe-area-top">
                       {children}
                     </main>
                     <GlobalPlayer />
@@ -79,7 +80,6 @@ export default function RootLayout({
                     <Toaster />
                     <UpdateDialog />
                   </AppContent>
-                </SilentDownloadProvider>
               </AudioPlayerProvider>
             </LoadingProvider>
           </SettingsProvider>

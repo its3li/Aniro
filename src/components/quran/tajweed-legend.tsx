@@ -23,7 +23,7 @@ export function TajweedLegend() {
 
     return (
         <div
-            className="w-full overflow-x-auto whitespace-nowrap py-2.5 px-4 bg-background/95 backdrop-blur-md border-t border-border/50 flex items-center gap-4 no-scrollbar"
+            className="w-full overflow-x-auto whitespace-nowrap py-2 px-4 bg-background border-b border-border/50 flex items-center gap-4 no-scrollbar"
             dir={isArabic ? 'rtl' : 'ltr'}
         >
             {legendItems.map((item, idx) => (

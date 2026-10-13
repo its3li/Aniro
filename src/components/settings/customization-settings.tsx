@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useSettings } from "../providers/settings-provider";
 import { Button } from "../ui/button";
-import { Minus, Plus } from "lucide-react";
+import { MinusIcon as Minus } from '@/components/icons/interface-icons';
+import { PlusIcon as Plus } from '@/components/icons/interface-icons';
 import {
   Select,
   SelectContent,

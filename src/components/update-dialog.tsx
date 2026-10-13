@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -12,7 +12,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Download, ExternalLink, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
+import { DownloadSimpleIcon as Download } from '@/components/icons/interface-icons';
+import { ArrowSquareOutIcon as ExternalLink } from '@/components/icons/interface-icons';
+import { SpinnerGapIcon as Loader2 } from '@/components/icons/interface-icons';
+import { ArrowsClockwiseIcon as RefreshCw } from '@/components/icons/interface-icons';
+import { ShieldCheckIcon as ShieldCheck } from '@/components/icons/interface-icons';
 import { UPDATE_DIALOG_EVENT, checkForUpdate, getUpdateUrl, type UpdateInfo } from '@/lib/app-update';
 import {
   canUseNativeApkUpdater,
@@ -67,6 +71,9 @@ function formatBytes(value: number) {
 }
 
 export function UpdateDialog() {
+  const activeUpdateRef = useRef<UpdateInfo | null>(null);
+  const checkingRef = useRef(false);
+  const continuingRef = useRef(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [status, setStatus] = useState<UpdateStatus>('idle');
   const [progress, setProgress] = useState<ApkDownloadProgress | null>(null);
@@ -80,6 +87,8 @@ export function UpdateDialog() {
   const isBusy = status === 'downloading' || status === 'installing';
 
   const openUpdate = useCallback((update: UpdateInfo) => {
+    if (activeUpdateRef.current?.versionCode === update.versionCode) return;
+    activeUpdateRef.current = update;
     setUpdateInfo(update);
     setStatus('idle');
     setProgress(null);
@@ -88,11 +97,15 @@ export function UpdateDialog() {
   }, []);
 
   const runCheck = useCallback(async () => {
+    if (activeUpdateRef.current || checkingRef.current) return;
+    checkingRef.current = true;
     try {
       const update = await checkForUpdate();
       if (update) openUpdate(update);
     } catch (error) {
       console.error('Update check failed:', error);
+    } finally {
+      checkingRef.current = false;
     }
   }, [openUpdate]);
 
@@ -132,6 +145,7 @@ export function UpdateDialog() {
     void NativeApkUpdate.addListener('downloadProgress', event => {
       if (isMounted) setProgress(event);
     }).then(listener => {
+      if (!isMounted) { void listener.remove(); return; }
       removeListener = () => {
         void listener.remove();
       };
@@ -152,6 +166,7 @@ export function UpdateDialog() {
 
   const handleLater = useCallback(() => {
     if (isBusy || updateInfo?.forceUpdate) return;
+    activeUpdateRef.current = null;
     setUpdateInfo(null);
     setStatus('idle');
     setProgress(null);
@@ -228,15 +243,24 @@ export function UpdateDialog() {
     if (!nativeUpdaterAvailable || status !== 'permission') return;
 
     const continueAfterPermission = async () => {
-      if (document.visibilityState !== 'visible') return;
-      const permission = await NativeApkUpdate.canInstallPackages();
-      if (!permission.canInstall) return;
+      if (document.visibilityState !== 'visible' || continuingRef.current) return;
+      continuingRef.current = true;
+      try {
+        const permission = await NativeApkUpdate.canInstallPackages();
+        if (!permission.canInstall) return;
 
-      if (downloadedFileName) {
-        await handleInstall(downloadedFileName);
-      } else {
-        setStatus('idle');
-        await handleUpdate();
+        if (downloadedFileName) {
+          await handleInstall(downloadedFileName);
+        } else {
+          setStatus('idle');
+          await handleUpdate();
+        }
+      } catch (error) {
+        console.error('Failed to resume update:', error);
+        setUpdateError('generic');
+        setStatus('error');
+      } finally {
+        continuingRef.current = false;
       }
     };
 
@@ -248,6 +272,14 @@ export function UpdateDialog() {
       window.removeEventListener('focus', continueAfterPermission);
     };
   }, [downloadedFileName, handleInstall, handleUpdate, nativeUpdaterAvailable, status]);
+
+  // Android may return here after the user cancels its installer.
+  useEffect(() => {
+    if (status !== 'installing') return;
+    const handleReturn = () => { if (document.visibilityState === 'visible') setStatus('idle'); };
+    document.addEventListener('visibilitychange', handleReturn);
+    return () => document.removeEventListener('visibilitychange', handleReturn);
+  }, [status]);
 
   if (!updateInfo) return null;
 
@@ -321,7 +353,7 @@ export function UpdateDialog() {
               {copy.permissionButton}
             </Button>
           ) : downloadedFileName && status === 'error' ? (
-            <Button onClick={() => void handleInstall(downloadedFileName)} className="w-full gap-2 sm:w-auto">
+            <Button onClick={() => void handleUpdate()} className="w-full gap-2 sm:w-auto">
               <Download className="h-4 w-4" />
               {copy.updateNow}
             </Button>

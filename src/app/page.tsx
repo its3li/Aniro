@@ -16,11 +16,11 @@ export default function Home() {
   }, [refreshLastRead]);
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 pt-4 animate-fade-in">
+    <div className="app-page home-page animate-fade-in">
       <WelcomeHeader />
       <NextPrayerCard />
-      <CurrentAzkarCard />
       <LastReadCard />
+      <CurrentAzkarCard />
       <DailyWisdomCard />
     </div>
   );

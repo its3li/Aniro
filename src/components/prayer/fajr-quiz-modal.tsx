@@ -1,12 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { generateQuizQuestion } from '@/lib/fajr-quiz-verses';
+import { generateQuizQuestion, quizVerses } from '@/lib/fajr-quiz-verses';
 import { cn } from '@/lib/utils';
 
 interface FajrQuizModalProps {
   open: boolean;
-  onSolved: () => void;
+  onSolved: () => void | Promise<void>;
+  challengeId?: number;
+  nativeChallenge?: boolean;
 }
 
 const COPY = {
@@ -19,7 +21,7 @@ const COPY = {
   placeholder: '\u061f\u061f\u061f',
 };
 
-export function FajrQuizModal({ open, onSolved }: FajrQuizModalProps) {
+export function FajrQuizModal({ open, onSolved, challengeId, nativeChallenge }: FajrQuizModalProps) {
   const [quiz, setQuiz] = useState(() => generateQuizQuestion());
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [isWrong, setIsWrong] = useState(false);
@@ -28,19 +30,31 @@ export function FajrQuizModal({ open, onSolved }: FajrQuizModalProps) {
   const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      if (solveTimeoutRef.current) clearTimeout(solveTimeoutRef.current);
+      if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
+      return;
+    }
 
     const timeoutId = window.setTimeout(() => {
       if (solveTimeoutRef.current) clearTimeout(solveTimeoutRef.current);
       if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
-      setQuiz(generateQuizQuestion());
+      // Match the native overlay question so switching apps cannot change it.
+      if (nativeChallenge) {
+        const verse = quizVerses.find(item => item.surah === 112 && item.ayah === 1)!;
+        setQuiz({ verse, missingIndex: 3, correctWord: verse.words[3],
+          displayWords: [...verse.words.slice(0, 3), '______'],
+          choices: [verse.words[3], quizVerses.find(item => item.surah === 112 && item.ayah === 2)!.words[1],
+            quizVerses.find(item => item.surah === 113 && item.ayah === 1)!.words[3],
+            quizVerses.find(item => item.surah === 114 && item.ayah === 1)!.words[3]] });
+      } else setQuiz(generateQuizQuestion());
       setSelectedChoice(null);
       setIsWrong(false);
       setIsSolved(false);
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [open]);
+  }, [open, challengeId, nativeChallenge]);
 
   useEffect(() => {
     return () => {
@@ -50,13 +64,19 @@ export function FajrQuizModal({ open, onSolved }: FajrQuizModalProps) {
   }, []);
 
   const handleChoice = useCallback((word: string) => {
-    if (isSolved) return;
+    if (isSolved || isWrong) return;
 
     setSelectedChoice(word);
 
     if (word === quiz.correctWord) {
       setIsSolved(true);
-      solveTimeoutRef.current = setTimeout(onSolved, 900);
+      solveTimeoutRef.current = setTimeout(() => {
+        void Promise.resolve().then(onSolved).catch(() => {
+          // Keep the challenge retryable when the native stop call fails.
+          setIsSolved(false);
+          setSelectedChoice(null);
+        });
+      }, 900);
       return;
     }
 
@@ -65,7 +85,7 @@ export function FajrQuizModal({ open, onSolved }: FajrQuizModalProps) {
       setIsWrong(false);
       setSelectedChoice(null);
     }, 650);
-  }, [isSolved, onSolved, quiz.correctWord]);
+  }, [isSolved, isWrong, onSolved, quiz.correctWord]);
 
   if (!open) return null;
 
@@ -138,7 +158,7 @@ export function FajrQuizModal({ open, onSolved }: FajrQuizModalProps) {
                 key={`${choice}-${index}`}
                 type="button"
                 onClick={() => handleChoice(choice)}
-                disabled={isSolved}
+                disabled={isSolved || isWrong}
                 className={cn(
                   'rounded-xl border px-4 py-4 font-quran text-lg transition-all duration-200 active:scale-95',
                   isCorrectChoice

@@ -6,11 +6,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
 
 import androidx.core.content.ContextCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -20,14 +22,26 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 
 @CapacitorPlugin(name = "Azan")
 public class AzanPlugin extends Plugin {
+    @PluginMethod
+    public void requestChallengeOverlay(PluginCall call) {
+        Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:" + getContext().getPackageName()));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(intent);
+        call.resolve();
+    }
+
 
     @PluginMethod
     public void checkStatus(PluginCall call) {
         JSObject result = new JSObject();
         result.put("exactAlarm", AzanSchedulerHelper.canScheduleExactAlarms(getContext()));
+        result.put("challengeOverlay", Settings.canDrawOverlays(getContext()));
         result.put("notifications", canPostNotifications(getContext()));
         result.put("notificationPolicyAccess", hasNotificationPolicyAccess(getContext()));
         result.put("ignoringBatteryOptimizations", isIgnoringBatteryOptimizations(getContext()));
+        AudioManager audio = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+        result.put("alarmVolume", audio != null ? audio.getStreamVolume(AudioManager.STREAM_ALARM) : 0);
         call.resolve(result);
     }
 
@@ -153,9 +167,8 @@ public class AzanPlugin extends Plugin {
     }
 
     private void stopAzanPlayback(Context context) {
-        Intent intent = new Intent(context, AzanPlaybackService.class);
-        intent.setAction(AzanPlaybackService.ACTION_STOP);
-        context.startService(intent);
+        AzanSchedulerHelper.clearPendingFajrChallenge(context);
+        context.stopService(new Intent(context, AzanPlaybackService.class));
     }
 
     private void openAppSettings(PluginCall call) {
@@ -171,8 +184,9 @@ public class AzanPlugin extends Plugin {
     }
 
     private boolean canPostNotifications(Context context) {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
-                || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+        return NotificationManagerCompat.from(context).areNotificationsEnabled()
+                && (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED);
     }
 
     private boolean hasNotificationPolicyAccess(Context context) {

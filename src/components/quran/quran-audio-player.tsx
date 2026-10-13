@@ -2,7 +2,12 @@
 
 import { GlassCard } from '../glass-card';
 import { Button } from '../ui/button';
-import { BookOpenText, Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
+import { BookOpenTextIcon as BookOpenText } from '@/components/icons/interface-icons';
+import { PauseIcon as Pause } from '@/components/icons/interface-icons';
+import { PlayIcon as Play } from '@/components/icons/interface-icons';
+import { SkipBackIcon as SkipBack } from '@/components/icons/interface-icons';
+import { SkipForwardIcon as SkipForward } from '@/components/icons/interface-icons';
+import { XIcon as X } from '@/components/icons/interface-icons';
 import { Slider } from '../ui/slider';
 import { useSettings } from '../providers/settings-provider';
 import { useAudioPlayer } from '../providers/audio-player-provider';
@@ -50,7 +55,7 @@ export function QuranAudioPlayer() {
       : '';
 
   return (
-    <GlassCard className="w-full animate-fade-slide-in p-4">
+    <GlassCard className="audio-dock w-full animate-fade-slide-in p-4">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-headline font-bold">{surahName}</h3>
@@ -73,7 +78,7 @@ export function QuranAudioPlayer() {
           >
             <BookOpenText className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={handlePlayerClose} className="rounded-full">
+          <Button variant="ghost" size="icon" onClick={handlePlayerClose} className="rounded-full" aria-label={isArabic ? 'إغلاق المشغل' : 'Close player'}>
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -92,14 +97,14 @@ export function QuranAudioPlayer() {
 
       <div className="mt-2 flex items-center justify-center">
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={handlePrev} className="rounded-full">
-            <SkipBack />
+          <Button variant="ghost" size="icon" onClick={handlePrev} className="rounded-full" aria-label={isArabic ? 'الآية السابقة' : 'Previous ayah'}>
+            <SkipBack weight="fill" />
           </Button>
-          <Button size="icon" onClick={handlePlayPause} className="h-12 w-12 rounded-full">
-            {isPlaying ? <Pause /> : <Play />}
+          <Button size="icon" onClick={handlePlayPause} className="h-12 w-12 rounded-full" aria-label={isPlaying ? (isArabic ? 'إيقاف مؤقت' : 'Pause') : (isArabic ? 'تشغيل' : 'Play')}>
+            {isPlaying ? <Pause weight="fill" /> : <Play weight="fill" />}
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleNext} className="rounded-full">
-            <SkipForward />
+          <Button variant="ghost" size="icon" onClick={handleNext} className="rounded-full" aria-label={isArabic ? 'الآية التالية' : 'Next ayah'}>
+            <SkipForward weight="fill" />
           </Button>
         </div>
       </div>

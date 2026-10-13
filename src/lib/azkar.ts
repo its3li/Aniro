@@ -10,7 +10,7 @@ export interface AzkarCategory {
     id: string;
     name: string;
     nameAr: string;
-    icon: string; // Name of the lucide-react icon
+    icon: string; // Category symbol key
     color: string; // Tailwind CSS gradient class
     subCategories?: AzkarCategory[];
     items?: AzkarItem[];

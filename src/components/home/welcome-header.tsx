@@ -3,6 +3,8 @@
 import { useMemo } from 'react';
 import { useSettings, type Language } from '../providers/settings-provider';
 import { pickLanguage } from '@/lib/i18n';
+import Link from 'next/link';
+import { SlidersHorizontalIcon as SlidersHorizontal } from '@/components/icons/interface-icons';
 
 const hijriMonths: Record<Language, string[]> = {
   ar: ['محرم', 'صفر', 'ربيع الأول', 'ربيع الآخر', 'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'],
@@ -64,12 +66,16 @@ export function WelcomeHeader() {
   });
 
   return (
-    <header className="py-1.5 text-center">
-      <h1 className="font-quran text-[1.7rem] font-semibold leading-relaxed tracking-normal text-foreground">
+    <header className="home-heading">
+      <div className="flex items-center justify-between mb-6">
+        <Link href="/" className="brand-wordmark" data-arabic={settings.language === 'ar'}>{settings.language === 'ar' ? 'أنيرو' : 'aniro'}<span>.</span></Link>
+        <Link href="/settings" className="heading-settings" aria-label={settings.language === 'ar' ? 'الإعدادات' : 'Settings'}><SlidersHorizontal size={20} strokeWidth={1.5} /></Link>
+      </div>
+      <h1 className="text-[1.5rem] font-semibold leading-relaxed tracking-normal text-foreground">
         {greeting}
       </h1>
       {hijriDate && (
-        <p className="mt-0.5 text-xs font-medium text-muted-foreground" dir="auto">
+        <p className="mt-2 text-sm font-medium text-muted-foreground" dir="auto">
           {hijriDate}
         </p>
       )}

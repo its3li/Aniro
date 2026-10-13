@@ -66,11 +66,16 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/daily_prayers_widget_info" />
         </receiver>
+    <receiver android:name=".PrayerCompactWidgetProvider" android:exported="true" android:label="@string/prayer_compact_info_name"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/><action android:name="com.aniro.app.UPDATE_PRAYER_WIDGET"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/prayer_compact_info"/></receiver>
+    <receiver android:name=".PrayerWideWidgetProvider" android:exported="true" android:label="@string/prayer_wide_info_name"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/><action android:name="com.aniro.app.UPDATE_PRAYER_WIDGET"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/prayer_wide_info"/></receiver>
+    <receiver android:name=".DailyAgendaWidgetProvider" android:exported="true" android:label="@string/daily_agenda_info_name"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/><action android:name="com.aniro.app.UPDATE_PRAYER_WIDGET"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/daily_agenda_info"/></receiver>
+    <receiver android:name=".DailyLargeWidgetProvider" android:exported="true" android:label="@string/daily_large_info_name"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/><action android:name="com.aniro.app.UPDATE_PRAYER_WIDGET"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/daily_large_info"/></receiver>
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

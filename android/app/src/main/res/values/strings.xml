@@ -8,4 +8,8 @@
     <string name="widget_name">Prayer Times</string>
     <string name="daily_widget_name">Daily Prayers</string>
     <string name="daily_widget_description">Displays all prayer times for the day</string>
+<string name="prayer_compact_info_name">Countdown · compact</string>
+<string name="prayer_wide_info_name">Countdown · wide</string>
+<string name="daily_agenda_info_name">Prayer agenda</string>
+<string name="daily_large_info_name">Prayer day · large</string>
 </resources>

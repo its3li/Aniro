@@ -7,8 +7,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.view.View;
 import android.widget.RemoteViews;
+import android.os.Bundle;
+import android.util.TypedValue;
 
 public class DailyPrayersWidgetProvider extends AppWidgetProvider {
+    @Override
+    public void onAppWidgetOptionsChanged(Context context, AppWidgetManager manager, int id, Bundle options) {
+        updateAppWidget(context, manager, id);
+    }
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         for (int appWidgetId : appWidgetIds) {
@@ -25,7 +31,7 @@ public class DailyPrayersWidgetProvider extends AppWidgetProvider {
             || WidgetHelper.ACTION_UPDATE_WIDGETS.equals(action)
             || WidgetHelper.ACTION_SCHEDULED_UPDATE.equals(action)) {
             AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-            ComponentName componentName = new ComponentName(context, DailyPrayersWidgetProvider.class);
+            ComponentName componentName = new ComponentName(context, getClass());
             onUpdate(context, appWidgetManager, appWidgetManager.getAppWidgetIds(componentName));
         }
     }
@@ -35,7 +41,13 @@ public class DailyPrayersWidgetProvider extends AppWidgetProvider {
         WidgetHelper.PrayerPlan plan = WidgetHelper.getPrayerPlan(settings, new java.util.Date());
         WidgetHelper.WidgetColors colors = WidgetHelper.resolveColors(context, settings);
 
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.daily_prayers_widget);
+        Bundle options = appWidgetManager.getAppWidgetOptions(appWidgetId);
+        int width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 300);
+        int height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 150);
+        boolean agenda = height >= 250;
+        RemoteViews views = new RemoteViews(context.getPackageName(), agenda ? R.layout.daily_prayers_agenda : R.layout.daily_prayers_widget);
+        views.setTextViewTextSize(R.id.widget_countdown, TypedValue.COMPLEX_UNIT_SP, height < 120 ? 22 : 30);
+        views.setViewVisibility(R.id.top_section, height < 110 ? View.GONE : View.VISIBLE);
         WidgetHelper.applyBackground(views, colors);
 
         boolean isArabic = settings.isArabic();
@@ -62,7 +74,11 @@ public class DailyPrayersWidgetProvider extends AppWidgetProvider {
         appWidgetManager.updateAppWidget(appWidgetId, views);
 
         if (plan.next != null) {
-            WidgetHelper.scheduleNextUpdate(context, DailyPrayersWidgetProvider.class, 2001, plan.next.time);
+            android.appwidget.AppWidgetProviderInfo info = appWidgetManager.getAppWidgetInfo(appWidgetId);
+            if (info != null) {
+                try { WidgetHelper.scheduleNextUpdate(context, Class.forName(info.provider.getClassName()), info.provider.hashCode(), plan.next.time); }
+                catch (ClassNotFoundException ignored) { }
+            }
         }
     }
 
@@ -187,7 +203,7 @@ public class DailyPrayersWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(nameId, WidgetHelper.prayerName(entry.key, settings.isArabic()));
         views.setTextViewText(timeId, WidgetHelper.formatTime(entry.time, settings));
 
-        int activeIconColor = isColorLight(colors.fill) ? 0xFF1B1D22 : 0xFFFFFFFF;
+        int activeIconColor = 0xFF1B1D22;
         views.setInt(fillId, "setColorFilter", isActive ? colors.accent : colors.inactiveFill);
         views.setInt(borderId, "setColorFilter", isActive ? colors.border : colors.inactiveBorder);
         views.setInt(iconId, "setColorFilter", isActive ? activeIconColor : colors.inactiveText);

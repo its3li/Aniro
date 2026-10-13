@@ -32,7 +32,7 @@ final class WidgetHelper {
     private static final long HOUR_MS = 60 * MINUTE_MS;
     private static final long DAY_MS = 24 * HOUR_MS;
     private static final int DEFAULT_FILL_COLOR = 0xFF24252B;
-    private static final int DEFAULT_ACCENT_COLOR = 0xFFD4AF37;
+    private static final int DEFAULT_ACCENT_COLOR = 0xFFFFB52E;
 
     private WidgetHelper() {
     }
@@ -130,7 +130,9 @@ final class WidgetHelper {
 
     static void applyBackground(RemoteViews views, WidgetColors colors) {
         views.setInt(R.id.widget_background_fill, "setColorFilter", colors.fill);
+        views.setInt(R.id.widget_background_fill, "setImageAlpha", 232);
         views.setInt(R.id.widget_background_border, "setColorFilter", colors.border);
+        views.setInt(R.id.widget_background_border, "setImageAlpha", 110);
     }
 
     static void startCountdown(RemoteViews views, int chronometerId, Date targetTime) {
@@ -229,6 +231,13 @@ final class WidgetHelper {
         int[] dailyWidgetIds = appWidgetManager.getAppWidgetIds(dailyWidget);
         for (int appWidgetId : dailyWidgetIds) {
             DailyPrayersWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId);
+        }
+        for (Class<?> provider : new Class<?>[]{PrayerCompactWidgetProvider.class, PrayerWideWidgetProvider.class,
+                DailyAgendaWidgetProvider.class, DailyLargeWidgetProvider.class}) {
+            for (int id : appWidgetManager.getAppWidgetIds(new ComponentName(context, provider))) {
+                if (PrayerWidgetProvider.class.isAssignableFrom(provider)) PrayerWidgetProvider.updateAppWidget(context, appWidgetManager, id);
+                else DailyPrayersWidgetProvider.updateAppWidget(context, appWidgetManager, id);
+            }
         }
     }
 

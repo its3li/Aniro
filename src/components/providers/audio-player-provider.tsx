@@ -37,6 +37,10 @@ type AudioPlayerContextType = {
 };
 
 const AudioPlayerContext = createContext<AudioPlayerContextType | null>(null);
+type PlaybackContextType = Omit<AudioPlayerContextType, 'playerState'> & {
+  playerState: Omit<PlayerState, 'progress' | 'duration' | 'audioDownload'>;
+};
+const PlaybackContext = createContext<PlaybackContextType | null>(null);
 
 const AUDIO_API_CACHE = 'quran-audio-api-cache';
 const AUDIO_FILE_CACHE = 'quran-audio-file-cache';
@@ -179,7 +183,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     const data = await apiResponse.clone().json();
     if (data.code !== 200 || !data.data?.audio) return null;
 
-    await apiCache?.put(apiUrl, apiResponse);
+    // A full/disabled cache must not make otherwise playable audio fail.
+    await apiCache?.put(apiUrl, apiResponse).catch(() => undefined);
     return data.data.audio;
   }, []);
 
@@ -213,8 +218,12 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     // before every play is slower and is not reliable in every Android WebView.
     // The full-surah download below still fills the offline cache in parallel.
     if (typeof navigator === 'undefined' || navigator.onLine) {
-      const remoteAudioUrl = await getRemoteAudioUrl(surahNumber, verseNumber, reciter);
-      if (remoteAudioUrl) return remoteAudioUrl;
+      try {
+        const remoteAudioUrl = await getRemoteAudioUrl(surahNumber, verseNumber, reciter);
+        if (remoteAudioUrl) return remoteAudioUrl;
+      } catch {
+        // Wi-Fi can be connected while the API is unreachable. Try offline audio.
+      }
     }
 
     const cachedObjectUrl = await createObjectUrlFromCachedAudio(surahNumber, verseNumber, reciter);
@@ -527,9 +536,18 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     getVerseByKey,
   }), [playerState, isReciterModalOpen, playVerse, playSurah, handlePlayPause, handleNext, handlePrev, handleSeek, handlePlayerClose, getVerseByKey]);
 
+  const { showPlayer, isPlaying, isContinuous, activeVerseKey, surah } = playerState;
+  const playbackValue = useMemo<PlaybackContextType>(() => ({
+    playerState: { showPlayer, isPlaying, isContinuous, activeVerseKey, surah },
+    isReciterModalOpen, setReciterModalOpen, pendingActionRef,
+    playVerse, playSurah, handlePlayPause, handleNext, handlePrev, handleSeek,
+    handlePlayerClose, getVerseByKey,
+  }), [showPlayer, isPlaying, isContinuous, activeVerseKey, surah, isReciterModalOpen,
+    playVerse, playSurah, handlePlayPause, handleNext, handlePrev, handleSeek, handlePlayerClose, getVerseByKey]);
+
   return (
     <AudioPlayerContext.Provider value={value}>
-      {children}
+      <PlaybackContext.Provider value={playbackValue}>{children}</PlaybackContext.Provider>
     </AudioPlayerContext.Provider>
   );
 }
@@ -537,5 +555,12 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
 export const useAudioPlayer = () => {
   const context = useContext(AudioPlayerContext);
   if (context === null) throw new Error('useAudioPlayer must be used within a AudioPlayerProvider');
+  return context;
+};
+
+/** Reader/navigation subscribers only update when playback behavior changes. */
+export const useAudioPlayback = () => {
+  const context = useContext(PlaybackContext);
+  if (context === null) throw new Error('useAudioPlayback must be used within an AudioPlayerProvider');
   return context;
 };

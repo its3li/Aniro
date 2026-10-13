@@ -10,36 +10,35 @@ import { FajrQuizModal } from '@/components/prayer/fajr-quiz-modal';
 import { NativeAzan } from '@/lib/native-azan';
 
 export function AzanPlayer() {
-    const { settings } = useSettings();
+    const { settings, hasLoadedSettings } = useSettings();
     const { coordinates } = useLocation();
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const lastPlayedPrayerRef = useRef<string | null>(null);
+    const challengeRevisionRef = useRef(0);
     const [showFajrQuiz, setShowFajrQuiz] = useState(false);
+    const [challengeId, setChallengeId] = useState<number | undefined>();
     const isNative = Capacitor.isNativePlatform();
 
     const refreshNativeChallenge = useCallback(async () => {
-        if (!isNative || !Capacitor.isPluginAvailable('Azan')) {
+        if (!hasLoadedSettings || !isNative || !Capacitor.isPluginAvailable('Azan')) {
             return;
         }
 
         try {
+            const revision = challengeRevisionRef.current;
             const challenge = await NativeAzan.getPendingFajrChallenge();
+            if (revision !== challengeRevisionRef.current) return;
             if (!challenge.pending) {
                 setShowFajrQuiz(false);
                 return;
             }
 
-            if (!settings.fajrQuizEnabled) {
-                await NativeAzan.completeFajrChallenge();
-                setShowFajrQuiz(false);
-                return;
-            }
-
+            setChallengeId(challenge.prayerTime);
             setShowFajrQuiz(true);
         } catch (error) {
             console.error('Failed to load Fajr wake-up challenge:', error);
         }
-    }, [isNative, settings.fajrQuizEnabled]);
+    }, [hasLoadedSettings, isNative]);
 
     useEffect(() => {
         if (!isNative) {
@@ -51,7 +50,7 @@ export function AzanPlayer() {
         }, 0);
         const intervalId = window.setInterval(() => {
             void refreshNativeChallenge();
-        }, 10000);
+        }, 1000);
 
         let didUnmount = false;
         let removeListener: (() => void) | undefined;
@@ -78,13 +77,14 @@ export function AzanPlayer() {
     }, [isNative, refreshNativeChallenge]);
 
     useEffect(() => {
-        if (isNative || settings.azanMode !== 'full') {
+        if (!hasLoadedSettings || isNative || settings.azanMode !== 'full') {
             return;
         }
 
         if (!audioRef.current) {
             audioRef.current = new Audio('/azan.mp3');
         }
+        let challengeTimeout: ReturnType<typeof setTimeout> | undefined;
 
         const checkPrayerTime = () => {
             const now = new Date();
@@ -94,8 +94,8 @@ export function AzanPlayer() {
             const prayers = getPrayerTimes(now, lat, lng, totalOffset, settings.calculationMethod, settings.includeIshraq);
 
             const currentPrayer = prayers.find(prayer => {
-                const diff = Math.abs(now.getTime() - prayer.date.getTime());
-                return diff < 60000;
+                const diff = now.getTime() - prayer.date.getTime();
+                return prayer.name !== 'ishraq' && diff >= 0 && diff < 60000;
             });
 
             if (!currentPrayer) {
@@ -107,21 +107,28 @@ export function AzanPlayer() {
                 return;
             }
 
-            lastPlayedPrayerRef.current = playKey;
-
             if (!audioRef.current) {
                 return;
             }
 
             if (currentPrayer.name === 'fajr' && settings.fajrQuizEnabled) {
                 audioRef.current.loop = true;
-                void audioRef.current.play().catch(error => console.error('Error playing Azan:', error));
-                setShowFajrQuiz(true);
+                void audioRef.current.play().then(() => {
+                    lastPlayedPrayerRef.current = playKey;
+                    setShowFajrQuiz(true);
+                    challengeTimeout = setTimeout(() => {
+                        audioRef.current?.pause();
+                        if (audioRef.current) audioRef.current.loop = false;
+                        setShowFajrQuiz(false);
+                    }, 10 * 60_000);
+                }).catch(error => console.error('Error playing Azan:', error));
                 return;
             }
 
             audioRef.current.loop = false;
-            void audioRef.current.play().catch(error => console.error('Error playing Azan:', error));
+            void audioRef.current.play().then(() => {
+                lastPlayedPrayerRef.current = playKey;
+            }).catch(error => console.error('Error playing Azan:', error));
         };
 
         checkPrayerTime();
@@ -129,6 +136,7 @@ export function AzanPlayer() {
 
         return () => {
             window.clearInterval(intervalId);
+            clearTimeout(challengeTimeout);
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current = null;
@@ -136,6 +144,7 @@ export function AzanPlayer() {
         };
     }, [
         isNative,
+        hasLoadedSettings,
         coordinates,
         settings.azanMode,
         settings.calculationMethod,
@@ -145,7 +154,8 @@ export function AzanPlayer() {
         settings.prayerOffset,
     ]);
 
-    const handleQuizSolved = useCallback(() => {
+    const handleQuizSolved = useCallback(async () => {
+        challengeRevisionRef.current++;
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
@@ -153,13 +163,16 @@ export function AzanPlayer() {
         }
 
         if (isNative && Capacitor.isPluginAvailable('Azan')) {
-            void NativeAzan.completeFajrChallenge().catch(error => {
+            try {
+                await NativeAzan.completeFajrChallenge();
+            } catch (error) {
                 console.error('Failed to complete Fajr wake-up challenge:', error);
-            });
+                throw error;
+            }
         }
 
         setShowFajrQuiz(false);
     }, [isNative]);
 
-    return <FajrQuizModal open={showFajrQuiz} onSolved={handleQuizSolved} />;
+    return <FajrQuizModal open={showFajrQuiz} onSolved={handleQuizSolved} challengeId={challengeId} nativeChallenge={isNative} />;
 }

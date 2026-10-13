@@ -12,8 +12,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
-        headline: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
+        body: ['var(--font-ui)', 'var(--font-ui-arabic)', 'sans-serif'],
+        headline: ['var(--font-ui)', 'var(--font-ui-arabic)', 'sans-serif'],
         quran: ['var(--font-quran-local)', '"Noto Naskh Arabic"', 'serif'],
         code: ['monospace'],
       },

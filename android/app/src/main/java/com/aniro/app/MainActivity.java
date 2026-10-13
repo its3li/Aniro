@@ -14,6 +14,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(AzanPlugin.class);
+        registerPlugin(CompassPlugin.class);
         registerPlugin(ApkUpdatePlugin.class);
         registerPlugin(WidgetDataPlugin.class);
         super.onCreate(savedInstanceState);

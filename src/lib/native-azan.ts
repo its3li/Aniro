@@ -6,6 +6,8 @@ export type AzanStatus = {
     notificationPolicyAccess: boolean;
     ignoringBatteryOptimizations: boolean;
     scheduledCount?: number;
+    alarmVolume?: number;
+    challengeOverlay?: boolean;
 };
 
 export interface PendingFajrChallenge {
@@ -15,6 +17,7 @@ export interface PendingFajrChallenge {
 }
 
 export interface NativeAzanPlugin {
+    requestChallengeOverlay(): Promise<void>;
     checkStatus(): Promise<AzanStatus>;
     requestExactAlarmPermission(): Promise<void>;
     openBatteryOptimizationSettings(): Promise<void>;

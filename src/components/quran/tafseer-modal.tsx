@@ -5,7 +5,9 @@ import {
   DialogContent,
 } from '@/components/ui/dialog';
 import type { Verse } from '@/lib/quran';
-import { BookOpen, Loader2, X } from 'lucide-react';
+import { BookOpenIcon as BookOpen } from '@/components/icons/interface-icons';
+import { SpinnerGapIcon as Loader2 } from '@/components/icons/interface-icons';
+import { XIcon as X } from '@/components/icons/interface-icons';
 import { useEffect, useState } from 'react';
 import { useSettings } from '../providers/settings-provider';
 import { stripTajweed } from '@/lib/tajweed';

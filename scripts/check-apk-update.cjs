@@ -42,3 +42,35 @@ assert.ok(appUpdate.includes('sha256?: string'), 'Update metadata must include s
 assert.ok(nativeBridge.includes("registerPlugin<ApkUpdatePlugin>('ApkUpdate')"), 'Native APK update bridge must register plugin once');
 
 console.log('APK update checks passed.');
+
+require('./lib/load-ts.cjs');
+const updateModule = require('../src/lib/app-update.ts');
+const gradle = fs.readFileSync('android/app/build.gradle', 'utf8');
+assert.equal(Number(gradle.match(/versionCode (\d+)/)[1]), updateModule.APP_VERSION.versionCode);
+assert.equal(gradle.match(/versionName "([^"]+)"/)[1], updateModule.APP_VERSION.versionName);
+assert.equal(JSON.parse(fs.readFileSync('package.json','utf8')).version, updateModule.APP_VERSION.versionName + '.0');
+
+async function checkUpdateFallbacks() {
+  const originalFetch = global.fetch;
+  const newer = { versionCode:updateModule.APP_VERSION.versionCode+1,versionName:'test-next',rollout:100,apkUrl:'https://github.com/its3li/Aniro/releases/download/test/aniro.apk' };
+  try {
+    let calls=[];
+    global.fetch=async (url,options) => { calls.push(url); assert.equal(options.cache,'no-store'); return {ok:true,json:async()=>newer}; };
+    assert.deepEqual(await updateModule.checkForUpdate(),newer);
+    assert.ok(calls[0].startsWith('https://raw.githubusercontent.com/'));
+    calls=[];
+    global.fetch=async url => { calls.push(url); return calls.length===1 ? {ok:false} : {ok:true,json:async()=>newer}; };
+    assert.deepEqual(await updateModule.checkForUpdate(),newer);
+    assert.equal(calls.length,2);
+    assert.ok(calls[1].startsWith('https://api.github.com/'));
+    calls=[];
+    global.fetch=async url => { calls.push(url); return {ok:true,json:async()=> calls.length===1 ? {versionCode:'broken'} : newer}; };
+    assert.deepEqual(await updateModule.checkForUpdate(),newer);
+    global.fetch=async()=>({ok:true,json:async()=>({...newer,versionCode:updateModule.APP_VERSION.versionCode})});
+    assert.equal(await updateModule.checkForUpdate(),null);
+    global.fetch=async()=>({ok:false,status:403});
+    assert.equal(await updateModule.checkForUpdate(),null);
+    console.log('Update version parity and fallback behavior passed.');
+  } finally { global.fetch=originalFetch; }
+}
+checkUpdateFallbacks().catch(error=>{console.error(error);process.exitCode=1;});

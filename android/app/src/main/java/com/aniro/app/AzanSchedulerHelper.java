@@ -45,7 +45,7 @@ public final class AzanSchedulerHelper {
     private AzanSchedulerHelper() {
     }
 
-    public static int rescheduleAll(Context context) {
+    public static synchronized int rescheduleAll(Context context) {
         cancelAll(context);
         return scheduleAll(context);
     }
@@ -87,6 +87,7 @@ public final class AzanSchedulerHelper {
         String azanMode = prefs.getString("azanMode", "full");
         boolean includeIshraq = prefs.getBoolean("includeIshraq", true);
         boolean fajrQuizEnabled = prefs.getBoolean("fajrQuizEnabled", true);
+        // Rebuilding future alarms must not dismiss an unanswered challenge.
 
         Coordinates coordinates = new Coordinates(latitude, longitude);
         CalculationParameters params = PrayerCalculationHelper.getCalculationParameters(calculationMethod);
@@ -128,7 +129,8 @@ public final class AzanSchedulerHelper {
             intent.putExtra(EXTRA_PRAYER_KEY, entry.prayerKey);
             intent.putExtra(EXTRA_PRAYER_NAME, entry.displayName);
             intent.putExtra(EXTRA_PRAYER_TIME, entry.triggerAt.getTime());
-            intent.putExtra(EXTRA_AZAN_MODE, azanMode);
+            // Ishraq is a reminder, not a prayer with an azan.
+            intent.putExtra(EXTRA_AZAN_MODE, "ishraq".equals(entry.prayerKey) ? "silent" : azanMode);
             intent.putExtra(EXTRA_REQUIRE_CHALLENGE, fajrQuizEnabled && "fajr".equals(entry.prayerKey));
 
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
@@ -162,7 +164,7 @@ public final class AzanSchedulerHelper {
         }
 
         long prayerTime = prefs.getLong(PREF_PENDING_FAJR_CHALLENGE_TIME, 0L);
-        if (prayerTime <= 0L || System.currentTimeMillis() - prayerTime > 3L * HOUR_MS) {
+        if (prayerTime <= 0L) {
             clearPendingFajrChallenge(context);
             return null;
         }

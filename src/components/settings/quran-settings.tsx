@@ -1,6 +1,7 @@
 'use client';
 
-import { Book, List } from 'lucide-react';
+import { BookIcon as Book } from '@/components/icons/interface-icons';
+import { ListBulletsIcon as List } from '@/components/icons/interface-icons';
 import { GlassCard, GlassCardContent, GlassCardHeader } from '../glass-card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';

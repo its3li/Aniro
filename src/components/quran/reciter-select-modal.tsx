@@ -11,7 +11,7 @@ import {
 import { ScrollArea } from '../ui/scroll-area';
 import { useSettings } from '../providers/settings-provider';
 import { Button } from '../ui/button';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircleIcon as CheckCircle } from '@/components/icons/interface-icons';
 import { cn } from '@/lib/utils';
 
 interface ReciterSelectModalProps {

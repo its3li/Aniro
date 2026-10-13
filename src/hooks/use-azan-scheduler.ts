@@ -54,11 +54,11 @@ export async function checkAzanPermissionStatus(): Promise<{
 }
 
 export function useAzanScheduler() {
-    const { settings } = useSettings();
+    const { settings, hasLoadedSettings } = useSettings();
     const isSchedulingRef = useRef(false);
 
     const scheduleAzanAlarms = useCallback(async () => {
-        if (!Capacitor.isNativePlatform() || !Capacitor.isPluginAvailable('Azan')) {
+        if (!hasLoadedSettings || !Capacitor.isNativePlatform() || !Capacitor.isPluginAvailable('Azan')) {
             return;
         }
 
@@ -75,7 +75,7 @@ export function useAzanScheduler() {
         } finally {
             isSchedulingRef.current = false;
         }
-    }, [settings]);
+    }, [settings, hasLoadedSettings]);
 
     useEffect(() => {
         scheduleAzanAlarms();

@@ -127,6 +127,16 @@ export const quizVerses: QuizVerse[] = [
 ];
 
 const allWords = Array.from(new Set(quizVerses.flatMap(v => v.words)));
+const challengeVerses = quizVerses.filter(item => item.words.length > 1);
+
+function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let index = result.length - 1; index > 0; index--) {
+    const other = Math.floor(Math.random() * (index + 1));
+    [result[index], result[other]] = [result[other], result[index]];
+  }
+  return result;
+}
 
 export function generateQuizQuestion(): {
   verse: QuizVerse;
@@ -135,19 +145,16 @@ export function generateQuizQuestion(): {
   choices: string[];
   displayWords: string[];
 } {
-  const verseItem = quizVerses[Math.floor(Math.random() * quizVerses.length)];
+  const verseItem = challengeVerses[Math.floor(Math.random() * challengeVerses.length)];
   const missingIndex = verseItem.removableIndices[
     Math.floor(Math.random() * verseItem.removableIndices.length)
   ];
   const correctWord = verseItem.words[missingIndex];
   const displayWords = verseItem.words.map((item, index) => (index === missingIndex ? '______' : item));
 
-  const wrongWords = allWords
-    .filter(item => item !== correctWord)
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 3);
+  const wrongWords = shuffle(allWords.filter(item => item !== correctWord)).slice(0, 3);
 
-  const choices = [correctWord, ...wrongWords].sort(() => Math.random() - 0.5);
+  const choices = shuffle([correctWord, ...wrongWords]);
 
   return { verse: verseItem, missingIndex, correctWord, choices, displayWords };
 }

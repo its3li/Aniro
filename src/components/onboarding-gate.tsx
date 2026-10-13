@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { Bell, Check, Languages, MapPin } from 'lucide-react';
+import { BellRingingIcon as Bell } from '@/components/icons/interface-icons';
+import { CheckIcon as Check } from '@/components/icons/interface-icons';
+import { TranslateIcon as Languages } from '@/components/icons/interface-icons';
+import { MapPinAreaIcon as MapPin } from '@/components/icons/interface-icons';
 import { Button } from '@/components/ui/button';
 import { scheduleFridayKahfReminder } from '@/lib/friday-kahf-reminder';
 import {
@@ -136,7 +139,8 @@ export function OnboardingGate() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && complete()}>
-      <DialogContent className="max-w-[92vw] rounded-lg border-border bg-background p-5 sm:max-w-sm">
+      <DialogContent className="max-w-[92vw] rounded-3xl border-border bg-background p-7 sm:max-w-sm">
+        <span className="brand-wordmark mb-3" data-arabic={settings.language === 'ar'}>{settings.language === 'ar' ? 'أنيرو' : 'aniro'}<span>.</span></span>
         <DialogHeader className="text-start">
           <div className="mb-2 grid h-11 w-11 place-items-center rounded-lg bg-primary/10 text-primary">
             <Icon className="h-5 w-5" />

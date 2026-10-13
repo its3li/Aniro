@@ -34,20 +34,27 @@ public class AzanAlarmReceiver extends BroadcastReceiver {
                 && "fajr".equals(prayerKey)
                 && !"silent".equals(azanMode);
 
-        AzanSchedulerHelper.rescheduleAll(context);
-        WidgetHelper.updateAllWidgets(context);
+        // Schedule maintenance must never prevent this alarm from playing.
+        try {
+            AzanSchedulerHelper.rescheduleAll(context);
+            WidgetHelper.updateAllWidgets(context);
+        } catch (RuntimeException exception) {
+            Log.w(TAG, "Unable to refresh prayer alarms/widgets", exception);
+        }
 
         if (prayerName == null || prayerName.trim().isEmpty()) {
             prayerName = localizePrayerName(context, prayerKey);
         }
 
-        if ("silent".equals(azanMode)) {
+        // Inexact alarms can arrive much later after power restrictions.
+        if (System.currentTimeMillis() - prayerTime > 10L * 60L * 1000L) {
             showReminderNotification(context, prayerName, notificationId);
             return;
         }
 
-        if (requireChallenge) {
-            AzanSchedulerHelper.markPendingFajrChallenge(context, prayerName, prayerTime);
+        if ("silent".equals(azanMode)) {
+            showReminderNotification(context, prayerName, notificationId);
+            return;
         }
 
         Intent serviceIntent = new Intent(context, AzanPlaybackService.class);

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Home, RotateCcw } from 'lucide-react';
+import { HouseLineIcon as Home } from '@/components/icons/interface-icons';
+import { ArrowCounterClockwiseIcon as RotateCcw } from '@/components/icons/interface-icons';
 import { Button } from '@/components/ui/button';
 
 export default function AppError({

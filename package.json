@@ -1,6 +1,6 @@
 {
   "name": "aniro",
-  "version": "6.13.0",
+  "version": "6.14.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 3000",
@@ -16,6 +16,7 @@
     "check:azan": "node scripts/check-azan-native.cjs",
     "check:apk-update": "node scripts/check-apk-update.cjs",
     "check:search": "node scripts/check-search.cjs",
+    "check:backend": "node scripts/check-backend.cjs",
     "check:smoke": "playwright test",
     "check:release": "node scripts/check-release.cjs"
   },
@@ -56,7 +57,6 @@
     "dotenv": "^16.5.0",
     "embla-carousel-react": "^8.6.0",
     "idb-keyval": "^6.2.2",
-    "lucide-react": "^0.475.0",
     "minisearch": "^7.2.0",
     "next": "^15.5.12",
     "patch-package": "^8.0.0",
@@ -73,6 +73,7 @@
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
+    "@phosphor-icons/react": "^2.1.10",
     "@playwright/test": "^1.61.0",
     "@types/node": "^20",
     "@types/react": "^19.2.1",

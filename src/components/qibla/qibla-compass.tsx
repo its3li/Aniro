@@ -7,7 +7,11 @@ import { useSettings } from '@/components/providers/settings-provider';
 import { calculateQiblaDirection, calculateDistanceToKaaba } from '@/lib/qibla';
 import { GlassCard, GlassCardContent } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Compass, Navigation, MapPin, LocateFixed } from 'lucide-react';
+import { CheckCircleIcon as CheckCircle2 } from '@/components/icons/interface-icons';
+import { CompassIcon as Compass } from '@/components/icons/interface-icons';
+import { NavigationArrowIcon as Navigation } from '@/components/icons/interface-icons';
+import { MapPinAreaIcon as MapPin } from '@/components/icons/interface-icons';
+import { CrosshairIcon as LocateFixed } from '@/components/icons/interface-icons';
 
 export function QiblaCompass() {
     const { coordinates, displayName, isLoading: locationLoading } = useLocation();
@@ -56,7 +60,7 @@ export function QiblaCompass() {
     return (
         <div className="flex flex-col items-center gap-6">
             {/* Compass Container */}
-            <div className="premium-panel relative flex items-center justify-center w-[80vw] h-[80vw] max-w-[320px] max-h-[320px] rounded-[2rem]">
+            <div className="premium-panel relative flex items-center justify-center w-[76vw] h-[76vw] max-w-[320px] max-h-[320px] rounded-full">
                 {/* Glow effect when aligned */}
                 <div
                     className="absolute inset-0 rounded-full transition-all duration-700"

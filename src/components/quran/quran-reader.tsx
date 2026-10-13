@@ -5,7 +5,15 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Surah, Verse } from '@/lib/quran';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, Pause, PlayCircle, PauseCircle, Copy, BookmarkPlus, BookOpen, Settings2 } from 'lucide-react';
+import { ArrowLeftIcon as ArrowLeft } from '@/components/icons/interface-icons';
+import { PlayIcon as Play } from '@/components/icons/interface-icons';
+import { PauseIcon as Pause } from '@/components/icons/interface-icons';
+import { PlayCircleIcon as PlayCircle } from '@/components/icons/interface-icons';
+import { PauseCircleIcon as PauseCircle } from '@/components/icons/interface-icons';
+import { CopySimpleIcon as Copy } from '@/components/icons/interface-icons';
+import { BookmarkSimpleIcon as BookmarkPlus } from '@/components/icons/interface-icons';
+import { BookOpenIcon as BookOpen } from '@/components/icons/interface-icons';
+import { SlidersHorizontalIcon as Settings2 } from '@/components/icons/interface-icons';
 import { TafseerModal } from './tafseer-modal';
 import { useSettings } from '../providers/settings-provider';
 import { stripTajweed } from '@/lib/tajweed';
@@ -14,7 +22,7 @@ import { MushafPageView } from './mushaf-page-view';
 import { TajweedText } from './tajweed-text';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useAudioPlayer } from '../providers/audio-player-provider';
+import { useAudioPlayback } from '../providers/audio-player-provider';
 import { useLastRead } from '@/hooks/use-last-read';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
@@ -82,7 +90,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
   const juz = useMemo(() => getJuzForSurah(surah.number), [surah.number]);
   const hizb = useMemo(() => (juz - 1) * 2 + 1, [juz]);
 
-  const { playerState, playVerse, playSurah, handlePlayPause, handlePlayerClose } = useAudioPlayer();
+  const { playerState, playVerse, playSurah, handlePlayPause, handlePlayerClose } = useAudioPlayback();
 
   const [selectedVerseForTafseer, setSelectedVerseForTafseer] = useState<Verse | null>(null);
   const [isTafseerOpen, setTafseerOpen] = useState(false);
@@ -192,7 +200,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
       const verseEl = verseRefs.current.get(verseKey);
       if (verseEl) {
         const rect = verseEl.getBoundingClientRect();
-        const popupWidth = 180;
+        const popupWidth = 184;
         const padding = 8;
 
         // Center horizontally, clamp to screen edges
@@ -200,7 +208,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
         left = Math.max(padding, Math.min(left, window.innerWidth - popupWidth - padding));
 
         // Position above the verse
-        const top = rect.top - 60;
+        const top = rect.top - 56;
 
         setPopupRect({ top, left });
       }
@@ -226,20 +234,21 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
   }, []);
 
   return (
-    <div>
+    <div className="quran-reader">
       {activeViewMode === 'page' ? (
-        <MushafPageView surahNumber={surah.number} initialVerseNumber={initialVerseNumber} onBack={onBack} />
+        <MushafPageView key={surah.number} surahNumber={surah.number} initialVerseNumber={initialVerseNumber} initialPageNumber={surah.verses.find(verse => verse.number.inSurah === initialVerseNumber)?.page} onBack={onBack} />
       ) : (
         <>
           {/* Header — native sticky app bar */}
-          <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-2.5 safe-area-top">
+          <div className="reader-toolbar sticky top-0 z-20">
+          <header className="bg-background/95 backdrop-blur-sm border-b border-border px-4 py-2.5">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" className="shrink-0 w-9 h-9" onClick={onBack}>
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="flex-1 min-w-0">
-                <h1 className="text-base font-semibold truncate">{isArabic ? surah.name : surah.englishName}</h1>
-                <p className="text-xs text-muted-foreground truncate">{isArabic ? surah.englishName : surah.name}</p>
+                <h1 className="text-base font-semibold leading-relaxed">{isArabic ? surah.name : surah.englishName}</h1>
+                {!isArabic && <p className="text-xs text-muted-foreground leading-relaxed">{surah.name}</p>}
               </div>
               <Button variant="ghost" size="icon" className="shrink-0 w-9 h-9 rounded-lg" onClick={handleToggleContinuousPlay}>
                 {isSurahPlaying ? <PauseCircle className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
@@ -304,16 +313,17 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
 
           {/* Tajweed legend */}
           {isTajweed && (
-            <div className="sticky top-[52px] z-10">
+            <div>
               <TajweedLegend />
             </div>
           )}
-          <div className="px-4 py-3">
+          </div>
+          <div className="reader-content px-4">
             <div className="flex flex-col gap-2">
               {/* Bismillah - separate line for all surahs except Fatiha (1) and Tawbah (9) */}
               {surah.number !== 1 && surah.number !== 9 && (
-                <div className="text-center py-3">
-                  <p className="font-quran text-xl text-muted-foreground">
+                <div className="reader-bismillah text-center">
+                  <p className="font-quran text-2xl text-foreground">
                     بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
                   </p>
                 </div>
@@ -334,7 +344,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                     ref={el => { verseRefs.current.set(verseKey, el); }}
                     onClick={() => handleVerseClick(verse)}
                     className={cn(
-                      "relative bg-card border border-border p-4 rounded-xl text-center cursor-pointer overflow-hidden select-none touch-manipulation",
+                      "reader-verse relative p-5 text-center cursor-pointer overflow-hidden select-none touch-manipulation",
                       isVerseActive && (isTajweed ? 'bg-primary/5' : 'bg-primary/10'),
                       isSelected && (isTajweed ? 'bg-primary/5 ring-1 ring-primary/15' : 'bg-primary/10 ring-2 ring-primary/30')
                     )}
@@ -363,11 +373,11 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
           {/* Fixed popup using Portal — instant, no delay, stays on screen */}
           {selectedVerseForPopup && popupRect && typeof window !== 'undefined' && createPortal(
             <div
-              className="fixed z-[9999] flex items-center gap-1 bg-background shadow-xl rounded-full px-2 py-1.5 border border-border"
+              className="verse-action-popover fixed z-[9999] flex items-center gap-0 rounded-2xl p-1"
               style={{
                 top: Math.max(8, popupRect.top),
                 left: popupRect.left,
-                width: '180px',
+                width: '184px',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -378,24 +388,28 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                 return (
                   <>
                     <button
+                      aria-label={isArabic ? 'تشغيل أو إيقاف الآية' : 'Play or pause verse'}
                       className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
                       onClick={() => handleVersePlayClick(verse)}
                     >
                       {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                     </button>
                     <button
+                      aria-label={isArabic ? 'نسخ الآية' : 'Copy verse'}
                       className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
                       onClick={() => handleCopyVerse(verse)}
                     >
                       <Copy className="w-5 h-5" />
                     </button>
                     <button
+                      aria-label={isArabic ? 'حفظ موضع القراءة' : 'Save reading position'}
                       className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
                       onClick={() => handleBookmarkVerse(verse)}
                     >
                       <BookmarkPlus className="w-5 h-5" />
                     </button>
                     <button
+                      aria-label={isArabic ? 'تفسير الآية' : 'Verse tafseer'}
                       className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors outline-none focus:outline-none focus-visible:outline-none"
                       onClick={() => handleOpenTafseer(verse)}
                     >

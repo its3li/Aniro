@@ -8,6 +8,8 @@ import { getSurahList, getSurahWithTranslation } from '@/lib/quran';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/components/providers/settings-provider';
+import { PageHeading } from '@/components/page-heading';
+import { LastReadCard } from '@/components/home/last-read-card';
 
 function QuranPageContent() {
   const searchParams = useSearchParams();
@@ -120,8 +122,9 @@ function QuranPageContent() {
     }
 
     return (
-      <div className="px-4 pt-4 animate-fade-in">
-        <h1 className="text-xl font-semibold mb-4">{isArabic ? 'القرآن الكريم' : 'The Holy Quran'}</h1>
+      <div className="app-page quran-library animate-fade-in">
+        <PageHeading title="The Holy Quran" titleAr="القرآن الكريم" description="Read, listen, and return to your place." descriptionAr="اقرأ واستمع، وعد إلى حيث توقفت." />
+        <LastReadCard />
         <SurahList onSurahSelect={handleSurahSelect} />
       </div>
     );

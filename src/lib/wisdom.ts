@@ -5,6 +5,18 @@ export interface Wisdom {
     reference: string;
 }
 
+export function localizeWisdomReference(reference: string): string {
+    const names: Record<string, string> = {
+        '94': 'الشرح', '65': 'الطلاق', '13': 'الرعد', '2': 'البقرة',
+        '16': 'النحل', '12': 'يوسف', '51': 'الذاريات', '39': 'الزمر',
+        '11': 'هود', '54': 'القمر', '40': 'غافر', '10': 'يونس', '19': 'مريم', '52': 'الطور',
+    };
+    const match = reference.match(/, ([0-9]+):([0-9]+)$/);
+    if (!match || !names[match[1]]) return reference;
+    const number = new Intl.NumberFormat('ar-EG', { useGrouping: false }).format(Number(match[2]));
+    return 'سورة ' + names[match[1]] + '، الآية ' + number;
+}
+
 const wisdomData: Wisdom[] = [
     {
         type: 'Quran',

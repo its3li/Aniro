@@ -1,7 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, ChevronLeft, ChevronRight, Clock3, HandHeart } from 'lucide-react';
+import { BellRingingIcon as Bell } from '@/components/icons/interface-icons';
+import { CaretLeftIcon as ChevronLeft } from '@/components/icons/interface-icons';
+import { CaretRightIcon as ChevronRight } from '@/components/icons/interface-icons';
+import { ClockIcon as Clock3 } from '@/components/icons/interface-icons';
+import { HandsPrayingIcon as HandHeart } from '@/components/icons/interface-icons';
 import { useEffect, useMemo, useState } from 'react';
 import { GlassCard } from '../glass-card';
 import { useSettings } from '../providers/settings-provider';
@@ -142,7 +146,7 @@ export function CurrentAzkarCard() {
 
   return (
     <Link href={href} className="block">
-      <GlassCard className="p-4 transition-colors active:scale-[0.99]">
+      <GlassCard className="azkar-suggestion p-4 transition-colors active:scale-[0.99]">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
@@ -153,8 +157,8 @@ export function CurrentAzkarCard() {
                 <Bell className="h-3.5 w-3.5" />
                 <span>{isArabic ? 'أذكار الوقت الحالي' : 'Current azkar'}</span>
               </p>
-              <p className="truncate text-lg font-bold">{suggestion.title}</p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="text-lg font-bold leading-relaxed">{suggestion.title}</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 {localizeDigits(suggestion.subtitle, isArabic)}
               </p>
             </div>

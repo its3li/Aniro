@@ -64,6 +64,22 @@ const SURAH_DATA_PREFIX = 'surah_';
 const SURAH_LIST_KEY = 'surah_list';
 const SURAH_API_BASE = 'https://api.alquran.cloud/v1/surah';
 
+async function readCache(key: string): Promise<unknown> {
+  try {
+    return await get(key);
+  } catch {
+    return undefined;
+  }
+}
+
+async function writeCache(key: string, value: Surah | SurahInfo[]): Promise<void> {
+  try {
+    await set(key, value);
+  } catch {
+    // Bundled/network content remains usable when storage is unavailable.
+  }
+}
+
 // ============================================
 // In-memory LRU cache
 // ============================================
@@ -105,11 +121,10 @@ async function fetchWithRetry(
   timeoutMs = 10000
 ): Promise<Response> {
   for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return response;
     } catch (error) {
@@ -118,6 +133,8 @@ async function fetchWithRetry(
         continue;
       }
       throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
   throw new Error('Unreachable');
@@ -185,7 +202,7 @@ async function fetchSurahInternal(
 ): Promise<Surah | null> {
   try {
     // Tier 2: IndexedDB
-    const cachedData = await get(cacheKey);
+    const cachedData = await readCache(cacheKey);
     if (cachedData) {
       memSet(cacheKey, cachedData as Surah);
       return cachedData as Surah;
@@ -209,7 +226,7 @@ async function fetchSurahInternal(
         })),
       };
       memSet(cacheKey, surah);
-      set(cacheKey, surah).catch(() => { });
+      void writeCache(cacheKey, surah);
       return surah;
     }
 
@@ -235,7 +252,7 @@ async function fetchSurahInternal(
     };
 
     memSet(cacheKey, surah);
-    set(cacheKey, surah).catch(() => { });
+    void writeCache(cacheKey, surah);
     return surah;
   } catch (error) {
     console.error(`[Quran] Failed to get Surah ${surahId}:`, error);
@@ -279,7 +296,7 @@ async function fetchSurahWithTranslationInternal(
 ): Promise<Surah | null> {
   try {
     // Tier 2: IndexedDB
-    const cachedData = await get(cacheKey);
+    const cachedData = await readCache(cacheKey);
     if (cachedData) {
       memSet(cacheKey, cachedData as Surah);
       return cachedData as Surah;
@@ -307,7 +324,7 @@ async function fetchSurahWithTranslationInternal(
         })),
       };
       memSet(cacheKey, surah);
-      set(cacheKey, surah).catch(() => { });
+      void writeCache(cacheKey, surah);
       return surah;
     }
 
@@ -345,7 +362,7 @@ async function fetchSurahWithTranslationInternal(
     };
 
     memSet(cacheKey, surah);
-    set(cacheKey, surah).catch(() => { });
+    void writeCache(cacheKey, surah);
     return surah;
   } catch (error) {
     console.error(`[Quran] Failed to get Surah ${surahId} with translation:`, error);
@@ -363,7 +380,7 @@ export async function getSurahList(): Promise<SurahInfo[]> {
 
   try {
     // Tier 2: IndexedDB
-    const cachedList = await get(SURAH_LIST_KEY);
+    const cachedList = await readCache(SURAH_LIST_KEY);
     if (cachedList) {
       memSet(SURAH_LIST_KEY, cachedList as SurahInfo[]);
       return cachedList as SurahInfo[];
@@ -373,7 +390,7 @@ export async function getSurahList(): Promise<SurahInfo[]> {
     const bundled = await loadBundledSurahList();
     if (bundled) {
       memSet(SURAH_LIST_KEY, bundled);
-      set(SURAH_LIST_KEY, bundled).catch(() => { });
+      void writeCache(SURAH_LIST_KEY, bundled);
       return bundled;
     }
 
@@ -384,7 +401,7 @@ export async function getSurahList(): Promise<SurahInfo[]> {
 
     const surahList: SurahInfo[] = json.data;
     memSet(SURAH_LIST_KEY, surahList);
-    set(SURAH_LIST_KEY, surahList).catch(() => { });
+    void writeCache(SURAH_LIST_KEY, surahList);
     return surahList;
   } catch (error) {
     console.error('[Quran] Failed to get Surah list:', error);
@@ -401,7 +418,7 @@ export async function isSurahCached(
 ): Promise<boolean> {
   const cacheKey = `${SURAH_DATA_PREFIX}${surahId}_${edition}`;
   if (memGet(cacheKey)) return true;
-  const data = await get(cacheKey);
+  const data = await readCache(cacheKey);
   return data !== undefined;
 }
 

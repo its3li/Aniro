@@ -7,6 +7,7 @@ const commands = [
   ['node', ['scripts/check-azan-native.cjs']],
   ['node', ['scripts/check-apk-update.cjs']],
   ['node', ['scripts/check-search.cjs']],
+  ['node', ['scripts/check-backend.cjs']],
   ['node', ['node_modules/typescript/bin/tsc', '--noEmit']],
 ];
 

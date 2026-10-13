@@ -1,19 +1,22 @@
 'use client';
 
-import { LoaderCircle } from 'lucide-react';
+import { SpinnerGapIcon as LoaderCircle } from '@/components/icons/interface-icons';
+import { useSettings } from '../providers/settings-provider';
 
 export function LoadingScreen() {
+    const { settings } = useSettings();
     // Fixed text to avoid hydration issues - no language dependency during load
     return (
         <div
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background"
             suppressHydrationWarning
         >
             <div
-                className="flex flex-col items-center gap-4 p-8 rounded-3xl bg-card/50 border border-white/10 shadow-xl backdrop-blur-md"
+                className="flex flex-col items-center gap-6 p-8"
                 suppressHydrationWarning
             >
-                <LoaderCircle className="w-12 h-12 text-primary animate-spin" />
+                <span className="brand-wordmark" data-arabic={settings.language === 'ar'}>{settings.language === 'ar' ? 'أنيرو' : 'aniro'}<span>.</span></span>
+                <LoaderCircle className="w-5 h-5 text-primary animate-spin" />
                 <p
                     className="text-lg font-medium text-muted-foreground animate-pulse"
                     suppressHydrationWarning

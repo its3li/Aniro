@@ -23,17 +23,16 @@ import { TajweedLegend } from "./tajweed-legend";
 import { TajweedText } from "./tajweed-text";
 import { TafseerModal } from "./tafseer-modal";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Play,
-  Pause,
-  Copy,
-  PlayCircle,
-  PauseCircle,
-  BookmarkPlus,
-  BookOpen,
-  Settings2,
-} from "lucide-react";
-import { useAudioPlayer, type PlayerState } from "../providers/audio-player-provider";
+import { PlayIcon as Play } from '@/components/icons/interface-icons';
+import { PauseIcon as Pause } from '@/components/icons/interface-icons';
+import { CopySimpleIcon as Copy } from '@/components/icons/interface-icons';
+import { PlayCircleIcon as PlayCircle } from '@/components/icons/interface-icons';
+import { PauseCircleIcon as PauseCircle } from '@/components/icons/interface-icons';
+import { BookmarkSimpleIcon as BookmarkPlus } from '@/components/icons/interface-icons';
+import { BookOpenIcon as BookOpen } from '@/components/icons/interface-icons';
+import { SlidersHorizontalIcon as Settings2 } from '@/components/icons/interface-icons';
+import { ArrowLeftIcon as ArrowLeft } from '@/components/icons/interface-icons';
+import { useAudioPlayback } from "../providers/audio-player-provider";
 import { useLastRead } from "@/hooks/use-last-read";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
@@ -90,12 +89,14 @@ function PageSkeleton() {
 interface MushafPageViewProps {
   surahNumber: number;
   initialVerseNumber?: number;
+  initialPageNumber?: number;
   onBack: () => void;
 }
 
 export function MushafPageView({
   surahNumber,
   initialVerseNumber,
+  initialPageNumber,
   onBack,
 }: MushafPageViewProps) {
   const { settings, setFontSize, setQuranTajweedEnabled } = useSettings();
@@ -107,12 +108,12 @@ export function MushafPageView({
     playerState,
     playSurah,
     handlePlayerClose,
-  } = useAudioPlayer();
+  } = useAudioPlayback();
   const { saveLastRead } = useLastRead();
 
   const { startPage } = getPageRange(surahNumber);
 
-  const [currentPage, setCurrentPage] = useState(startPage);
+  const [currentPage, setCurrentPage] = useState(initialPageNumber ?? startPage);
   const [pageData, setPageData] = useState<MushafPage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAyah, setSelectedAyah] = useState<number | null>(null);
@@ -124,9 +125,12 @@ export function MushafPageView({
   // Swipe
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   const touchCurrentX = useRef(0);
   const isSwiping = useRef(false);
   const [slideClass, setSlideClass] = useState("");
+  const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (transitionTimer.current) clearTimeout(transitionTimer.current); }, []);
 
   const editionMap: Record<string, string> = {
     uthmani: "quran-uthmani",
@@ -179,66 +183,21 @@ export function MushafPageView({
     }
   }, [pageData, initialVerseNumber, surahNumber]);
 
-  const targetVerseRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!initialVerseNumber) return;
-    const findPage = async () => {
-      const { startPage: sp, endPage: ep } = getPageRange(surahNumber);
-      for (let p = sp; p <= ep; p++) {
-        const data = await getPageData(p, edition);
-        if (data) {
-          const found = data.ayahs.find(
-            (a) =>
-              a.surah.number === surahNumber &&
-              a.numberInSurah === initialVerseNumber
-          );
-          if (found) {
-            targetVerseRef.current = found.number;
-            setCurrentPage(p);
-            return;
-          }
-        }
-      }
-    };
-    findPage();
-  }, [edition, initialVerseNumber, surahNumber]);
-
-  useEffect(() => {
-    if (pageData && targetVerseRef.current) {
-      const foundOnPage = pageData.ayahs.find(a => a.number === targetVerseRef.current);
-      if (foundOnPage) {
-        const timeoutId = window.setTimeout(() => {
-          setSelectedAyah(foundOnPage.number);
-          setHighlightedAyah(foundOnPage.number);
-          targetVerseRef.current = null;
-        }, 0);
-
-        return () => window.clearTimeout(timeoutId);
-      }
-    }
-  }, [pageData]);
-
   const goToPage = useCallback(
     (page: number) => {
       if (page < 1 || page > TOTAL_MUSHAF_PAGES || page === currentPage) return;
-      const isForward = page > currentPage;
-
-      // Because Arabic is RTL:
-      // Forward (Next page) means swiping right (dx > 0) -> Old page slides out right, new slides in from left
-      // Backward (Prev page) means swiping left (dx < 0) -> Old page slides out left, new slides in from right
-      setSlideClass(isForward ? "slide-out-right" : "slide-out-left");
-      setTimeout(() => {
-        setCurrentPage(page);
-        setSlideClass(isForward ? "slide-in-left" : "slide-in-right");
-        setTimeout(() => setSlideClass(""), 250);
-      }, 200);
+      if (transitionTimer.current) clearTimeout(transitionTimer.current);
+      setSelectedAyah(null);
+      setCurrentPage(page);
+      setSlideClass(page > currentPage ? "slide-in-left" : "slide-in-right");
+      transitionTimer.current = setTimeout(() => setSlideClass(""), 280);
     },
     [currentPage]
   );
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
     touchCurrentX.current = e.touches[0].clientX;
     isSwiping.current = false;
   }, []);
@@ -246,9 +205,8 @@ export function MushafPageView({
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     touchCurrentX.current = e.touches[0].clientX;
     const dx = touchCurrentX.current - touchStartX.current;
-    if (!isSwiping.current && Math.abs(dx) > 15) {
-      isSwiping.current = true;
-    }
+    const dy = e.touches[0].clientY - touchStartY.current;
+    isSwiping.current = Math.abs(dx) > 15 && Math.abs(dx) > Math.abs(dy) * 1.5;
   }, []);
 
   const handleTouchEnd = useCallback(() => {
@@ -420,37 +378,23 @@ export function MushafPageView({
 
   return (
     <div
-      className="mushaf-container flex h-[100dvh] flex-col overflow-hidden"
+      className={cn("mushaf-container flex flex-col overflow-hidden", playerState.showPlayer && "has-audio-player")}
       onClick={() => setSelectedAyah(null)}
     >
-      <div className="shrink-0 z-30 flex items-center gap-2 px-2 pb-2 border-b border-border/40 bg-background/95 pt-[max(env(safe-area-inset-top,20px),_0.75rem)]">
+      <div className="mushaf-toolbar shrink-0 z-30 flex items-center gap-1 px-2 border-b border-border/40 bg-background">
         <button
           onClick={onBack}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-foreground/10 transition-colors shrink-0"
+          aria-label={isArabic ? "العودة إلى السور" : "Back to surahs"}
+          className="reader-icon-button shrink-0"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="m12 19-7-7 7-7" />
-            <path d="M19 12H5" />
-          </svg>
+          <ArrowLeft className={cn("h-5 w-5", isArabic && "rotate-180")} />
         </button>
 
-        <span className="font-quran text-sm text-foreground truncate">
+        <span className="mushaf-toolbar-name text-foreground">
           {currentSurahName}
         </span>
 
-        <div className="flex-1" />
-
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
+        <div className="mushaf-page-meta flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
           <span>{isArabic ? `ج${juz}` : `J${juz}`}</span>
           <span className="opacity-40">•</span>
           <span>
@@ -466,7 +410,8 @@ export function MushafPageView({
             e.stopPropagation();
             handlePlayPage();
           }}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-foreground/10 transition-colors shrink-0"
+          aria-label={isPagePlaying ? (isArabic ? "إيقاف التلاوة" : "Stop recitation") : (isArabic ? "تشغيل الصفحة" : "Play page")}
+          className="reader-icon-button shrink-0"
         >
           {isPagePlaying ? (
             <PauseCircle className="w-[18px] h-[18px] text-primary" />
@@ -479,7 +424,7 @@ export function MushafPageView({
           <SheetTrigger asChild>
             <button
               onClick={(e) => e.stopPropagation()}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-foreground/10 transition-colors shrink-0"
+              className="reader-icon-button shrink-0"
               aria-label={isArabic ? "إعدادات القراءة" : "Reader settings"}
             >
               <Settings2 className="w-[18px] h-[18px] text-muted-foreground" />
@@ -543,7 +488,7 @@ export function MushafPageView({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className={`mushaf-page-wrapper h-full px-2 ${slideClass}`}>
+        <div key={isLoading ? 'loading' : currentPage} className={`mushaf-page-wrapper h-full px-2 ${slideClass}`}>
           {isLoading ? (
             <PageSkeleton />
           ) : pageData ? (
@@ -555,7 +500,8 @@ export function MushafPageView({
               highlightedAyah={highlightedAyah}
               onVerseTap={handleVerseTap}
               setSelectedAyah={setSelectedAyah}
-              playerState={playerState}
+              activeVerseKey={playerState.activeVerseKey}
+              isPlaying={playerState.isPlaying}
               fontSize={settings.fontSize}
             />
           ) : (
@@ -569,11 +515,10 @@ export function MushafPageView({
       {/* Portal-based popup */}
       {pageData && selectedAyah !== null && selectedAyahPos !== null && typeof window !== 'undefined' && createPortal(
         <div
-          className="fixed z-[9999] flex items-center gap-1 bg-background shadow-xl rounded-full px-2 py-1.5 border border-border"
+          className="verse-action-popover fixed z-[9999] flex items-center gap-1 rounded-full px-1.5 py-1.5 border border-border"
           style={{
             top: Math.max(8, selectedAyahPos.y),
             left: selectedAyahPos.x,
-            width: '180px',
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -587,24 +532,28 @@ export function MushafPageView({
             return (
               <>
                 <button
+                  aria-label={isArabic ? "تشغيل الآية" : "Play ayah"}
                   className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
                   onClick={() => handlePlayVerse(verse)}
                 >
                   {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                 </button>
                 <button
+                  aria-label={isArabic ? "نسخ الآية" : "Copy ayah"}
                   className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
                   onClick={() => handleCopyVerse(verse)}
                 >
                   <Copy className="w-5 h-5" />
                 </button>
                 <button
+                  aria-label={isArabic ? "حفظ العلامة" : "Bookmark ayah"}
                   className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
                   onClick={() => handleBookmarkVerse(verse)}
                 >
                   <BookmarkPlus className="w-5 h-5" />
                 </button>
                 <button
+                  aria-label={isArabic ? "التفسير" : "Tafseer"}
                   className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors outline-none focus:outline-none focus-visible:outline-none"
                   onClick={() => handleTafseerVerse(verse)}
                 >
@@ -634,15 +583,7 @@ export function MushafPageView({
   );
 }
 
-// ============================================================
-// مكون محتوى الصفحة
-// ============================================================
-// ============================================================
-// مكون محتوى الصفحة (بعد التحديث الجذري لملء الشاشة بالكامل)
-// ============================================================
-// ============================================================
-// مكون محتوى الصفحة (محاذاة كاملة للأطراف مع تحسين المسافات)
-// ============================================================
+// Memoized live Quran text: audio progress does not repaint the page.
 const MushafPageContent = React.memo(function MushafPageContent({
   page,
   isArabic,
@@ -651,7 +592,8 @@ const MushafPageContent = React.memo(function MushafPageContent({
   highlightedAyah,
   onVerseTap,
   setSelectedAyah,
-  playerState,
+  activeVerseKey,
+  isPlaying,
   fontSize,
 }: {
   page: MushafPage;
@@ -661,11 +603,12 @@ const MushafPageContent = React.memo(function MushafPageContent({
   highlightedAyah: number | null;
   onVerseTap: (ayah: PageAyah, e: React.MouseEvent) => void;
   setSelectedAyah: (ayah: number | null) => void;
-  playerState: PlayerState;
+  activeVerseKey: string | null;
+  isPlaying: boolean;
   fontSize: number;
 }) {
-  const contentRef = useRef<HTMLDivElement>(null);
   const playingRef = useRef<HTMLSpanElement>(null);
+  const isOpeningPage = page.pageNumber === 1 || page.pageNumber === 2;
 
   // تحويل الأرقام الإنجليزية إلى عربية
   const toArabicNumerals = (num: number) => {
@@ -681,22 +624,22 @@ const MushafPageContent = React.memo(function MushafPageContent({
   // Auto-scroll to the currently playing verse
   useEffect(() => {
     if (playingRef.current) {
-      playingRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      playingRef.current.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
     }
-  }, [playerState.activeVerseKey]);
+  }, [activeVerseKey]);
 
   return (
-    <div className="w-full h-full overflow-y-auto overflow-x-hidden px-4 py-4">
+    <div className="mushaf-reading-scroll w-full h-full overflow-y-auto overflow-x-hidden" onScroll={() => setSelectedAyah(null)}>
       <div
-        ref={contentRef}
-        className="w-full quran-text"
-        style={{ fontSize: `${fontSize}px` }}
+        className={cn("w-full quran-text mushaf-text", isOpeningPage && "mushaf-opening", isOpeningPage && ('mushaf-opening-' + page.pageNumber))}
+        data-page={page.pageNumber}
+        style={{ fontSize: (isOpeningPage ? Math.max(24, fontSize * 1.35) : fontSize) + 'px' }}
       >
         {page.ayahs.map((ayah) => {
           const isSelected = selectedAyah === ayah.number;
           const isHighlighted = highlightedAyah === ayah.number;
           const verseKey = `${ayah.surah.number}:${ayah.numberInSurah}`;
-          const isPlaying = playerState.isPlaying && playerState.activeVerseKey === verseKey;
+          const isVersePlaying = isPlaying && activeVerseKey === verseKey;
           const displayText = stripBismillah(ayah.text, ayah.surah.number, ayah.numberInSurah);
 
           return (
@@ -704,27 +647,28 @@ const MushafPageContent = React.memo(function MushafPageContent({
               {/* عنوان السورة عند بداية سورة جديدة */}
               {ayah.numberInSurah === 1 && (
                 <div
-                  className="w-full text-center my-3 py-2 px-4 rounded-xl border border-primary/30 bg-primary/5"
-                  style={{ lineHeight: 'normal' }}
+                  className="mushaf-surah-heading"
                 >
                   <span
-                    className="font-bold text-primary text-base"
-                    style={{ fontFamily: '"Noto Naskh Arabic","Scheherazade New","Amiri",serif' }}
+                    className="font-quran text-primary"
                   >
                     {isArabic ? ayah.surah.name : `Surah ${ayah.surah.englishName}`}
                   </span>
                 </div>
               )}
+              {ayah.numberInSurah === 1 && ayah.surah.number !== 1 && ayah.surah.number !== 9 && (
+                <div className="mushaf-bismillah font-quran" dir="rtl" lang="ar">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+              )}
 
               {/* الآية: inline تتدفق جنب بعضها */}
               <span
-                ref={isPlaying ? playingRef : undefined}
+                ref={isVersePlaying ? playingRef : undefined}
                 onClick={(e) => { e.stopPropagation(); onVerseTap(ayah, e); }}
                 className={cn(
-                  'mushaf-ayah cursor-pointer rounded-md transition-all duration-500 ease-in-out px-1 py-0.5',
+                  'mushaf-ayah cursor-pointer rounded-md transition-colors duration-200 px-1 py-0.5',
                   isSelected && (isTajweed ? 'bg-primary/5' : 'bg-primary/15 text-primary'),
-                  isPlaying && (isTajweed ? 'playing-ayah-tajweed bg-primary/5' : 'playing-ayah bg-primary/20 text-primary'),
-                  !isPlaying && isHighlighted && (isTajweed ? 'bg-primary/5' : 'bg-primary/10'),
+                  isVersePlaying && (isTajweed ? 'playing-ayah-tajweed bg-primary/5' : 'playing-ayah bg-primary/20 text-primary'),
+                  !isVersePlaying && isHighlighted && (isTajweed ? 'bg-primary/5' : 'bg-primary/10'),
                 )}
                 dir="rtl"
                 lang="ar"
@@ -746,6 +690,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
             </React.Fragment>
           );
         })}
+        {isOpeningPage && <div className="mushaf-opening-folio" aria-hidden="true">{toArabicNumerals(page.pageNumber)}</div>}
       </div>
     </div>
   );

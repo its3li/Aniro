@@ -1,8 +1,9 @@
-﻿
+
 'use client';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Reciter } from '@/lib/reciters';
 import { reciters as availableReciters } from '@/lib/reciters';
+import { normalizeSettings } from '@/lib/settings-validation';
 
 
 export type Language = 'en' | 'ar' | 'ur' | 'fa';
@@ -125,8 +126,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       setHadStoredSettings(Boolean(storedSettings));
       if (storedSettings) {
         // Merge stored settings with defaults to avoid breaking changes
-        const parsedSettings = JSON.parse(storedSettings);
-        const wasLegacyTajweed = parsedSettings.quranEdition === 'tajweed';
+        const rawSettings = JSON.parse(storedSettings);
+        const parsedSettings = normalizeSettings(defaultSettings, rawSettings);
+        const wasLegacyTajweed = rawSettings?.quranEdition === 'tajweed';
         const knownEditions: QuranEdition[] = ['uthmani', 'warsh'];
         const storedEdition = knownEditions.includes(parsedSettings.quranEdition)
           ? parsedSettings.quranEdition
@@ -140,6 +142,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           language: storedLanguage,
           quranEdition: wasLegacyTajweed ? 'uthmani' : storedEdition,
           quranTajweedEnabled: Boolean(parsedSettings.quranTajweedEnabled || wasLegacyTajweed),
+          quranReciter: availableReciters.some(item => item.identifier === parsedSettings.quranReciter)
+            ? parsedSettings.quranReciter : defaultSettings.quranReciter,
         });
       }
     } catch (error) {

@@ -8,7 +8,11 @@ import { GlassCard } from '../glass-card';
 import { useSettings } from '../providers/settings-provider';
 import { Skeleton } from '../ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Search, X, Loader2, BookOpen, ChevronDown } from 'lucide-react';
+import { MagnifyingGlassIcon as Search } from '@/components/icons/interface-icons';
+import { XIcon as X } from '@/components/icons/interface-icons';
+import { SpinnerGapIcon as Loader2 } from '@/components/icons/interface-icons';
+import { BookOpenIcon as BookOpen } from '@/components/icons/interface-icons';
+import { CaretDownIcon as ChevronDown } from '@/components/icons/interface-icons';
 import { useQuranSearch, type QuranSearchResult } from '@/hooks/use-quran-search';
 import { cn } from '@/lib/utils';
 
@@ -105,26 +109,13 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
     fetchSurahs();
   }, []);
 
-  useEffect(() => {
-    const run = () => {
-      void preload(selectedEdition);
-    };
-
-    if ('requestIdleCallback' in window) {
-      const idleId = window.requestIdleCallback(run, { timeout: 1200 });
-      return () => window.cancelIdleCallback(idleId);
-    }
-
-    const timeoutId = setTimeout(run, 0);
-    return () => clearTimeout(timeoutId);
-  }, [preload, selectedEdition]);
-
   // Debounced verse search
   useEffect(() => {
+    let active = true;
     const timeoutId = setTimeout(() => {
       if (searchTerm.trim().length >= 2) {
         void search(searchTerm, selectedEdition).then((results) => {
-          if (results.length > 0) rememberSearch(searchTerm);
+          if (active && results.length > 0) rememberSearch(searchTerm);
         });
         setDisplayedCount(RESULTS_PER_PAGE); // Reset pagination on new search
       } else {
@@ -132,7 +123,7 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
       }
     }, 300);
 
-    return () => clearTimeout(timeoutId);
+    return () => { active = false; clearTimeout(timeoutId); };
   }, [searchTerm, search, selectedEdition, clearResults, rememberSearch]);
 
   // Handle verse result click - navigate to the verse
@@ -183,7 +174,7 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
           placeholder={isArabic ? "ابحث عن آية أو كلمة..." : "Search for a verse or word..."}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          onFocus={() => setIsSearchFocused(true)}
+          onFocus={() => { setIsSearchFocused(true); void preload(); }}
           onBlur={() => window.setTimeout(() => setIsSearchFocused(false), 120)}
           className={cn("h-12 rounded-lg border-border/80 bg-background/70 px-10", isArabic ? "text-right" : "text-left")}
           dir="auto"
@@ -243,6 +234,7 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
               <GlassCard
                 key={`${result.id}-${index}`}
                 onClick={() => handleVerseClick(result)}
+                role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleVerseClick(result); } }}
                 className="cursor-pointer p-4 transition-colors hover:bg-foreground/10"
               >
                 <div className="flex items-start gap-3">
@@ -294,7 +286,7 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
 
       {/* Surah List - only show when not actively searching */}
       {!isSearching && (
-        <div className="flex flex-col gap-3">
+        <div className="surah-index flex flex-col gap-3">
           <h3 className="font-bold text-lg font-headline">{isArabic ? 'السور' : 'Surahs'}</h3>
           {surahs.map((surah) => {
             const { startJuz, endJuz } = getJuzRangeForSurah(surah.number);
@@ -307,25 +299,26 @@ export function SurahList({ onSurahSelect }: SurahListProps) {
               : (isArabic ? `الحزب ${startHizb} - ${endHizb}` : `Hizb ${startHizb}-${endHizb}`);
 
             return (
-              <GlassCard
+              <button
                 key={surah.number}
+                type="button"
                 onClick={() => handleSurahClick(surah)}
-                className="flex cursor-pointer items-center justify-between rounded-lg p-4 transition-transform hover:bg-foreground/10 active:scale-95"
+                className="surah-row"
               >
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary font-bold">
+                <div className="surah-identity flex min-w-0 items-center gap-3">
+                  <span className="surah-number">
                     {surah.number}
                   </span>
-                  <div>
-                    <p className="font-quran text-2xl">{surah.name}</p>
+                  <div className="min-w-0">
+                    <p className="surah-list-name font-quran">{isArabic ? surah.name : surah.englishName}</p>
                     <p className="text-sm text-muted-foreground">{surah.numberOfAyahs} {isArabic ? 'آيات' : 'verses'}</p>
                   </div>
                 </div>
-                <div className="text-left">
+                <div className="surah-details text-end shrink-0">
                   <p className="font-semibold">{juzText}</p>
                   <p className="text-xs text-muted-foreground">{hizbText}</p>
                 </div>
-              </GlassCard>
+              </button>
             );
           })}
         </div>
