@@ -1,9 +1,9 @@
 {
-  "versionCode": 19,
-  "versionName": "6.13",
-  "apkUrl": "https://github.com/its3li/Aniro/releases/download/v6.13/aniro-v6.13.apk",
-  "sha256": "6ada8b1b4ba65c392ab1bfbd432775fd4c25fe3b0da494b4beeaf56665a3af21",
-  "releaseNotes": "إصلاح مشكلة اختفاء مشغل القرآن عند تشغيل الآيات، وتحسين موثوقية تشغيل الصوت على أندرويد مع استمرار دعم الاستماع دون إنترنت.",
+  "versionCode": 20,
+  "versionName": "6.14",
+  "apkUrl": "https://github.com/its3li/Aniro/releases/download/v6.14/aniro-v6.14.apk",
+  "sha256": "93462511604c976289671d87c4ae8fa89034d25a22d9610292d4fbf9c1f0a658",
+  "releaseNotes": "واجهة جديدة بنفس ألوان أنيرو، أيقونات وحركات محسّنة، إصلاح تنسيق القرآن والأذكار، تحسين الأذان وتحدي الفجر والقبلة، خيارات ويدجت أكثر، وأداء أسرع بحجم أقل. يحتفظ التحديث الرسمي ببياناتك وإعداداتك.",
   "forceUpdate": false,
   "rollout": 100
 }
