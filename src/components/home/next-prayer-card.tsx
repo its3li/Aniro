@@ -187,7 +187,7 @@ export function NextPrayerCard() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 shrink-0 rounded-lg"
+            className="h-11 w-11 shrink-0 rounded-lg"
             onClick={() => refreshLocation()}
             disabled={isLoading}
             aria-label={isArabic ? "تحديث الموقع" : "Refresh location"}

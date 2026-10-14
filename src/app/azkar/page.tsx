@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { CategoryGrid } from '@/components/azkar/category-grid';
 import { azkarData, type AzkarCategory, type AzkarItem } from '@/lib/azkar';
-import { ZikrCard } from '@/components/azkar/zikr-card'; // Changed export name to match file
+import { ZikrCard } from '@/components/azkar/zikr-card';
+import { useLocalDay } from '@/hooks/use-local-day';
 import { Button } from '@/components/ui/button';
 import { ArrowLeftIcon as ArrowLeft } from '@/components/icons/interface-icons';
 import { useSettings } from '@/components/providers/settings-provider';
@@ -24,6 +25,7 @@ export default function AzkarPage() {
   const [navigationStack, setNavigationStack] = useState<AzkarCategory[]>([azkarData]);
   const { settings } = useSettings();
   const isArabic = settings.language === 'ar';
+  const day = useLocalDay();
 
   const currentLevel = navigationStack[navigationStack.length - 1];
   const parentLevel = navigationStack.length > 1 ? navigationStack[navigationStack.length - 2] : null;
@@ -84,7 +86,7 @@ export default function AzkarPage() {
       {hasItems && (
         <div className="space-y-4">
           {currentLevel.items!.map((item, index) => (
-            <ZikrCard key={index} item={item} categoryId={currentLevel.id} index={index} />
+            <ZikrCard key={currentLevel.id + ':' + index} item={item} categoryId={currentLevel.id} index={index} day={day} />
           ))}
         </div>
       )}

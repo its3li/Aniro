@@ -17,6 +17,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(CompassPlugin.class);
         registerPlugin(ApkUpdatePlugin.class);
         registerPlugin(WidgetDataPlugin.class);
+        registerPlugin(AppAppearancePlugin.class);
         super.onCreate(savedInstanceState);
         createNotificationChannels();
     }

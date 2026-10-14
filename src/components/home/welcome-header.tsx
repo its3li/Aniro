@@ -67,7 +67,7 @@ export function WelcomeHeader() {
 
   return (
     <header className="home-heading">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-3">
         <Link href="/" className="brand-wordmark" data-arabic={settings.language === 'ar'}>{settings.language === 'ar' ? 'أنيرو' : 'aniro'}<span>.</span></Link>
         <Link href="/settings" className="heading-settings" aria-label={settings.language === 'ar' ? 'الإعدادات' : 'Settings'}><SlidersHorizontal size={20} strokeWidth={1.5} /></Link>
       </div>

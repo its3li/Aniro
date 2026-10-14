@@ -79,17 +79,15 @@ export default function TasbeehPage() {
   return (
     <div className="app-page tasbeeh-page animate-fade-in">
       <PageHeading title="One remembrance at a time" titleAr="ذكرٌ بعد ذكر" description="A quiet space for your daily tasbeeh." descriptionAr="مساحة هادئة لتسبيحك اليومي." />
-      <div className="mx-auto flex max-w-md flex-col items-center gap-5">
+      <div className="mx-auto flex max-w-md flex-col items-center gap-2">
         {/* Dhikr Navigation */}
         <section className="tasbeeh-selector w-full">
           <div className="flex items-center justify-between gap-2">
             <Button variant="ghost" size="icon" className="h-11 w-11 rounded-full" onClick={goPrev} aria-label={isArabic ? 'الذكر السابق' : 'Previous dhikr'}>
               <ChevronLeft className="h-6 w-6" />
             </Button>
-            <div className="flex-1 px-2 text-center">
-              <div className="px-2 py-4">
-                <p className="font-quran text-2xl leading-[2] text-foreground">{currentDhikr}</p>
-              </div>
+            <div className="min-w-0 flex-1 text-center">
+              <p className="tasbeeh-dhikr font-quran text-foreground">{currentDhikr}</p>
             </div>
             <Button variant="ghost" size="icon" className="h-11 w-11 rounded-full" onClick={goNext} aria-label={isArabic ? 'الذكر التالي' : 'Next dhikr'}>
               <ChevronRight className="h-6 w-6" />

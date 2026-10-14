@@ -1,66 +1,71 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import type { AzkarItem } from "@/lib/azkar";
 import { Button } from '@/components/ui/button';
 import { ArrowCounterClockwiseIcon as RotateCcw } from '@/components/icons/interface-icons';
 import { WarningIcon as AlertTriangle } from '@/components/icons/interface-icons';
 import { cn } from '@/lib/utils';
 import { useSettings } from '../providers/settings-provider';
+import { localDayKey, readAzkarProgress } from '@/lib/azkar-progress';
 
 interface ZikrCardProps {
   item: AzkarItem;
   categoryId: string;
   index: number;
+  day: string;
 }
 
-export function ZikrCard({ item, categoryId, index }: ZikrCardProps) {
+export function ZikrCard({ item, categoryId, index, day }: ZikrCardProps) {
   const { settings } = useSettings();
   const isArabic = settings.language === 'ar';
-  const [count, setCount] = useState(item.repetitions || 0);
+  const repetitions = item.repetitions ?? 1;
+  const [progressState, setProgressState] = useState({ key: '', day: '', remaining: repetitions });
   const persistenceKey = `azkar_progress_${categoryId}_${index}`;
-  const hasLoadedStorageRef = useRef(false);
+  const isLoaded = progressState.key === persistenceKey && progressState.day === day && day !== '';
+  const count = isLoaded ? progressState.remaining : repetitions;
 
-  // Load / Save logic
   useEffect(() => {
-    hasLoadedStorageRef.current = false;
+    if (!day) return;
     const timeoutId = window.setTimeout(() => {
+      let remaining = repetitions;
       try {
-        const stored = localStorage.getItem(persistenceKey);
-        setCount(stored !== null ? parseInt(stored) : item.repetitions || 0);
-      } catch {
-        setCount(item.repetitions || 0);
-      } finally {
-        hasLoadedStorageRef.current = true;
-      }
+        remaining = readAzkarProgress(localStorage.getItem(persistenceKey), day, repetitions);
+      } catch { /* Reading still works when storage is unavailable. */ }
+      setProgressState({ key: persistenceKey, day, remaining });
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [persistenceKey, item.repetitions]);
+  }, [persistenceKey, repetitions, day]);
 
-  useEffect(() => {
-    if (!hasLoadedStorageRef.current) return;
-    try { localStorage.setItem(persistenceKey, count.toString()); } catch { }
-  }, [count, persistenceKey]);
+  const save = (remaining: number, today: string) => {
+    setProgressState({ key: persistenceKey, day: today, remaining });
+    try { localStorage.setItem(persistenceKey, JSON.stringify({ day: today, remaining })); } catch { }
+  };
 
   const handleTap = () => {
-    if (count > 0) {
-      setCount(c => c - 1);
+    if (!isLoaded) return;
+    const today = localDayKey();
+    const remaining = today === progressState.day ? progressState.remaining : repetitions;
+    if (remaining > 0) {
+      save(remaining - 1, today);
       if (navigator.vibrate) navigator.vibrate(50);
     }
   };
 
   const handleReset = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCount(item.repetitions || 0);
+    save(repetitions, localDayKey());
   };
 
-  const total = item.repetitions || 1;
+  const total = repetitions || 1;
   const progress = ((total - count) / total) * 100;
-  const isCompleted = count === 0;
+  const isCompleted = isLoaded && count === 0;
 
   return (
     <div
       onClick={!isCompleted ? handleTap : undefined}
+      data-remaining={count}
+      data-completed={isCompleted}
       className={cn(
         "zikr-reading-card relative overflow-hidden rounded-2xl border bg-card transition-all duration-150 mb-3",
         !isCompleted ? "active:scale-[0.99] cursor-pointer shadow-sm" : "border-primary/20",

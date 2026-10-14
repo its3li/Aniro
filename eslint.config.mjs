@@ -8,6 +8,7 @@ const config = [
     ignores: [
       '.agent/**',
       '.claude/**',
+      '.codex-run/**',
       '.next/**',
       'android/**',
       'assets/**',
@@ -15,6 +16,7 @@ const config = [
       'node_modules/**',
       'out/**',
       'public/**',
+      'videos/**',
     ],
   },
   ...nextCoreWebVitals,

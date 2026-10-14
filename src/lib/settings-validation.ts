@@ -25,7 +25,7 @@ export function normalizeSettings<T extends object>(defaults: T, value: unknown)
       result[key] = (defaults as Record<string, unknown>)[key];
     }
   }
-  for (const [key, min, max] of [['fontSize', 12, 20], ['prayerOffset', -12, 12]] as const) {
+  for (const [key, min, max] of [['fontSize', 12, 24], ['prayerOffset', -12, 12]] as const) {
     if (!(key in result)) continue;
     const number = result[key];
     if (typeof number !== 'number' || !Number.isFinite(number) || number < min || number > max) {

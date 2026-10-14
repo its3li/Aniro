@@ -7,6 +7,8 @@ import React, {
   useCallback,
 } from "react";
 import { createPortal } from "react-dom";
+import { CaretDownIcon } from '@/components/icons/interface-icons';
+import { useMushafLayout } from '@/hooks/use-mushaf-layout';
 import {
   getPageData,
   getPageRange,
@@ -441,7 +443,7 @@ export function MushafPageView({
             <div className="mt-5 space-y-5">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-semibold">{isArabic ? "حجم الخط" : "Font Size"}</Label>
+                  <Label className="text-sm font-semibold">{isArabic ? "حجم الخط الأدنى" : "Minimum text size"}</Label>
                   <span className="font-mono text-xs text-muted-foreground">{settings.fontSize}px</span>
                 </div>
                 <Slider
@@ -451,6 +453,9 @@ export function MushafPageView({
                   value={[settings.fontSize]}
                   onValueChange={(value) => setFontSize(value[0])}
                 />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {isArabic ? "يتكيّف النص مع مساحة الشاشة، وتبقى القراءة قابلة للتمرير عند اختيار خط أكبر." : "Text fits the available screen space. Larger text stays scrollable when needed."}
+                </p>
               </div>
               <div className="flex items-center justify-between gap-4 rounded-lg border border-border/70 p-3">
                 <div>
@@ -488,7 +493,7 @@ export function MushafPageView({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div key={isLoading ? 'loading' : currentPage} className={`mushaf-page-wrapper h-full px-2 ${slideClass}`}>
+        <div key={isLoading ? 'loading' : currentPage} className={`mushaf-page-wrapper h-full ${slideClass}`}>
           {isLoading ? (
             <PageSkeleton />
           ) : pageData ? (
@@ -609,6 +614,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
 }) {
   const playingRef = useRef<HTMLSpanElement>(null);
   const isOpeningPage = page.pageNumber === 1 || page.pageNumber === 2;
+  const { viewportRef, textRef, footerRef, scrollCueRef } = useMushafLayout(page, fontSize, isOpeningPage);
 
   // تحويل الأرقام الإنجليزية إلى عربية
   const toArabicNumerals = (num: number) => {
@@ -629,11 +635,13 @@ const MushafPageContent = React.memo(function MushafPageContent({
   }, [activeVerseKey]);
 
   return (
-    <div className="mushaf-reading-scroll w-full h-full overflow-y-auto overflow-x-hidden" onScroll={() => setSelectedAyah(null)}>
+    <div className="mushaf-reading-frame relative h-full">
+    <div ref={viewportRef} className="mushaf-reading-scroll w-full h-full overflow-y-auto overflow-x-hidden" onScroll={() => setSelectedAyah(null)}>
+      <div className={cn('mushaf-sheet', isOpeningPage && 'mushaf-sheet-opening')}>
       <div
+        ref={textRef}
         className={cn("w-full quran-text mushaf-text", isOpeningPage && "mushaf-opening", isOpeningPage && ('mushaf-opening-' + page.pageNumber))}
         data-page={page.pageNumber}
-        style={{ fontSize: (isOpeningPage ? Math.max(24, fontSize * 1.35) : fontSize) + 'px' }}
       >
         {page.ayahs.map((ayah) => {
           const isSelected = selectedAyah === ayah.number;
@@ -690,8 +698,14 @@ const MushafPageContent = React.memo(function MushafPageContent({
             </React.Fragment>
           );
         })}
-        {isOpeningPage && <div className="mushaf-opening-folio" aria-hidden="true">{toArabicNumerals(page.pageNumber)}</div>}
       </div>
+      <footer ref={footerRef} className="mushaf-folio" aria-label={isArabic ? 'الصفحة ' + page.pageNumber : 'Page ' + page.pageNumber}>{toArabicNumerals(page.pageNumber)}</footer>
+      </div>
+    </div>
+    <div ref={scrollCueRef} className="mushaf-scroll-cue" aria-hidden="true">
+      <span>{isArabic ? 'مرّر لمتابعة القراءة' : 'Scroll to continue'}</span>
+      <CaretDownIcon />
+    </div>
     </div>
   );
 });

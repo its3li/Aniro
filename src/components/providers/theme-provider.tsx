@@ -50,13 +50,14 @@ export function ThemeProvider({
     }
 
     if (theme === "system" && enableSystem) {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light"
-
-      root.classList.add(systemTheme)
-      return
+      const media = window.matchMedia("(prefers-color-scheme: dark)")
+      const applySystemTheme = () => {
+        root.classList.remove("light", "dark")
+        root.classList.add(media.matches ? "dark" : "light")
+      }
+      applySystemTheme()
+      media.addEventListener("change", applySystemTheme)
+      return () => media.removeEventListener("change", applySystemTheme)
     }
 
     root.classList.add(theme === "system" ? defaultTheme : theme)

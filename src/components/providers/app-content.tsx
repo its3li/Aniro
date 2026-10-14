@@ -3,15 +3,21 @@
 import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useLoading } from '@/components/providers/loading-provider';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 import { useWidgetSync } from '@/hooks/use-widget-sync';
 import { useAzanScheduler } from '@/hooks/use-azan-scheduler';
+import { SystemAppearance } from '@/components/providers/system-appearance';
 
 export function AppContent({ children }: { children: React.ReactNode }) {
     const { isColdStart } = useLoading();
     const router = useRouter();
+    const pathname = usePathname();
+
+    useEffect(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, [pathname]);
 
     useAzanScheduler();
 
@@ -45,8 +51,8 @@ export function AppContent({ children }: { children: React.ReactNode }) {
     }, [router]);
 
     if (isColdStart) {
-        return <LoadingScreen />;
+        return <><SystemAppearance /><LoadingScreen /></>;
     }
 
-    return <>{children}</>;
+    return <><SystemAppearance />{children}</>;
 }

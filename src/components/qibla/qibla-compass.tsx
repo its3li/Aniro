@@ -58,9 +58,9 @@ export function QiblaCompass() {
     }
 
     return (
-        <div className="flex flex-col items-center gap-6">
+        <div className="qibla-content flex flex-col items-center">
             {/* Compass Container */}
-            <div className="premium-panel relative flex items-center justify-center w-[76vw] h-[76vw] max-w-[320px] max-h-[320px] rounded-full">
+            <div className="qibla-dial premium-panel relative flex items-center justify-center rounded-full">
                 {/* Glow effect when aligned */}
                 <div
                     className="absolute inset-0 rounded-full transition-all duration-700"
@@ -180,7 +180,7 @@ export function QiblaCompass() {
 
             {/* Bearing info */}
             <GlassCard className="w-full">
-                <GlassCardContent className="p-5 pt-5">
+                <GlassCardContent className="qibla-details">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10">
@@ -208,7 +208,7 @@ export function QiblaCompass() {
             {/* Location info */}
             {displayName && (
                 <GlassCard className="w-full">
-                    <GlassCardContent className="p-4 pt-4">
+                    <GlassCardContent className="qibla-location">
                         <div className="flex items-center gap-3">
                             <MapPin className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                             <div>

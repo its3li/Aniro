@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { APP_VERSION } from '../src/lib/app-update';
 
-const update = {versionCode:21,versionName:'test-next',rollout:100,forceUpdate:false,apkUrl:'https://github.com/its3li/Aniro/releases/download/test-next/aniro.apk',sha256:'a'.repeat(64)};
+const update = {versionCode:APP_VERSION.versionCode+1,versionName:'test-next',rollout:100,forceUpdate:false,apkUrl:'https://github.com/its3li/Aniro/releases/download/test-next/aniro.apk',sha256:'a'.repeat(64)};
 
 test.beforeEach(async ({page}) => {
   await page.addInitScript(() => {
@@ -22,9 +23,9 @@ test('update discovery falls back when the primary feed is unavailable',async ({
 });
 
 test('current release has no update prompt and reports the actual version',async ({page}) => {
-  await page.route('https://raw.githubusercontent.com/**/version.json',route=>route.fulfill({json:{...update,versionCode:20,versionName:'6.14'}}));
+  await page.route('https://raw.githubusercontent.com/**/version.json',route=>route.fulfill({json:{...update,...APP_VERSION}}));
   await page.goto('/settings');
-  await expect(page.getByText('v6.14',{exact:true})).toBeVisible();
+  await expect(page.getByText('v'+APP_VERSION.versionName,{exact:true})).toBeVisible();
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
 });
 

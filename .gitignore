@@ -50,6 +50,10 @@ firestore-debug.log
 *.patch
 build.log
 build-output.log
+*.apk
+*.jks
+/videos/node_modules/
+/videos/dist/
 Task
 
 # AI agent workspaces

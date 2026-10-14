@@ -13,6 +13,8 @@ for (const input of [null, [], 'invalid', { prayerOffset: null, azanMode: 'broke
 }
 assert.equal(normalizeSettings(defaults, { prayerOffset: Infinity }).prayerOffset, 0);
 assert.equal(normalizeSettings(defaults, { prayerOffset: 99 }).prayerOffset, 0);
+assert.equal(normalizeSettings(defaults, { fontSize: 24 }).fontSize, 24);
+assert.equal(normalizeSettings(defaults, { fontSize: 25 }).fontSize, 16);
 assert.equal(normalizeSettings(defaults, { fajrQuizEnabled: false }).fajrQuizEnabled, false);
 for (let index = 0; index < 2000; index++) {
   const question = generateQuizQuestion();
