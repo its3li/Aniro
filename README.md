@@ -1,268 +1,135 @@
 <div align="center">
-
-<img src="./assets/icon.png" width="120" height="120" alt="Aniro Logo">
-
-# 🌙 Aniro
-
-**Your Digital Companion for Islamic Worship**  
-*رفيقك الرقمي للعبادات اليومية*
-
-[![Next.js](https://img.shields.io/badge/Next.js%2015-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React%2019-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Capacitor](https://img.shields.io/badge/Capacitor-119EFF?style=for-the-badge&logo=capacitor&logoColor=white)](https://capacitorjs.com/)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-
-[📱 Download APK](#-download) • [🚀 Features](#-features) • [🛠️ Tech Stack](#%EF%B8%8F-tech-stack) • [📸 Screenshots](#-screenshots) • [🤝 Contribute](#-contribute)
-
+  <img src="./assets/icon.png" width="104" height="104" alt="Aniro logo">
+  <h1>Aniro</h1>
+  <p>صلاتك، قرآنك، وذكرك. أقرب، كل يوم.</p>
+  <p>Prayer, Quran, and daily remembrance for Android.</p>
+  <p><a href="https://github.com/its3li/Aniro/releases/latest">Download Android APK</a> · <a href="https://aniro.vercel.app/">Website</a> · <a href="#current-screenshots">Screenshots</a> · <a href="#development">Development</a></p>
 </div>
 
----
+Aniro is an Arabic/English Islamic companion built with Next.js, React,
+TypeScript, and Capacitor. The official Android release includes prayer
+times and Azan reminders, Quran reading and recitation, Tafseer, daily
+Azkar, Tasbeeh, and Qibla.
 
-## 📱 Download
+## Download and update
 
-| Platform | Status | Link |
-|----------|--------|------|
-| Android | ✅ Available | [Download APK](https://github.com/its3li/Aniro/releases/latest) |
-| iOS | 🚧 Coming Soon | — |
-| Web | 🚧 Coming Soon | — |
+Get the latest signed APK from [GitHub Releases](https://github.com/its3li/Aniro/releases/latest).
+Android 7.0 or newer is required.
 
----
+**Existing users:** keep Aniro installed. Open Settings → About → Check for
+updates, or install the official APK over your existing official version.
+The signed update preserves local data and preferences.
 
-## 🚀 Features
+**للتحديث:** لا تحذف أنيرو. افتح الإعدادات ← حول التطبيق ← تحقّق من التحديثات،
+أو ثبّت ملف APK الرسمي فوق النسخة الحالية واختر «تحديث».
 
-### 🏠 Smart Home Dashboard
-<p align="center">
-  <img src="./assets/night-mode.png" width="300" alt="Home Screen">
-</p>
+The current release is 6.15, version code 21. Live release metadata is in
+[version.json](version.json), including the download URL and APK checksum.
 
-- **Hijri Date Display** — Beautiful Arabic typography showing today's Islamic date
-- **Next Prayer Card** — Live countdown to the next prayer with animated timer
-- **Daily Prayer Strip** — Quick view of all today's prayer times
-- **Daily Wisdom** — Rotating hadith and Islamic quotes to start your day
+## Current screenshots
 
-### 🕌 Accurate Prayer Times & Qibla
-- **GPS-Based Location** — Auto-detects your city/country for precise calculations
-- **Multiple Calculation Methods** — Choose from: Muslim World League, Egyptian General Authority, and more
-- **Background Notifications** — Adhan plays even when app is closed
-- **Manual Time Adjustment** — Fine-tune by minutes if needed
-- **🧭 Qibla Compass** — Accurate direction to the Kaaba with smooth animation
+These genuine phone captures show the current interface. They replace the
+old version-one screenshots previously shown in this README.
 
-### 📖 Complete Quran Experience
-- **Full Mushaf** — Complete Quran with all 114 surahs
-- **Two Reading Modes**:
-  - **List Mode** — Verses in continuous scroll
-  - **Page Mode** — Like the physical Mushaf
-- **Tajweed Color-Coding** — Visual rules for proper recitation
-- **Tafsir Integration** — Long-press any verse for instant explanation
-- **Audio Recitation** — Famous reciters: Al-Husary, Al-Minshawi, Al-Afasy, and more
+| Home and prayer times | Quran reading | Active listening | Tafseer |
+| --- | --- | --- | --- |
+| <img src="./assets/screenshots/home.jpg" width="180" alt="Current Aniro Home and prayer times"> | <img src="./assets/screenshots/quran-page-2.jpg" width="180" alt="Current Quran page with Tajweed"> | <img src="./assets/screenshots/quran-listening.jpg" width="180" alt="Quran during active playback"> | <img src="./assets/screenshots/quran-tafseer.jpg" width="180" alt="Actual verse Tafseer dialog"> |
 
-### 📿 Azkar & Digital Tasbih
-- **Organized Collections** — Morning, Evening, Sleep, Prayer azkar
-- **Digital Tasbih** — Electronic counter with haptic feedback
-- **Progress Tracking** — See your daily azkar completion
+| Arabic reciter names | Daily Azkar | Tasbeeh | Qibla |
+| --- | --- | --- | --- |
+| <img src="./assets/screenshots/quran-reciters.jpg" width="180" alt="Current reciter selection in Arabic"> | <img src="./assets/screenshots/azkar-reading.jpg" width="180" alt="Azkar text and repetitions"> | <img src="./assets/screenshots/tasbeeh.jpg" width="180" alt="Current Tasbeeh counter"> | <img src="./assets/screenshots/qibla.jpg" width="180" alt="Real Qibla capture"> |
 
-### ⚙️ Personalization
-- **Dark/Light Mode** — Aurora gradient backgrounds with glassmorphism design
-- **Font Scaling** — Adjustable text size for accessibility
-- **Bilingual Support** — Full Arabic & English interface
-- **Offline-First** — Core features work without internet
+[Screenshot provenance](assets/screenshots/SOURCES.md): captured from the
+owner's phone on October 13, 2026, then resized without stretching or
+recreating app content. The app logo is unchanged.
 
----
+## Features
 
-## 🛠️ Tech Stack
+- **Prayer and Azan:** location-based timings, calculation preferences,
+  manual adjustments, and native Android alarms/reminders.
+- **Quran:** 114 surahs, page and list reading, color-coded Tajweed,
+  saved reading position, and adjustable text controls.
+- **Responsive Mushaf:** fits available screen space; larger text remains
+  scrollable. The scroll hint appears only when needed and hides after use.
+- **Listening and Tafseer:** available reciters, playback controls, and
+  verse interpretation inside the reader. Online recitation needs internet.
+- **Daily Azkar:** organized categories and repetition tracking; progress
+  survives reopening and resets for the next local day.
+- **Tasbeeh and Qibla:** a counter with touch feedback and a sensor-based
+  compass with calibration guidance.
+- **Preferences:** Arabic/English, light/dark/system appearance, text size,
+  prayer options, and resizable Android home-screen widgets.
+- **Official updates:** APK download, checksum validation, and Android's
+  package installer, retaining data for compatible official installs.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         Aniro Architecture                   │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   Next.js   │  │   React     │  │    TypeScript       │  │
-│  │     15      │  │     19      │  │       5.x           │  │
-│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
-│         └─────────────────┴────────────────────┘             │
-│                           │                                  │
-│  ┌────────────────────────┼────────────────────────┐        │
-│  │                    UI Layer                       │        │
-│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐   │        │
-│  │  │  Radix UI  │ │ Tailwind   │ │ shadcn/ui  │   │        │
-│  │  │ Components │ │   CSS 3.4  │ │ Components │   │        │
-│  │  └────────────┘ └────────────┘ └────────────┘   │        │
-│  └────────────────────────┬────────────────────────┘        │
-│                           │                                  │
-│  ┌────────────────────────┼────────────────────────┐        │
-│  │                 Native Layer                    │        │
-│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐   │        │
-│  │  │ Capacitor  │ │Geolocation │ │Local Notif.│   │        │
-│  │  │    8.x     │ │   Plugin   │ │   Plugin   │   │        │
-│  │  └────────────┘ └────────────┘ └────────────┘   │        │
-│  └────────────────────────┬────────────────────────┘        │
-│                           │                                  │
-│  ┌────────────────────────┼────────────────────────┐        │
-│  │                    Data Layer                  │        │
-│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐   │        │
-│  │  │  Adhan.js  │ │   IDB      │ │  Minisearch│   │        │
-│  │  │Prayer Calc │ │  (IndexedDB)│ │  Search    │   │        │
-│  │  └────────────┘ └────────────┘ └────────────┘   │        │
-│  └──────────────────────────────────────────────────┘        │
-└─────────────────────────────────────────────────────────────┘
-```
+Permissions for notifications, alarms, location, and battery behavior can
+affect reminders. Review the requested Android permissions during setup.
+Sensor availability and calibration affect Qibla direction.
 
-### Core Technologies
-| Category | Technology | Purpose |
-|----------|------------|---------|
-| **Framework** | Next.js 15 + React 19 | App architecture |
-| **Language** | TypeScript 5 | Type safety |
-| **Styling** | Tailwind CSS 3.4 + shadcn/ui | Modern UI |
-| **Mobile** | Capacitor 8 | Native Android app |
-| **Icons** | Lucide React | Consistent iconography |
-| **State** | React Hook Form + Zod | Form management |
-| **Search** | Minisearch | Offline search in Quran |
+## Technology
 
-### Native Capabilities (Capacitor Plugins)
-- `@capacitor/geolocation` — GPS for prayer time calculations
-- `@capacitor/local-notifications` — Adhan reminders
-- `@capacitor/preferences` — Local settings storage
+| Layer | Technology |
+| --- | --- |
+| Web app | Next.js 15, React 19, TypeScript 5 |
+| UI | Tailwind CSS 3.4, Radix/shadcn components, Phosphor icons |
+| Android | Capacitor 8 and native Java plugins |
+| Prayer calculations | Adhan libraries |
+| Search | MiniSearch, bundled Quran search data |
+| Local data | IndexedDB and Capacitor Preferences |
 
-### Storage
-- **IndexedDB (IDB-Keyval)** — Offline-first data storage
-- **Capacitor Preferences** — Settings & cache
+## Development
 
----
+Requirements: Node.js 20+, Java 21, and the configured Android SDK for
+native builds. The app exports static web assets for Capacitor.
 
-## 📸 Screenshots
+    git clone https://github.com/its3li/Aniro.git
+    cd Aniro
+    npm ci
+    npm run dev
 
-<div align="center">
+Production web build and native sync:
 
-| Home Screen | Prayer Times | Quran Reader |
-|-------------|--------------|--------------|
-| <img src="./assets/night-mode.png" width="250"> | <img src="./assets/praying.png" width="250"> | <img src="./assets/quran.png" width="250"> |
-| *Hijri date, next prayer, daily wisdom* | *Accurate timings, multiple methods* | *Tajweed colors, tafsir, audio* |
+    npm run build
+    npx cap sync android
 
-</div>
+For this Windows workspace, build caches, SDK, and temporary files are kept
+on F: using [build-on-f.ps1](scripts/build-on-f.ps1):
 
----
+    . scripts/build-on-f.ps1
+    . scripts/build-on-f.ps1 -Action Release
 
-## 🏗️ Project Structure
+Provide signing credentials through environment variables or local Gradle
+properties. Never commit signing passwords or keystores.
 
-```
-Aniro/
-├── 📁 android/                 # Native Android project (Capacitor)
-├── 📁 assets/                   # App icons & images
-├── 📁 src/
-│   ├── 📁 app/                  # Next.js app router
-│   │   ├── 📁 quran/            # Quran feature pages
-│   │   ├── 📁 qibla/            # Qibla feature pages
-│   │   ├── 📁 settings/         # Settings pages
-│   │   └── 📁 azkar/            # Azkar pages
-│   ├── 📁 components/
-│   │   ├── 📁 ui/               # shadcn/ui components
-│   │   └── 📁 quran/            # Custom Quran components
-│   ├── 📁 hooks/                # Custom React hooks
-│   ├── 📁 lib/                  # Utilities & helpers
-│   └── 📁 types/                # TypeScript definitions
-├── 📁 public/                   # Static assets
-├── 📄 capacitor.config.ts         # Capacitor configuration
-├── 📄 next.config.ts            # Next.js configuration
-└── 📄 tailwind.config.ts         # Tailwind customization
-```
+## Checks
 
----
+    npm run check:release
+    npm run check:smoke
 
-## 🚦 Getting Started
+Release checks cover Arabic encoding, Tajweed, prayer parity, native Azan,
+APK update behavior, search, backend regressions, and TypeScript. Browser
+tests include reader layouts across screen sizes, gestures, scroll hints,
+daily progress, and update permission/resume behavior.
 
-### Prerequisites
-- Node.js 20+
-- Android Studio (for Android builds)
-- Git
+## Project layout
 
-### Installation
+| Path | Content |
+| --- | --- |
+| src/app/ | Application pages |
+| src/components/ | Shared UI and feature components |
+| src/hooks/ | Location, prayer, reading, and state hooks |
+| src/lib/ | Data access, calculations, search, and validation |
+| android/ | Native Android app and plugins |
+| public/ | Bundled static data and web assets |
+| assets/screenshots/ | Current README captures |
+| tests/ and scripts/ | Browser tests and release checks |
 
-```bash
-# Clone the repository
-git clone https://github.com/its3li/Aniro.git
-cd Aniro
+## Contributing and license
 
-# Install dependencies
-npm install
+Report reproducible problems through [GitHub Issues](https://github.com/its3li/Aniro/issues),
+or submit a pull request with a clear description and relevant checks.
+Keep private data out of public reports.
 
-# Run development server
-npm run dev
+MIT license. See [LICENSE](LICENSE).
 
-# Build for production
-npm run build
-
-# Sync with Android
-npx cap sync android
-
-# Open Android Studio
-npx cap open android
-```
-
----
-
-## 🤝 Contribute
-
-We welcome contributions! Here's how:
-
-```bash
-# Fork & clone
-git clone https://github.com/YOUR_USERNAME/Aniro.git
-
-# Create branch
-git checkout -b feature/amazing-feature
-
-# Make changes & commit
-git commit -m "feat: add amazing feature"
-
-# Push & PR
-git push origin feature/amazing-feature
-```
-
-### Contribution Areas
-- 🐛 Bug fixes
-- ✨ New features
-- 🌍 Translations (i18n)
-- 📱 iOS support
-- 🎨 UI/UX improvements
-- 📚 Documentation
-
----
-
-## 📊 Stats
-
-<div align="center">
-
-![GitHub stars](https://img.shields.io/github/stars/its3li/Aniro?style=social)
-![GitHub forks](https://img.shields.io/github/forks/its3li/Aniro?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/its3li/Aniro?style=social)
-
-</div>
-
----
-
-## 🙏 Acknowledgments
-
-- **Adhan Library** — Accurate prayer time calculations
-- **AlQuran Cloud API** — Network fallback for Quranic data and translations
-- **Capacitor Team** — Making web apps native
-- **shadcn/ui** — Beautiful accessible components
-
----
-
-## 📜 License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
----
-
-<div align="center">
-
-**Made with ❤️ by [Ali](https://github.com/its3li)**
-
-*"And whoever does an atom's weight of good will see it"* — Quran 99:7
-
-[⬆ Back to Top](#-aniro)
-
-</div>
+Made by [Ali Mahmoud](https://github.com/its3li).
