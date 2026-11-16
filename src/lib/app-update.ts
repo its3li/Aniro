@@ -9,7 +9,7 @@ const UPDATE_CHECK_URL = 'https://api.github.com/repos/its3li/Aniro/contents/ver
 const UPDATE_FALLBACK_URL = 'https://raw.githubusercontent.com/its3li/Aniro/feature/offline-quran-search/version.json';
 
 // Landing page for downloads
-const LANDING_PAGE_URL = 'https://github.com/its3li/Aniro/releases/latest';
+const LANDING_PAGE_URL = 'https://aniro.vercel.app/';
 
 export interface UpdateInfo {
   versionCode: number;
