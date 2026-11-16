@@ -20,6 +20,8 @@ export interface UpdateInfo {
   forceUpdate?: boolean;
   minSupportedVersionCode?: number;
   rollout?: number;
+  /** Page opened when the update can't be downloaded inside the app (set in version.json). */
+  downloadPageUrl?: string;
 }
 
 export const UPDATE_DIALOG_EVENT = 'aniro:show-update-dialog';
@@ -67,6 +69,12 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
 /**
  * Get the landing page URL for downloads
  */
-export function getUpdateUrl(): string {
+export function getUpdateUrl(info?: Pick<UpdateInfo, 'downloadPageUrl'> | null): string {
+  try {
+    const url = info?.downloadPageUrl ? new URL(info.downloadPageUrl) : null;
+    if (url && url.protocol === 'https:') return url.toString();
+  } catch {
+    /* invalid URL: use the built-in page */
+  }
   return LANDING_PAGE_URL;
 }

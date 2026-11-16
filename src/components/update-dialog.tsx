@@ -175,9 +175,9 @@ export function UpdateDialog() {
   }, [isBusy, updateInfo?.forceUpdate]);
 
   const handleFallbackDownload = useCallback(() => {
-    window.open(getUpdateUrl(), '_blank');
+    window.open(getUpdateUrl(updateInfo), '_blank');
     handleLater();
-  }, [handleLater]);
+  }, [handleLater, updateInfo]);
 
   const handleOpenPermission = async () => {
     try {
