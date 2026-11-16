@@ -77,7 +77,7 @@ const defaultSettings: Settings = {
   fontSize: 16,
   prayerOffset: 0,
   language: 'ar',
-  quranViewMode: 'list',
+  quranViewMode: 'page',
   quranEdition: 'uthmani',
   quranTajweedEnabled: false,
   quranReciter: 'ar.mahermuaiqly',

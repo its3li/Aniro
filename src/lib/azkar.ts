@@ -4,6 +4,8 @@ export interface AzkarItem {
     translation: string;
     repetitions?: number;
     note?: string;
+    /** Where the text comes from, e.g. "البقرة ٢٥٥ · Al-Baqarah 255". */
+    source?: string;
 }
   
 export interface AzkarCategory {

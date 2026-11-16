@@ -19,6 +19,8 @@ export const metadata: Metadata = {
 
 import { AzanPlayer } from '@/components/providers/azan-player';
 import { UpdateDialog } from '@/components/update-dialog';
+import { ShareImageProvider } from '@/components/share/share-image-dialog';
+import { CustomAzkarProvider } from '@/components/azkar/custom-azkar-sheets';
 
 const quranFont = localFont({
   src: '../../public/fonts/naskh.woff2',
@@ -68,6 +70,8 @@ export default function RootLayout({
           <SettingsProvider>
             <LoadingProvider>
               <AudioPlayerProvider>
+                <ShareImageProvider>
+                <CustomAzkarProvider>
                   <AppContent>
                     <div className="app-shell fixed inset-0 -z-10" aria-hidden="true" />
                     <a href="#app-main" className="skip-link">Skip to content</a>
@@ -80,6 +84,8 @@ export default function RootLayout({
                     <Toaster />
                     <UpdateDialog />
                   </AppContent>
+                </CustomAzkarProvider>
+                </ShareImageProvider>
               </AudioPlayerProvider>
             </LoadingProvider>
           </SettingsProvider>

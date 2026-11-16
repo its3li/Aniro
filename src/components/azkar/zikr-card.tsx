@@ -7,17 +7,24 @@ import { WarningIcon as AlertTriangle } from '@/components/icons/interface-icons
 import { cn } from '@/lib/utils';
 import { useSettings } from '../providers/settings-provider';
 import { localDayKey, readAzkarProgress } from '@/lib/azkar-progress';
+import { useShareImage } from '@/components/share/share-image-dialog';
+import { ShareNetworkIcon as ShareNetwork } from '@/components/icons/interface-icons';
+import { azkarShareText } from '@/lib/azkar-share';
 
 interface ZikrCardProps {
   item: AzkarItem;
   categoryId: string;
   index: number;
   day: string;
+  /** Index used by drag-select (`data-select-index`). */
+  selectIndex?: number;
+  selected?: boolean;
 }
 
-export function ZikrCard({ item, categoryId, index, day }: ZikrCardProps) {
+export function ZikrCard({ item, categoryId, index, day, selectIndex, selected = false }: ZikrCardProps) {
   const { settings } = useSettings();
   const isArabic = settings.language === 'ar';
+  const { openShareImage } = useShareImage();
   const repetitions = item.repetitions ?? 1;
   const [progressState, setProgressState] = useState({ key: '', day: '', remaining: repetitions });
   const persistenceKey = `azkar_progress_${categoryId}_${index}`;
@@ -66,8 +73,11 @@ export function ZikrCard({ item, categoryId, index, day }: ZikrCardProps) {
       onClick={!isCompleted ? handleTap : undefined}
       data-remaining={count}
       data-completed={isCompleted}
+      data-select-index={selectIndex}
+      aria-selected={selectIndex !== undefined ? selected : undefined}
       className={cn(
         "zikr-reading-card relative overflow-hidden rounded-2xl border bg-card transition-all duration-150 mb-3",
+        selected && "drag-selected",
         !isCompleted ? "active:scale-[0.99] cursor-pointer shadow-sm" : "border-primary/20",
         isCompleted && "opacity-80 grayscale-[0.5]"
       )}
@@ -88,6 +98,10 @@ export function ZikrCard({ item, categoryId, index, day }: ZikrCardProps) {
         )}>
           {item.arabic}
         </p>
+
+        {item.source && (
+          <p className="-mt-2 text-center text-xs text-muted-foreground" dir="auto">{item.source}</p>
+        )}
 
         {/* Note Alert */}
         {item.note && (
@@ -123,7 +137,22 @@ export function ZikrCard({ item, categoryId, index, day }: ZikrCardProps) {
             <span className="text-xl font-bold font-mono tracking-tighter tabular-nums">{count}</span>
           </div>
 
-          <div className="w-16"></div> {/* Spacer for symmetry */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              openShareImage({
+                items: [{ arabic: item.arabic, translation: item.translation, repeat: item.repetitions }],
+                shareText: azkarShareText([item], isArabic ? 'ذكر' : 'Zikr', isArabic),
+              });
+            }}
+            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+            aria-label={isArabic ? 'مشاركة كصورة' : 'Share image'}
+          >
+            <ShareNetwork className="h-3.5 w-3.5 me-1.5" />
+            {isArabic ? 'مشاركة' : 'Share'}
+          </Button>
         </div>
       </div>
     </div>

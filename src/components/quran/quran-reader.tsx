@@ -17,6 +17,14 @@ import { SlidersHorizontalIcon as Settings2 } from '@/components/icons/interface
 import { TafseerModal } from './tafseer-modal';
 import { useSettings } from '../providers/settings-provider';
 import { stripTajweed } from '@/lib/tajweed';
+import { ShareNetworkIcon as ShareNetwork } from '@/components/icons/interface-icons';
+import { useShareImage } from '@/components/share/share-image-dialog';
+import { useDragSelect } from '@/hooks/use-drag-select';
+import { SelectionActionBar, ayatCountLabel } from '@/components/share/selection-action-bar';
+
+import { ayahReference, ayahShareItem, ayahShareText, type AyahShareSource } from '@/lib/ayah-share';
+import { useCustomAzkar } from '@/components/azkar/custom-azkar-sheets';
+
 import { TajweedLegend } from './tajweed-legend';
 import { MushafPageView } from './mushaf-page-view';
 import { TajweedText } from './tajweed-text';
@@ -95,9 +103,48 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
   const [selectedVerseForTafseer, setSelectedVerseForTafseer] = useState<Verse | null>(null);
   const [isTafseerOpen, setTafseerOpen] = useState(false);
   const [selectedVerseForPopup, setSelectedVerseForPopup] = useState<Verse | null>(null);
+  const { openShareImage } = useShareImage();
+  const { openAddToAzkar } = useCustomAzkar();
   const [showTafseer, setShowTafseer] = useState(false);
 
   const verseRefs = useRef<Map<string, HTMLElement | null>>(new Map());
+  const listRootRef = useRef<HTMLDivElement>(null);
+  const drag = useDragSelect(listRootRef, { enabled: activeViewMode !== 'page' });
+  const { clear: clearDrag } = drag;
+
+  useEffect(() => {
+    const id = window.setTimeout(clearDrag, 0);
+    return () => window.clearTimeout(id);
+  }, [surah.number, clearDrag]);
+
+  const selectedSources = (): AyahShareSource[] => {
+    if (!drag.range) return [];
+    return surah.verses.slice(drag.range.start, drag.range.end + 1).map(verse => ({
+      text: stripBismillah(verse.text, surah.number, verse.number.inSurah),
+      numberInSurah: verse.number.inSurah,
+      surahName: surah.name,
+      surahEnglishName: surah.englishName,
+      translation: verse.translation,
+    }));
+  };
+
+  const handleCopySelection = () => {
+    void navigator.clipboard.writeText(ayahShareText(selectedSources()));
+    toast({ title: isArabic ? 'تم نسخ الآيات' : 'Ayat copied' });
+    drag.clear();
+  };
+
+  const handleShareSelection = () => {
+    const sources = selectedSources();
+    if (!sources.length) return;
+    const first = sources[0].numberInSurah;
+    const last = sources[sources.length - 1].numberInSurah;
+    openShareImage({
+      items: sources.map(ayahShareItem),
+      title: `${isArabic ? surah.name : surah.englishName} · ${first === last ? first : `${first}–${last}`}`,
+      shareText: ayahShareText(sources),
+    });
+  };
 
   // Scroll to active verse
   useEffect(() => {
@@ -159,6 +206,22 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
     setSelectedVerseForPopup(null);
   };
 
+  const handleShareVerse = (verse: Verse) => {
+    const source: AyahShareSource = {
+      text: stripBismillah(verse.text, surah.number, verse.number.inSurah),
+      numberInSurah: verse.number.inSurah,
+      surahName: surah.name,
+      surahEnglishName: surah.englishName,
+      translation: verse.translation,
+    };
+    openShareImage({
+      items: [ayahShareItem(source)],
+      title: `${isArabic ? surah.name : surah.englishName} · ${verse.number.inSurah}`,
+      shareText: ayahShareText([source]),
+    });
+    setSelectedVerseForPopup(null);
+  };
+
   const handleBookmarkVerse = (verse: Verse) => {
     saveLastRead({
       surahName: surah.englishName,
@@ -200,7 +263,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
       const verseEl = verseRefs.current.get(verseKey);
       if (verseEl) {
         const rect = verseEl.getBoundingClientRect();
-        const popupWidth = 184;
+        const popupWidth = 224;
         const padding = 8;
 
         // Center horizontally, clamp to screen edges
@@ -318,7 +381,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
             </div>
           )}
           </div>
-          <div className="reader-content px-4">
+          <div ref={listRootRef} className="reader-content px-4">
             <div className="flex flex-col gap-2">
               {/* Bismillah - separate line for all surahs except Fatiha (1) and Tawbah (9) */}
               {surah.number !== 1 && surah.number !== 9 && (
@@ -342,9 +405,11 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                   <div
                     key={verse.number.inQuran}
                     ref={el => { verseRefs.current.set(verseKey, el); }}
+                    data-select-index={index}
                     onClick={() => handleVerseClick(verse)}
                     className={cn(
                       "reader-verse relative p-5 text-center cursor-pointer overflow-hidden select-none touch-manipulation",
+                      drag.isSelected(index) && 'drag-selected',
                       isVerseActive && (isTajweed ? 'bg-primary/5' : 'bg-primary/10'),
                       isSelected && (isTajweed ? 'bg-primary/5 ring-1 ring-primary/15' : 'bg-primary/10 ring-2 ring-primary/30')
                     )}
@@ -377,7 +442,7 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
               style={{
                 top: Math.max(8, popupRect.top),
                 left: popupRect.left,
-                width: '184px',
+                width: '224px',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -402,6 +467,13 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
                       <Copy className="w-5 h-5" />
                     </button>
                     <button
+                      aria-label={isArabic ? 'مشاركة الآية' : 'Share ayah'}
+                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
+                      onClick={() => handleShareVerse(verse)}
+                    >
+                      <ShareNetwork className="w-5 h-5" />
+                    </button>
+                    <button
                       aria-label={isArabic ? 'حفظ موضع القراءة' : 'Save reading position'}
                       className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
                       onClick={() => handleBookmarkVerse(verse)}
@@ -422,6 +494,26 @@ export function QuranReader({ surah, onBack, initialVerseNumber }: QuranReaderPr
             document.body
           )}
         </>
+      )}
+
+      {activeViewMode !== 'page' && drag.range && (
+        <SelectionActionBar
+          count={drag.range.end - drag.range.start + 1}
+          label={ayatCountLabel(drag.range.end - drag.range.start + 1, isArabic)}
+          isArabic={isArabic}
+          onCopy={handleCopySelection}
+          onShare={handleShareSelection}
+          onAdd={() => {
+            openAddToAzkar(selectedSources().map(src => ({
+              arabic: ayahShareItem(src).arabic,
+              translation: src.translation ?? '',
+              repetitions: 1,
+              source: ayahReference(src),
+            })));
+            drag.clear();
+          }}
+          onClear={drag.clear}
+        />
       )}
 
       {selectedVerseForTafseer && (

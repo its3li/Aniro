@@ -515,7 +515,7 @@ button:focus-visible,a:focus-visible,[role=button]:focus-visible { outline:2px s
 html[lang=ar] body,html[lang=ur] body,html[lang=fa] body { font-family:var(--font-ui-arabic),var(--font-ui),sans-serif; }
 html[dir=rtl] .page-heading h1 { letter-spacing:0; }
 @media(max-width:360px) { .app-page { padding-inline:1rem; } .azkar-categories { grid-template-columns:1fr; } .prayer-panel > div { padding-inline:1rem!important; } .navigation-item span { font-size:9px; } }
-@media(min-width:768px) { .app-page { padding-top:1.5rem; } .page-heading-mark { display:block; position:absolute; inset-inline-end:0; bottom:1rem; width:30px; height:30px; color:hsl(var(--primary)); } }
+@media(min-width:768px) { .app-page { padding-top:1.5rem; } }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; scroll-behavior:auto!important; } }
 .tasbeeh-page .counter-value { font-family:var(--font-ui); font-size:clamp(3rem,8dvh,4rem); font-weight:450; color:hsl(var(--foreground)); }
 .tasbeeh-dhikr { padding:.5rem 0; font-size:1.35rem; line-height:1.9; text-wrap:balance; }
@@ -619,3 +619,15 @@ html[dir=rtl] .page-heading h1 { letter-spacing:0; }
 .reader-verse { padding-block:1rem; }
 .home-page .azkar-suggestion > div > div:first-child,.home-page .reading-resume > div > div:first-child { flex:1; }
 .home-page .azkar-suggestion p,.home-page .reading-resume p,.azkar-category h3 { padding-block:.15rem; overflow:visible; text-overflow:clip; white-space:normal; }
+/* Reader app bars span the full window even though the reading column is capped. */
+.reader-toolbar { box-shadow:0 0 0 100vmax hsl(var(--background)); clip-path:inset(0 -100vmax); }
+.quran-reader:has(> .mushaf-container) { max-width:none; }
+.quran-reader > .mushaf-container > .mushaf-toolbar { padding-inline:max(.5rem, calc((100% - 54rem) / 2)); }
+.reader-toolbar > header { border-image:linear-gradient(hsl(var(--border)) 0 0) 0 0 1 0 / 0 0 1px 0 / 0 100vmax; }
+.quran-library .reading-resume { margin-bottom:1rem; }
+[data-select-index] { -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
+.zikr-reading-card.drag-selected,.reader-verse.drag-selected { background:hsl(var(--primary)/.1); box-shadow:inset 0 0 0 2px hsl(var(--primary)/.45); border-radius:1rem; }
+/* Soft band behind selected ayat: limited to the middle of each line so wrapped lines don't stack into blocks. */
+.mushaf-ayah.ayah-selected { color:hsl(var(--primary)); background-image:linear-gradient(hsl(var(--primary)/.16),hsl(var(--primary)/.16)); background-size:100% 62%; background-position:0 58%; background-repeat:no-repeat; -webkit-box-decoration-break:clone; box-decoration-break:clone; border-radius:.45em; }
+/* Opening pages lay ayat out as full-width blocks; colour alone reads cleaner than a band there. */
+.mushaf-opening .mushaf-ayah.ayah-selected { background-image:none; }

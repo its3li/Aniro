@@ -20,7 +20,7 @@ import { SunDimIcon as SunDim } from '@/components/icons/interface-icons';
 import { SunHorizonIcon as SunMoon } from '@/components/icons/interface-icons';
 import { ForkKnifeIcon as Utensils } from '@/components/icons/interface-icons';
 
-const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+export const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
   'Library': Library,
   'Sun': Sun,
   'SunDim': SunDim,
@@ -45,9 +45,11 @@ const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>
 interface CategoryGridProps {
   categories: AzkarCategory[];
   onSelect: (item: AzkarCategory) => void;
+  /** Optional trailing tile, e.g. "New set". */
+  children?: React.ReactNode;
 }
 
-export function CategoryGrid({ categories, onSelect }: CategoryGridProps) {
+export function CategoryGrid({ categories, onSelect, children }: CategoryGridProps) {
   const { settings } = useSettings();
   const isArabic = settings.language === 'ar';
 
@@ -65,7 +67,7 @@ export function CategoryGrid({ categories, onSelect }: CategoryGridProps) {
               "azkar-category group",
             )}
           >
-            <div className="category-symbol">
+            <div className="category-symbol" style={category.color.startsWith('#') ? { color: category.color, borderColor: category.color + '55', background: category.color + '14' } : undefined}>
               <Icon className="h-7 w-7" strokeWidth={1.5} />
             </div>
 
@@ -75,6 +77,7 @@ export function CategoryGrid({ categories, onSelect }: CategoryGridProps) {
           </button>
         );
       })}
+      {children}
     </div>
   );
 }

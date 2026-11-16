@@ -24,6 +24,14 @@ import { Skeleton } from "../ui/skeleton";
 import { TajweedLegend } from "./tajweed-legend";
 import { TajweedText } from "./tajweed-text";
 import { TafseerModal } from "./tafseer-modal";
+import { ShareNetworkIcon as ShareNetwork } from '@/components/icons/interface-icons';
+import { useShareImage } from '@/components/share/share-image-dialog';
+import { useDragSelect, type DragRange } from '@/hooks/use-drag-select';
+import { SelectionActionBar, ayatCountLabel } from '@/components/share/selection-action-bar';
+
+import { ayahReference, ayahShareItem, ayahShareText, type AyahShareSource } from '@/lib/ayah-share';
+import { useCustomAzkar } from '@/components/azkar/custom-azkar-sheets';
+
 import { useToast } from "@/hooks/use-toast";
 import { PlayIcon as Play } from '@/components/icons/interface-icons';
 import { PauseIcon as Pause } from '@/components/icons/interface-icons';
@@ -106,6 +114,8 @@ export function MushafPageView({
   const canUseTajweed = settings.quranEdition === "uthmani";
   const isTajweed = settings.quranEdition === "uthmani" && settings.quranTajweedEnabled;
   const { toast } = useToast();
+  const { openShareImage } = useShareImage();
+  const { openAddToAzkar } = useCustomAzkar();
   const {
     playerState,
     playSurah,
@@ -126,6 +136,8 @@ export function MushafPageView({
 
   // Swipe
   const containerRef = useRef<HTMLDivElement>(null);
+  const drag = useDragSelect(containerRef);
+  const { clear: clearDrag, isDragging } = drag;
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const touchCurrentX = useRef(0);
@@ -205,11 +217,15 @@ export function MushafPageView({
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (isDragging()) {
+      isSwiping.current = false;
+      return;
+    }
     touchCurrentX.current = e.touches[0].clientX;
     const dx = touchCurrentX.current - touchStartX.current;
     const dy = e.touches[0].clientY - touchStartY.current;
     isSwiping.current = Math.abs(dx) > 15 && Math.abs(dx) > Math.abs(dy) * 1.5;
-  }, []);
+  }, [isDragging]);
 
   const handleTouchEnd = useCallback(() => {
     if (!isSwiping.current) return;
@@ -234,7 +250,7 @@ export function MushafPageView({
         return null;
       } else {
         if (e) {
-          const popupWidth = 180;
+          const popupWidth = 220;
           const y = e.clientY - 60;
           const x = Math.max(8, Math.min(e.clientX - popupWidth / 2, window.innerWidth - popupWidth - 8));
           setTimeout(() => setSelectedAyahPos({ x, y }), 0);
@@ -263,6 +279,58 @@ export function MushafPageView({
     },
     [isArabic, toast]
   );
+
+  const handleShareVerse = useCallback(
+    (ayah: PageAyah) => {
+      const source: AyahShareSource = {
+        text: stripBismillah(ayah.text, ayah.surah.number, ayah.numberInSurah),
+        numberInSurah: ayah.numberInSurah,
+        surahName: ayah.surah.name,
+        surahEnglishName: ayah.surah.englishName,
+      };
+      openShareImage({
+        items: [ayahShareItem(source)],
+        title: `${isArabic ? ayah.surah.name : ayah.surah.englishName} · ${ayah.numberInSurah}`,
+        shareText: ayahShareText([source]),
+      });
+      setSelectedAyah(null);
+    },
+    [isArabic, openShareImage]
+  );
+
+  useEffect(() => {
+    const id = window.setTimeout(clearDrag, 0);
+    return () => window.clearTimeout(id);
+  }, [currentPage, clearDrag]);
+
+  const selectedSources = (): AyahShareSource[] => {
+    if (!drag.range || !pageData) return [];
+    return pageData.ayahs.slice(drag.range.start, drag.range.end + 1).map(a => ({
+      text: stripBismillah(a.text, a.surah.number, a.numberInSurah),
+      numberInSurah: a.numberInSurah,
+      surahName: a.surah.name,
+      surahEnglishName: a.surah.englishName,
+    }));
+  };
+
+  const handleCopySelection = () => {
+    void navigator.clipboard.writeText(ayahShareText(selectedSources()));
+    toast({ title: isArabic ? 'تم نسخ الآيات' : 'Ayat copied' });
+    clearDrag();
+  };
+
+  const handleShareSelection = () => {
+    const sources = selectedSources();
+    if (!sources.length) return;
+    const first = sources[0];
+    const last = sources[sources.length - 1];
+    const sameSurah = first.surahEnglishName === last.surahEnglishName;
+    openShareImage({
+      items: sources.map(ayahShareItem),
+      title: `${isArabic ? first.surahName : first.surahEnglishName} · ${sameSurah && first.numberInSurah !== last.numberInSurah ? `${first.numberInSurah}–${last.numberInSurah}` : first.numberInSurah}`,
+      shareText: ayahShareText(sources),
+    });
+  };
 
   const handlePlayVerse = useCallback(
     (ayah: PageAyah) => {
@@ -502,6 +570,7 @@ export function MushafPageView({
               isArabic={isArabic}
               isTajweed={isTajweed}
               selectedAyah={selectedAyah}
+              selectedRange={drag.range}
               highlightedAyah={highlightedAyah}
               onVerseTap={handleVerseTap}
               setSelectedAyah={setSelectedAyah}
@@ -551,6 +620,13 @@ export function MushafPageView({
                   <Copy className="w-5 h-5" />
                 </button>
                 <button
+                  aria-label={isArabic ? 'مشاركة الآية' : 'Share ayah'}
+                  className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
+                  onClick={() => handleShareVerse(verse)}
+                >
+                  <ShareNetwork className="w-5 h-5" />
+                </button>
+                <button
                   aria-label={isArabic ? "حفظ العلامة" : "Bookmark ayah"}
                   className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 active:bg-primary/20 transition-colors"
                   onClick={() => handleBookmarkVerse(verse)}
@@ -569,6 +645,26 @@ export function MushafPageView({
           })()}
         </div>,
         document.body
+      )}
+
+      {drag.range && (
+        <SelectionActionBar
+          count={drag.range.end - drag.range.start + 1}
+          label={ayatCountLabel(drag.range.end - drag.range.start + 1, isArabic)}
+          isArabic={isArabic}
+          onCopy={handleCopySelection}
+          onShare={handleShareSelection}
+          onAdd={() => {
+            openAddToAzkar(selectedSources().map(src => ({
+              arabic: ayahShareItem(src).arabic,
+              translation: src.translation ?? '',
+              repetitions: 1,
+              source: ayahReference(src),
+            })));
+            clearDrag();
+          }}
+          onClear={clearDrag}
+        />
       )}
 
       {selectedAyahForTafseer && (
@@ -594,6 +690,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
   isArabic,
   isTajweed,
   selectedAyah,
+  selectedRange,
   highlightedAyah,
   onVerseTap,
   setSelectedAyah,
@@ -605,6 +702,7 @@ const MushafPageContent = React.memo(function MushafPageContent({
   isArabic: boolean;
   isTajweed: boolean;
   selectedAyah: number | null;
+  selectedRange: DragRange | null;
   highlightedAyah: number | null;
   onVerseTap: (ayah: PageAyah, e: React.MouseEvent) => void;
   setSelectedAyah: (ayah: number | null) => void;
@@ -643,8 +741,9 @@ const MushafPageContent = React.memo(function MushafPageContent({
         className={cn("w-full quran-text mushaf-text", isOpeningPage && "mushaf-opening", isOpeningPage && ('mushaf-opening-' + page.pageNumber))}
         data-page={page.pageNumber}
       >
-        {page.ayahs.map((ayah) => {
-          const isSelected = selectedAyah === ayah.number;
+        {page.ayahs.map((ayah, index) => {
+          const inRange = !!selectedRange && index >= selectedRange.start && index <= selectedRange.end;
+          const isSelected = selectedAyah === ayah.number || inRange;
           const isHighlighted = highlightedAyah === ayah.number;
           const verseKey = `${ayah.surah.number}:${ayah.numberInSurah}`;
           const isVersePlaying = isPlaying && activeVerseKey === verseKey;
@@ -671,10 +770,11 @@ const MushafPageContent = React.memo(function MushafPageContent({
               {/* الآية: inline تتدفق جنب بعضها */}
               <span
                 ref={isVersePlaying ? playingRef : undefined}
+                data-select-index={index}
                 onClick={(e) => { e.stopPropagation(); onVerseTap(ayah, e); }}
                 className={cn(
                   'mushaf-ayah cursor-pointer rounded-md transition-colors duration-200 px-1 py-0.5',
-                  isSelected && (isTajweed ? 'bg-primary/5' : 'bg-primary/15 text-primary'),
+                  isSelected && 'ayah-selected',
                   isVersePlaying && (isTajweed ? 'playing-ayah-tajweed bg-primary/5' : 'playing-ayah bg-primary/20 text-primary'),
                   !isVersePlaying && isHighlighted && (isTajweed ? 'bg-primary/5' : 'bg-primary/10'),
                 )}
